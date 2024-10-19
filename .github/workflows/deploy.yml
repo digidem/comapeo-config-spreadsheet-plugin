@@ -13,37 +13,57 @@ jobs:
 
     steps:
       - name: Install clasp
-        run: npm install -g @google/clasp@2.4.2
+        id: install-clasp
+        run: sudo npm install @google/clasp@2.4.1 -g
 
-      - name: Setup clasp authentication
+      - name: Write CLASPRC_JSON secret to .clasprc.json file
+        id: write-clasprc
+        run: echo "$CLASPRC_JSON_SECRET" >> ~/.clasprc.json
+        env:
+          CLASPRC_JSON_SECRET: ${{ secrets.CLASPRC_JSON }}
+
+      - name: Check clasp login status
+        id: clasp_login
+        run: clasp login --status
+
+      - name: Save current .clasprc.json contents to CLASPRC_JSON_FILE environment variable
+        id: save-clasprc
         run: |
-          echo "${{ secrets.CLASPRC_JSON }}" > ~/.clasprc.json
-          clasp login --status
+          echo ::add-mask::$(tr -d '\n\r' < ~/.clasprc.json)
+          echo "CLASPRC_JSON_FILE=$(tr -d '\n\r' < ~/.clasprc.json)" >> $GITHUB_ENV
 
-      - name: Update CLASPRC_JSON secret if changed
-        if: env.CLASPRC_JSON_FILE != secrets.CLASPRC_JSON
+      - name: Save CLASPRC_JSON_FILE environment variable to CLASPRC_JSON repo secret
+        id: set-clasprc-secret
+        if: ${{ env.CLASPRC_JSON_FILE != env.CLASPRC_JSON_SECRET  }}
         uses: hmanzur/actions-set-secret@v2.0.0
+        env:
+          CLASPRC_JSON_SECRET: ${{ secrets.CLASPRC_JSON }}
         with:
           name: "CLASPRC_JSON"
           value: ${{ env.CLASPRC_JSON_FILE }}
           repository: ${{ github.repository }}
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
-        env:
-          CLASPRC_JSON_FILE: ${{ secrets.CLASPRC_JSON }}
 
-      - name: Checkout repository
-        if: github.event_name != 'schedule'
+      - name: Checkout repo
+        id: checkout-repo
+        if: ${{github.event_name	!= 'schedule' }}
         uses: actions/checkout@v2
 
-      - name: Set scriptId in .clasp.json
-        if: github.event_name != 'schedule' && env.SCRIPT_ID
-        run: |
-          jq '.scriptId = "${{ secrets.SCRIPT_ID }}"' .clasp.json > temp.json && mv temp.json .clasp.json
+      - name: Set scriptId in .clasp.json file
+        id: set-script-id
+        if: ${{ github.event_name	!= 'schedule' && env.SCRIPT_ID}}
+        run: jq '.scriptId = "${{env.SCRIPT_ID}}"' .clasp.json > /tmp/.clasp.json && mv /tmp/.clasp.json .clasp.json
+        env:
+          SCRIPT_ID: ${{secrets.SCRIPT_ID}}
 
-      - name: Push script
-        if: github.event_name != 'schedule'
+      - name: Push script to scripts.google.com
+        id: clasp-push
+        if: ${{ github.event_name	!= 'schedule'}}
         run: clasp push -f
 
-      - name: Deploy script
-        if: env.DEPLOYMENT_ID && (github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
-        run: clasp deploy -i "${{ secrets.DEPLOYMENT_ID }}" -d "${{ github.ref }}"
+      - name: Deploy Script
+        id: clasp-deploy
+        if: ${{env.DEPLOYMENT_ID && (github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))}}
+        run: clasp deploy -i "$DEPLOYMENT_ID" -d "$GITHUB_REF"
+        env:
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
