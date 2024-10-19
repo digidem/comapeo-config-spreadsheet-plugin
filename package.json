@@ -3,16 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc index.ts --outDir dist",
+    "build": "tsc *.ts --outDir dist",
     "push": "clasp push"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
+    "@types/bun": "latest",
+    "@types/google-apps-script": "^1.0.84",
     "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "@types/google-apps-script": "^1.0.84"
   }
 }
