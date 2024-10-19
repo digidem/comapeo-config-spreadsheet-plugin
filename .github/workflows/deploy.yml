@@ -29,15 +29,12 @@ jobs:
       - name: Save current .clasp.json contents to CLASPRC_JSON_FILE environment variable
         id: save-clasprc
         run: |
-          echo ::add-mask::$(tr -d '\n\r' < ~/.clasp.json)
-          echo "CLASPRC_JSON_FILE=$(tr -d '\n\r' < ~/.clasp.json)" >> $GITHUB_ENV
+          echo ::add-mask::$(cat ~/.clasp.json | jq -c)
+          echo "CLASPRC_JSON_FILE=$(cat ~/.clasp.json | jq -c)" >> $GITHUB_ENV
 
       - name: Save CLASPRC_JSON_FILE environment variable to CLASPRC_JSON repo secret
         id: set-clasprc-secret
-        if: ${{ env.CLASPRC_JSON_FILE != env.CLASPRC_JSON_SECRET  }}
         uses: hmanzur/actions-set-secret@v2.0.0
-        env:
-          CLASPRC_JSON_SECRET: ${{ secrets.CLASPRC_JSON }}
         with:
           name: "CLASPRC_JSON"
           value: ${{ env.CLASPRC_JSON_FILE }}
@@ -46,15 +43,13 @@ jobs:
 
       - name: Checkout repo
         id: checkout-repo
-        if: ${{github.event_name	!= 'schedule' }}
-        uses: actions/checkout@v2
+        if: ${{github.event_name != 'schedule' }}
+        uses: actions/checkout@v4
 
       - name: Set scriptId in .clasp.json file
         id: set-script-id
-        if: ${{ github.event_name	!= 'schedule' && env.SCRIPT_ID}}
-        run: jq '.scriptId = "${{env.SCRIPT_ID}}"' .clasp.json > /tmp/.clasp.json && mv /tmp/.clasp.json .clasp.json
-        env:
-          SCRIPT_ID: ${{secrets.SCRIPT_ID}}
+        if: ${{ github.event_name != 'schedule' && secrets.SCRIPT_ID }}
+        run: jq '.scriptId = "${{secrets.SCRIPT_ID}}"' .clasp.json > /tmp/.clasp.json && mv /tmp/.clasp.json .clasp.json
 
       - name: Push script to scripts.google.com
         id: clasp-push
