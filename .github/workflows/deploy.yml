@@ -14,11 +14,11 @@ jobs:
     steps:
       - name: Install clasp
         id: install-clasp
-        run: sudo npm install @google/clasp@2.4.1 -g
+        run: sudo npm install @google/clasp@2.4.2 -g
 
-      - name: Write CLASPRC_JSON secret to .clasprc.json file
+      - name: Write CLASPRC_JSON secret to .clasp.json file
         id: write-clasprc
-        run: echo "$CLASPRC_JSON_SECRET" >> ~/.clasprc.json
+        run: echo "$CLASPRC_JSON_SECRET" >> ~/.clasp.json
         env:
           CLASPRC_JSON_SECRET: ${{ secrets.CLASPRC_JSON }}
 
@@ -26,11 +26,11 @@ jobs:
         id: clasp_login
         run: clasp login --status
 
-      - name: Save current .clasprc.json contents to CLASPRC_JSON_FILE environment variable
+      - name: Save current .clasp.json contents to CLASPRC_JSON_FILE environment variable
         id: save-clasprc
         run: |
-          echo ::add-mask::$(tr -d '\n\r' < ~/.clasprc.json)
-          echo "CLASPRC_JSON_FILE=$(tr -d '\n\r' < ~/.clasprc.json)" >> $GITHUB_ENV
+          echo ::add-mask::$(tr -d '\n\r' < ~/.clasp.json)
+          echo "CLASPRC_JSON_FILE=$(tr -d '\n\r' < ~/.clasp.json)" >> $GITHUB_ENV
 
       - name: Save CLASPRC_JSON_FILE environment variable to CLASPRC_JSON repo secret
         id: set-clasprc-secret
