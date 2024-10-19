@@ -1,0 +1,44 @@
+name: Deploy Google Apps Script
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+    
+    - name: Install clasp
+      run: npm install -g @google/clasp
+    
+    - name: Authenticate clasp
+      run: |
+        echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+    
+    - name: Set Script ID
+      run: |
+        if [ ! -z "${{ secrets.SCRIPT_ID }}" ]; then
+          sed -i 's/"scriptId": *"[^"]*"/"scriptId": "${{ secrets.SCRIPT_ID }}"/' .clasp.json
+        fi
+    
+    - name: Push script
+      run: clasp push -f
+    
+    - name: Deploy script
+      if: github.ref == 'refs/heads/main' && secrets.DEPLOYMENT_ID
+      run: clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} -d "GitHub Actions Deployment"
+    
+    - name: Update CLASPRC_JSON secret
+      env:
+        GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+      run: |
+        NEW_CLASPRC=$(cat ~/.clasprc.json)
+        gh secret set CLASPRC_JSON -b"$NEW_CLASPRC"
