@@ -3,12 +3,14 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc *.ts --outDir dist",
-    "push": "clasp push"
+    "dev": "clasp push --watch",
+    "push": "clasp push",
+    "lint": "bunx biome lint --write --unsafe ."
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/google-apps-script": "^1.0.84",
+    "biome": "^0.3.3",
     "typescript": "^5.6.3"
   }
 }

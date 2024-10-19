@@ -1,6 +1,3 @@
-import { autoTranslateSheets } from './translation';
-import { generateCoMapeoConfig } from './config';
-
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu("CoMapeo Tools")
@@ -12,17 +9,25 @@ function onOpen() {
 function translateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    'Translate CoMapeo Category',
-    'This will translate all empty cells in the Spanish and Portuguese columns. Continue?',
-    ui.ButtonSet.YES_NO
+    "Translate CoMapeo Category",
+    "This will translate all empty cells in the other transltion language columns. Continue?",
+    ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
     try {
       autoTranslateSheets();
-      ui.alert('Translation Complete', 'All sheets have been translated successfully.', ui.ButtonSet.OK);
+      ui.alert(
+        "Translation Complete",
+        "All sheets have been translated successfully.",
+        ui.ButtonSet.OK,
+      );
     } catch (error) {
-      ui.alert('Error', `An error occurred during translation: ${error.message}`, ui.ButtonSet.OK);
+      ui.alert(
+        "Error",
+        `An error occurred during translation: ${error.message}`,
+        ui.ButtonSet.OK,
+      );
     }
   }
 }
@@ -30,21 +35,20 @@ function translateCoMapeoCategory() {
 function generateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    'Generate CoMapeo Category',
-    'This will generate the CoMapeo configuration based on the current spreadsheet data. Continue?',
-    ui.ButtonSet.YES_NO
+    "Generate CoMapeo Category",
+    "This will generate the CoMapeo configuration based on the current spreadsheet data. Continue?",
+    ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
     try {
       generateCoMapeoConfig();
     } catch (error) {
-      ui.alert('Error', `An error occurred while generating the configuration: ${error.message}`, ui.ButtonSet.OK);
+      ui.alert(
+        "Error",
+        `An error occurred while generating the configuration: ${error.message}`,
+        ui.ButtonSet.OK,
+      );
     }
   }
 }
-
-// Make functions globally available
-global.onOpen = onOpen;
-global.translateCoMapeoCategory = translateCoMapeoCategory;
-global.generateCoMapeoCategory = generateCoMapeoCategory;
