@@ -1,18 +1,33 @@
-function saveZipToDrive(zipBlob) {
-  var folder = DriveApp.getRootFolder();  // Save to root folder
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const fileName = `${spreadsheet.getName()}.comapeocat`;
-  var zipFile = folder.createFile(zipBlob).setName(fileName);
-  
-  // Generate a download link
-  var fileUrl = zipFile.getUrl();
-  Logger.log("Download the ZIP file here: " + fileUrl);
+function saveConfigToDrive(config: CoMapeoConfig): string {
+  const rootFolder = DriveApp.createFolder('comapeo_config');
+  const folders = {
+    presets: rootFolder.createFolder('presets'),
+    fields: rootFolder.createFolder('fields'),
+    messages: rootFolder.createFolder('messages')
+  };
 
-  // Optionally send the link to the user via email or show in the UI
-  return fileUrl;
+  // Save presets
+  config.presets.forEach(preset => {
+    const presetJson = JSON.stringify(preset, null, 2);
+    folders.presets.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
+  });
+
+  // Save fields
+  config.fields.forEach(field => {
+    const fieldJson = JSON.stringify(field, null, 2);
+    folders.fields.createFile(`${field.tagKey}.json`, fieldJson, MimeType.PLAIN_TEXT);
+  });
+
+  // Save messages
+  Object.entries(config.messages).forEach(([lang, messages]) => {
+    const messagesJson = JSON.stringify(messages, null, 2);
+    folders.messages.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
+  });
+
+  return rootFolder.getUrl();
 }
 
-function showDownloadLink(fileUrl: string) {
+function showDownloadLink(folderUrl: string) {
   const html = `
     <!DOCTYPE html>
     <html lang="en">
