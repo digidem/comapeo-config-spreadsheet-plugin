@@ -21,14 +21,44 @@ function generateCoMapeoConfig() {
   // Process the data to create the CoMapeo configuration
   const config = processDataForCoMapeo(data);
 
-  // Convert the config to JSON
-  const configJson = JSON.stringify(config, null, 2);
+  // Create folders for presets, fields, and messages
+  // Create folders for presets, fields, and messages
+  const rootFolder = DriveApp.createFolder('comapeo_config');
+  const folders = {
+    presets: rootFolder.createFolder('presets'),
+    fields: rootFolder.createFolder('fields'),
+    messages: rootFolder.createFolder('messages')
+  };
 
-  // Create a blob from the JSON
-  const configBlob = Utilities.newBlob(configJson, 'application/json', 'comapeo_config.json');
+  // Create JSON files for each preset
+  config.presets.forEach(preset => {
+    const presetJson = JSON.stringify(preset, null, 2);
+    folders.presets.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
+  });
 
-  // Save the blob to Drive and get the download URL
-  const downloadUrl = saveZipToDrive(configBlob);
+  // Create JSON files for each field
+  config.fields.forEach(field => {
+    const fieldJson = JSON.stringify(field, null, 2);
+    folders.fields.createFile(`${field.tagKey}.json`, fieldJson, MimeType.PLAIN_TEXT);
+  });
+
+  // Create JSON files for each language in messages
+  Object.entries(config.messages).forEach(([lang, messages]) => {
+    const messagesJson = JSON.stringify(messages, null, 2);
+    folders.messages.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
+  });
+
+  // Create a ZIP file containing all folders
+  const allFiles = rootFolder.getFiles();
+  const fileArray: GoogleAppsScript.Base.Blob[] = [];
+  while (allFiles.hasNext()) {
+    const file = allFiles.next();
+    fileArray.push(file.getBlob());
+  }
+  const zipBlob = Utilities.zip(fileArray, 'comapeo_config.zip');
+
+  // Save the ZIP to Drive and get the download URL
+  const downloadUrl = saveZipToDrive(zipBlob);
 
   // Show the download link
   showDownloadLink(downloadUrl);
@@ -50,17 +80,18 @@ function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
   const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
 
   categories.forEach((category, index) => {
+    const fields = category[3] ? category[3].split(',').map(f => slugify(f.trim())) : [];
     const preset: CoMapeoPreset = {
       icon: slugify(category[0]),
       color: backgroundColors[index][0] || '#0000FF', // Use the background color or default to blue
-      fields: category[3].split(',').map(f => slugify(f.trim())),
+      fields,
       geometry: ['point', 'line', 'area'],
       tags: { [slugify(category[0])]: 'yes' },
-      name: category[0]
+      name: category[0],
+      sort: index + 1 // Add sort according to index + 1
     };
     config.presets.push(preset);
   });
-
   // Process Details
   const details = data['Details'].slice(1);
 
@@ -119,9 +150,12 @@ function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
           messageKey = `fields.${key}.placeholder`;
           description = `An example to guide the user for field '${key}'`;
         } else if (sheetName === 'Detail Option Translations') {
-          const optionKey = slugify(translation[1]);
-          messageKey = `fields.${key}.options.${optionKey}`;
-          description = `Label for option '${optionKey}' for field '${key}'`;
+          const fieldType = getFieldType(translation[2]); // Assuming column 3 contains the field type
+          if (fieldType !== 'number' && fieldType !== 'text') {
+            const optionValue = slugify(translation[1]);
+            messageKey = `fields.${key}.options.${optionValue}`;
+            description = `Label for option '${optionValue}' for field '${key}'`;
+          }
         }
 
         if (!config.messages[lang][messageKey]) {
