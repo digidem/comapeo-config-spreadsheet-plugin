@@ -34,7 +34,7 @@ function showDownloadLink(folderUrl: string) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Download CoMapeo Configuration</title>
+      <title>CoMapeo Configuration Generated</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@ function showDownloadLink(folderUrl: string) {
         p {
           margin-bottom: 20px;
         }
-        .download-btn {
+        .folder-btn {
           display: inline-block;
           background-color: #330B9E;
           color: white;
@@ -62,18 +62,19 @@ function showDownloadLink(folderUrl: string) {
           font-weight: bold;
           transition: background-color 0.3s ease;
         }
-        .download-btn:hover {
-          background-color: #330B9E;
+        .folder-btn:hover {
+          background-color: #4A0ED6;
         }
       </style>
     </head>
     <body>
       <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" style="width: 100px; height: 100px; margin-bottom: 20px;">
-      <p>Your CoMapeo configuration file has been generated and is ready for download.</p>
-      <p>After downloading, please load this file into your CoMapeo application to update your configuration.</p>
-      <a href="${fileUrl}" target="_blank" class="download-btn">Download Configuration ZIP</a>
+      <h1>CoMapeo Configuration Generated</h1>
+      <p>Your CoMapeo configuration files have been generated and saved to Google Drive.</p>
+      <p>Click the button below to access the folder containing your configuration files.</p>
+      <a href="${folderUrl}" target="_blank" class="folder-btn">Open Google Drive Folder</a>
     </body>
     </html>
   `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(400), 'Download CoMapeo Configuration');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(400), 'CoMapeo Configuration Generated');
 }
