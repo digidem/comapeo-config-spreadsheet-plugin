@@ -11,10 +11,8 @@ function saveZipToDrive(zipBlob) {
   return fileUrl;
 }
 
-function showDownloadLink() {
-  // var fileUrl = sendDataToApiAndGetZip();  // Send data and get the ZIP download link
-  var fileUrl = sendDataToConvertApiAndGetZip();  // Send data and get the ZIP download link
+function showDownloadLink(fileUrl: string) {
   // Create a simple dialog in the Spreadsheet UI
-  var html = '<a href="' + fileUrl + '" target="_blank">Download Processed ZIP File</a>';
+  const html = '<a href="' + fileUrl + '" target="_blank">Download Processed ZIP File</a>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html), 'Download ZIP');
 }
