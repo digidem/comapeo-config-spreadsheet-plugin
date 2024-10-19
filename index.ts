@@ -1,4 +1,53 @@
 // Sample: function to process spreadsheet and generate CoMapeo config
+function autoTranslateSheet(): void {
+  // Define the sheet names
+  const sheetNames = [
+    "Category Translations",
+    "Detail Label Translations",
+    "Detail Helper Text Translations",
+    "Detail Option Translations",
+  ];
+
+  // Loop over each sheet to translate
+  for (const sheetName of sheetNames) {
+    const sheet =
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    const lastRow = sheet.getLastRow();
+
+    // Translate each row in the Spanish and Portuguese columns
+    for (let i = 2; i <= lastRow; i++) {
+      // Start at row 2 to skip headers
+      const englishText = sheet.getRange(i, 1).getValue();
+
+      if (englishText) {
+        // Translate to Spanish (column 2)
+        const spanishCell = sheet.getRange(i, 2);
+        if (!spanishCell.getValue()) {
+          // Only translate if empty
+          const spanishTranslation = LanguageApp.translate(
+            englishText,
+            "en",
+            "es",
+          );
+          spanishCell.setValue(spanishTranslation);
+        }
+
+        // Translate to Portuguese (column 3)
+        const portugueseCell = sheet.getRange(i, 3);
+        if (!portugueseCell.getValue()) {
+          // Only translate if empty
+          const portugueseTranslation = LanguageApp.translate(
+            englishText,
+            "en",
+            "pt",
+          );
+          portugueseCell.setValue(portugueseTranslation);
+        }
+      }
+    }
+  }
+}
+
 function generateCoMapeoConfig() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const data = sheet.getDataRange().getValues();
