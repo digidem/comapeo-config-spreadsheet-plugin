@@ -16,11 +16,21 @@ jobs:
         id: install-clasp
         run: sudo npm install @google/clasp@2.4.2 -g
 
-      - name: Write CLASPRC_JSON secret to .clasp.json file
+      - name: Write CLASPRC_JSON secret to .clasprc.json file
         id: write-clasprc
         run: |
           echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}"}' > .clasp.json
+
+      - name: Validate .clasprc.json content
+        id: validate-clasprc
+        run: |
+          if jq -e . ~/.clasprc.json >/dev/null 2>&1; then
+            echo "Valid JSON in .clasprc.json"
+          else
+            echo "Invalid JSON in .clasprc.json"
+            exit 1
+          fi
 
       - name: Check .clasp.json and .clasprc.json content
         id: check-clasp-files
@@ -32,7 +42,13 @@ jobs:
 
       - name: Check clasp login status
         id: clasp_login
-        run: clasp login --status || echo "Login failed, but continuing..."
+        run: |
+          if clasp login --status; then
+            echo "Clasp login successful"
+          else
+            echo "Clasp login failed. Attempting to refresh token..."
+            clasp login --no-localhost
+          fi
 
       - name: Save current .clasp.json contents to CLASPRC_JSON_FILE environment variable
         id: save-clasprc
