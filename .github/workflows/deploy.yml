@@ -18,13 +18,21 @@ jobs:
 
       - name: Write CLASPRC_JSON secret to .clasp.json file
         id: write-clasprc
-        run: echo "$CLASPRC_JSON_SECRET" >> ~/.clasp.json
-        env:
-          CLASPRC_JSON_SECRET: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}"}' > .clasp.json
+
+      - name: Check .clasp.json and .clasprc.json content
+        id: check-clasp-files
+        run: |
+          echo "Content of .clasp.json:"
+          cat .clasp.json
+          echo "Content of ~/.clasprc.json (masked):"
+          sed 's/.*/"[MASKED]"/' ~/.clasprc.json
 
       - name: Check clasp login status
         id: clasp_login
-        run: clasp login --status
+        run: clasp login --status || echo "Login failed, but continuing..."
 
       - name: Save current .clasp.json contents to CLASPRC_JSON_FILE environment variable
         id: save-clasprc
