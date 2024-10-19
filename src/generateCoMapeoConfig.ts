@@ -45,11 +45,14 @@ function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
   };
 
   // Process Categories
+  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
   const categories = data['Categories'].slice(1);
-  categories.forEach(category => {
+  const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
+
+  categories.forEach((category, index) => {
     const preset: CoMapeoPreset = {
       icon: slugify(category[0]),
-      color: '#0000FF',
+      color: backgroundColors[index][0] || '#0000FF', // Use the background color or default to blue
       fields: category[3].split(',').map(f => slugify(f.trim())),
       geometry: ['point', 'line', 'area'],
       tags: { [slugify(category[0])]: 'yes' },
