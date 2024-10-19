@@ -22,10 +22,11 @@ function generateCoMapeoConfig() {
 }
 
 function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
+  const fields = processFields(data);
   return {
-    fields: processFields(data),
+    fields,
     presets: processPresets(data),
-    messages: processTranslations(data)
+    messages: processTranslations(data, fields)
   };
 }
 
@@ -57,7 +58,7 @@ function processFields(data: SheetData): CoMapeoField[] {
   }));
 }
 
-function processTranslations(data: SheetData): CoMapeoTranslations {
+function processTranslations(data: SheetData, fields: CoMapeoField[]): CoMapeoTranslations {
   const messages: CoMapeoTranslations = { es: {}, pt: {} };
   const translationSheets = [
     'Category Translations',
@@ -73,7 +74,7 @@ function processTranslations(data: SheetData): CoMapeoTranslations {
       const languages: TranslationLanguage[] = ['es', 'pt'];
       
       languages.forEach((lang, index) => {
-        const { messageKey, description } = getMessageKeyAndDescription(sheetName, key, translation);
+        const { messageKey, description } = getMessageKeyAndDescription(sheetName, key, translation, fields, index);
         if (messageKey) {
           messages[lang][messageKey] = {
             description,
@@ -87,20 +88,27 @@ function processTranslations(data: SheetData): CoMapeoTranslations {
   return messages;
 }
 
-function getMessageKeyAndDescription(sheetName: string, key: string, translation: any[]): { messageKey: string; description: string } {
+function getMessageKeyAndDescription(sheetName: string, key: string, translation: any[], fields: CoMapeoField[], index: number): { messageKey: string; description: string } {
+  const field = fields[index];
+  const baseMessageKey = sheetName.startsWith('Category') ? 'presets' : 'fields';
+  
   switch (sheetName) {
     case 'Category Translations':
-      return { messageKey: `presets.${key}.name`, description: `Name for preset '${key}'` };
+      return { messageKey: `${baseMessageKey}.${key}.name`, description: `Name for preset '${key}'` };
     case 'Detail Label Translations':
-      return { messageKey: `fields.${key}.label`, description: `Label for field '${key}'` };
+      return { messageKey: `${baseMessageKey}.${key}.label`, description: `Label for field '${key}'` };
     case 'Detail Helper Text Translations':
-      return { messageKey: `fields.${key}.placeholder`, description: `An example to guide the user for field '${key}'` };
-    case 'Detail Option Translations':
-      const fieldType = getFieldType(translation[2]);
-      if (fieldType !== 'number' && fieldType !== 'text') {
-        const optionValue = slugify(translation[1]);
-        return { messageKey: `fields.${key}.options.${optionValue}`, description: `Label for option '${optionValue}' for field '${key}'` };
+      if (field && field.label.trim()) {
+        return { messageKey: `${baseMessageKey}.${field.tagKey}.placeholder`, description: `An example to guide the user for field '${field.label}'` };
       }
+      return { messageKey: '', description: '' };
+    case 'Detail Option Translations':
+      const fieldType = getFieldType(field?.type || '');
+      if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
+        const optionValue = slugify(translation[1]);
+        return { messageKey: `${baseMessageKey}.${field?.tagKey}.options.${optionValue}`, description: `Label for option '${translation[1]}' for field '${field?.label}'` };
+      }
+      return { messageKey: '', description: '' };
     default:
       return { messageKey: '', description: '' };
   }
@@ -124,5 +132,5 @@ function getFieldType(typeString: string): string {
 function getFieldOptions(typeString: string, optionsString: string): Array<{ label: string; value: string }> | undefined {
   const fieldType = getFieldType(typeString);
   if (fieldType === 'number' || fieldType === 'text') return undefined;
-  return optionsString.split(',').map(opt => ({ label: opt.trim(), value: opt.trim() }));
+  return optionsString.split(',').map(opt => ({ label: opt.trim(), value: slugify(opt.trim()) }));
 }
