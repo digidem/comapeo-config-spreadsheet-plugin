@@ -74,13 +74,15 @@ function processTranslations(data: SheetData, fields: CoMapeoField[]): CoMapeoTr
       const languages: TranslationLanguage[] = ['es', 'pt'];
       
       languages.forEach((lang, index) => {
-        const { messageKey, description } = getMessageKeyAndDescription(sheetName, key, translation, fields, index);
-        if (messageKey) {
-          messages[lang][messageKey] = {
-            description,
-            message: getTranslationMessage(sheetName, translation, index)
-          };
-        }
+        const messageKeys = getMessageKeyAndDescription(sheetName, key, translation, fields, index);
+        messageKeys.forEach(({ messageKey, description }) => {
+          if (messageKey) {
+            messages[lang][messageKey] = {
+              description,
+              message: getTranslationMessage(sheetName, translation, index, messageKey)
+            };
+          }
+        });
       });
     });
   });
@@ -88,35 +90,41 @@ function processTranslations(data: SheetData, fields: CoMapeoField[]): CoMapeoTr
   return messages;
 }
 
-function getMessageKeyAndDescription(sheetName: string, key: string, translation: any[], fields: CoMapeoField[], index: number): { messageKey: string; description: string } {
-  const field = fields[index];
+function getMessageKeyAndDescription(sheetName: string, key: string, translation: any[], fields: CoMapeoField[], index: number): { messageKey: string; description: string }[] {
+  const field = fields.find(f => f.tagKey === key);
   const baseMessageKey = sheetName.startsWith('Category') ? 'presets' : 'fields';
   
   switch (sheetName) {
     case 'Category Translations':
-      return { messageKey: `${baseMessageKey}.${key}.name`, description: `Name for preset '${key}'` };
+      return [{ messageKey: `${baseMessageKey}.${key}.name`, description: `Name for preset '${key}'` }];
     case 'Detail Label Translations':
-      return { messageKey: `${baseMessageKey}.${key}.label`, description: `Label for field '${key}'` };
+      return [{ messageKey: `${baseMessageKey}.${key}.label`, description: `Label for field '${key}'` }];
     case 'Detail Helper Text Translations':
       if (field && field.label.trim()) {
-        return { messageKey: `${baseMessageKey}.${field.tagKey}.placeholder`, description: `An example to guide the user for field '${field.label}'` };
+        return [{ messageKey: `${baseMessageKey}.${key}.placeholder`, description: `An example to guide the user for field '${field.label}'` }];
       }
-      return { messageKey: '', description: '' };
+      return [];
     case 'Detail Option Translations':
       const fieldType = getFieldType(field?.type || '');
       if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
-        const optionValue = slugify(translation[1]);
-        return { messageKey: `${baseMessageKey}.${field?.tagKey}.options.${optionValue}`, description: `Label for option '${translation[1]}' for field '${field?.label}'` };
+        const options = translation[1].split(',').map(opt => opt.trim());
+        return options.map(option => ({
+          messageKey: `${baseMessageKey}.${key}.options.${slugify(option)}`,
+          description: `Label for option '${option}' for field '${field?.label}'`
+        }));
       }
-      return { messageKey: '', description: '' };
+      return [];
     default:
-      return { messageKey: '', description: '' };
+      return [];
   }
 }
 
-function getTranslationMessage(sheetName: string, translation: any[], index: number): string | { label: string; value: string } {
+function getTranslationMessage(sheetName: string, translation: any[], index: number, messageKey: string): string | { label: string; value: string } {
   if (sheetName === 'Detail Option Translations') {
-    return { label: translation[index + 1], value: translation[index + 1] };
+    const options = translation[index + 1].split(',').map(opt => opt.trim());
+    const optionValue = messageKey.split('.').pop();
+    const optionLabel = options.find(opt => slugify(opt) === optionValue) || '';
+    return { label: optionLabel, value: optionLabel };
   }
   return translation[index + 1];
 }
