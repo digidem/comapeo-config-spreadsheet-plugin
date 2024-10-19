@@ -1,3 +1,17 @@
+function saveZipToDrive(zipBlob) {
+  var folder = DriveApp.getRootFolder();  // Save to root folder
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const fileName = `${spreadsheet.getName()}.comapeocat`;
+  var zipFile = folder.createFile(zipBlob).setName(fileName);
+
+  // Generate a download link
+  var fileUrl = zipFile.getUrl();
+  Logger.log("Download the ZIP file here: " + fileUrl);
+
+  // Optionally send the link to the user via email or show in the UI
+  return fileUrl;
+}
+
 function saveConfigToDrive(config: CoMapeoConfig): string {
   const rootFolder = DriveApp.createFolder('comapeo_config');
   const folders = {
