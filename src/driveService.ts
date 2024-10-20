@@ -13,46 +13,109 @@ function saveZipToDrive(zipBlob) {
 }
 
 function saveConfigToDrive(config: CoMapeoConfig): string {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const documentName = spreadsheet.getName();
-  const rootFolder = DriveApp.createFolder('comapeo_config');
-  const folders = {
+  const folderName = generateFolderName(config.metadata.name);
+  console.log('Saving config to drive:', folderName);
+  const rootFolder = DriveApp.createFolder(folderName);
+  const folders = createSubFolders(rootFolder);
+
+  savePresetsAndIcons(config, folders);
+  saveFields(config.fields, folders.fields);
+  saveMessages(config.messages, folders.messages);
+  saveMetadataAndPackage(config, rootFolder);
+
+  return rootFolder.getUrl();
+}
+
+function generateFolderName(documentName: string): string {
+  const version = Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd');
+  return `${slugify(documentName)}-${version}`;
+}
+
+function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
+  return {
     presets: rootFolder.createFolder('presets'),
+    icons: rootFolder.createFolder('icons'),
     fields: rootFolder.createFolder('fields'),
     messages: rootFolder.createFolder('messages')
   };
+}
 
-  // Save presets
-  config.presets.forEach(preset => {
-    const presetJson = JSON.stringify(preset, null, 2);
-    folders.presets.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
+function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAppsScript.Drive.Folder, icons: GoogleAppsScript.Drive.Folder }) {
+  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
+  config.presets.forEach((preset, index) => {
+    savePreset(preset, folders.presets);
+    if (config.icons[index]) {
+      saveIcon(config.icons[index], folders.icons, categoriesSheet, index);
+    }
   });
+}
 
-  // Save fields
-  config.fields.forEach(field => {
+function savePreset(preset: CoMapeoPreset, presetsFolder: GoogleAppsScript.Drive.Folder) {
+  const presetJson = JSON.stringify(preset, null, 2);
+  presetsFolder.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
+}
+
+function saveIcon(icon: CoMapeoIcon, iconsFolder: GoogleAppsScript.Drive.Folder, categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet, index: number) {
+  const { iconContent, mimeType } = getIconContent(icon);
+  if (!iconContent) return;
+
+  const file100px = createIconFile(iconsFolder, icon.name, '100px', iconContent, mimeType);
+  const smallerContent = createSmallerIcon(iconContent, mimeType);
+  createIconFile(iconsFolder, icon.name, '24px', smallerContent, mimeType);
+
+  updateIconUrlInSheet(categoriesSheet, index + 2, 2, file100px.getUrl());
+}
+
+function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeType: string } {
+  if (icon.svg.startsWith('data:image/svg+xml,')) {
+    return {
+      iconContent: decodeURIComponent(icon.svg.replace(/data:image\/svg\+xml,/, '')),
+      mimeType: MimeType.SVG
+    };
+  } else if (icon.svg.startsWith('https://drive.google.com/file/d/')) {
+    const fileId = icon.svg.split('/d/')[1].split('/')[0];
+    const file = DriveApp.getFileById(fileId);
+    return {
+      iconContent: file.getBlob().getDataAsString(),
+      mimeType: file.getMimeType()
+    };
+  } else {
+    console.error('Unsupported icon format');
+    return { iconContent: null, mimeType: '' };
+  }
+}
+
+function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string | Blob, mimeType: string) {
+  const extension = mimeType === MimeType.SVG ? 'svg' : 'png';
+  return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
+}
+
+function createSmallerIcon(iconContent: string, mimeType: string): string | Blob {
+  if (mimeType === MimeType.SVG) {
+    return iconContent.replace(/width="(\d+)" height="(\d+)"/, 'width="24" height="24"');
+  } else {
+    const originalBlob = Utilities.newBlob(iconContent, mimeType);
+    return originalBlob.setWidth(24).setHeight(24);
+  }
+}
+
+function saveFields(fields: CoMapeoField[], fieldsFolder: GoogleAppsScript.Drive.Folder) {
+  fields.forEach(field => {
     const fieldJson = JSON.stringify(field, null, 2);
-    folders.fields.createFile(`${field.tagKey}.json`, fieldJson, MimeType.PLAIN_TEXT);
+    fieldsFolder.createFile(`${field.tagKey}.json`, fieldJson, MimeType.PLAIN_TEXT);
   });
+}
 
-  // Save messages
-  Object.entries(config.messages).forEach(([lang, messages]) => {
-    const messagesJson = JSON.stringify(messages, null, 2);
-    folders.messages.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
+function saveMessages(messages: Record<string, Record<string, string>>, messagesFolder: GoogleAppsScript.Drive.Folder) {
+  Object.entries(messages).forEach(([lang, langMessages]) => {
+    const messagesJson = JSON.stringify(langMessages, null, 2);
+    messagesFolder.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
   });
+}
 
-  // Generate metadata
-  const metadata = {
-    dataset_id: `mapeo-${slugify(documentName)}`,
-    name: `config-${slugify(documentName)}`,
-    version: Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd'),
-    projectKey: Utilities.getUuid().replace(/-/g, '')
-  };
-
-  // Save metadata
-  const metadataJson = JSON.stringify(metadata, null, 2);
-  rootFolder.createFile('metadata.json', metadataJson, MimeType.PLAIN_TEXT);
-
-  return rootFolder.getUrl();
+function saveMetadataAndPackage(config: CoMapeoConfig, rootFolder: GoogleAppsScript.Drive.Folder) {
+  rootFolder.createFile('metadata.json', JSON.stringify(config.metadata, null, 2), MimeType.PLAIN_TEXT);
+  rootFolder.createFile('package.json', JSON.stringify(config.packageJson, null, 2), MimeType.PLAIN_TEXT);
 }
 
 function showDownloadLink(folderUrl: string) {

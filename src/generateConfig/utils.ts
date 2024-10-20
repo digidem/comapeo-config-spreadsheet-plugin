@@ -15,14 +15,17 @@ function slugify(input) {
 
 function getFieldType(typeString) {
   const firstChar = typeString.charAt(0).toLowerCase();
-  if (firstChar === 'm') return 'select_multiple';
+  if (firstChar === 'm') return 'selectMultiple';
   if (firstChar === 'n') return 'number';
   if (firstChar === 't') return 'text';
-  return 'select_one';
+  return 'selectOne';
 }
 
 function getFieldOptions(typeString, optionsString) {
   const fieldType = getFieldType(typeString);
   if (fieldType === 'number' || fieldType === 'text') return undefined;
-  return optionsString.split(',').map(opt => ({ label: opt.trim(), value: slugify(opt.trim()) }));
+  return optionsString.split(',')
+    .map(opt => opt.trim())
+    .filter(opt => opt !== '')
+    .map(opt => ({ label: opt, value: slugify(opt) }));
 }

@@ -22,6 +22,11 @@ interface CoMapeoPreset {
   name: string;
 }
 
+interface CoMapeoIcon {
+  name: string;
+  svg: string;
+}
+
 interface CoMapeoTranslationMessage {
   description: string;
   message: string | { label: string; value: string };
@@ -33,9 +38,32 @@ interface CoMapeoTranslations {
   };
 }
 
+interface CoMapeoMetadata {
+  dataset_id: string;
+  name: string;
+  version: string;
+  projectKey: string;
+}
+
+interface CoMapeoPackageJson {
+  name: string;
+  version: string;
+  description: string;
+  dependencies: {
+    "mapeo-settings-builder": string;
+  };
+  scripts: {
+    build: string;
+    lint: string;
+  };
+}
+
 interface CoMapeoConfig {
+  metadata: CoMapeoMetadata;
+  packageJson: any;
   fields: CoMapeoField[];
   presets: CoMapeoPreset[];
+  icons: CoMapeoIcon[];
   messages: CoMapeoTranslations;
 }
 type TranslationLanguage = "es" | "pt";

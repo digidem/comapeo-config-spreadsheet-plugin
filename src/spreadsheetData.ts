@@ -1,5 +1,5 @@
-function getSpreadsheetData() {
-  var sheetNames = [
+function getSpreadsheetData(): SheetData {
+  const sheetNames: string[] = [
     "Category Translations", 
     "Detail Label Translations", 
     "Detail Helper Text Translations", 
@@ -8,13 +8,16 @@ function getSpreadsheetData() {
     "Details",
   ];
 
-  var data = {};
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let data: any = {};
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  data['documentName'] = spreadsheet.getName();
 
-  sheetNames.forEach(function(sheetName) {
-    var sheet = spreadsheet.getSheetByName(sheetName);
-    var values = sheet.getDataRange().getValues(); // Get all data in the sheet
-    data[sheetName] = values;
+  sheetNames.forEach((sheetName: string) => {
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    if (sheet) {
+      const values = sheet.getDataRange().getValues(); // Get all data in the sheet
+      data[sheetName] = values;
+    }
   });
 
   return data;
