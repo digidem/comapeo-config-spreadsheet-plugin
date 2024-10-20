@@ -23,10 +23,11 @@ function generateCoMapeoConfig() {
 
 function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
   const fields = processFields(data);
+  const presets = processPresets(data);
   return {
     fields,
-    presets: processPresets(data),
-    messages: processTranslations(data, fields)
+    presets,
+    messages: processTranslations(data, fields, presets)
   };
 }
 
@@ -58,7 +59,7 @@ function processFields(data: SheetData): CoMapeoField[] {
   }));
 }
 
-function processTranslations(data: SheetData, fields: CoMapeoField[]): CoMapeoTranslations {
+function processTranslations(data: SheetData, fields: CoMapeoField[], presets: CoMapeoPreset[]): CoMapeoTranslations {
   const messages: CoMapeoTranslations = { es: {}, pt: {} };
   const translationSheets = [
     'Category Translations',
@@ -67,67 +68,73 @@ function processTranslations(data: SheetData, fields: CoMapeoField[]): CoMapeoTr
     'Detail Option Translations'
   ];
 
+  // Iterate through each translation sheet
   translationSheets.forEach(sheetName => {
+    // Get translations from the current sheet, excluding the header row
     const translations = data[sheetName].slice(1);
-    translations.forEach(translation => {
-      const key = slugify(translation[0]);
+
+    // Process each translation row
+    translations.forEach((translation, translationIndex) => {
       const languages: TranslationLanguage[] = ['es', 'pt'];
-      
-      languages.forEach((lang, index) => {
-        const messageKeys = getMessageKeyAndDescription(sheetName, key, translation, fields, index);
-        messageKeys.forEach(({ messageKey, description }) => {
-          if (messageKey) {
-            messages[lang][messageKey] = {
-              description,
-              message: getTranslationMessage(sheetName, translation, index, messageKey)
+
+      // Process translations for each language
+      languages.forEach((lang, langIndex) => {
+        // Determine message type based on sheet name
+        const messageType = sheetName.startsWith('Category') ? 'presets' : 'fields';
+
+        // Get the corresponding item (field or preset)
+        const item = messageType === 'fields' ? fields[translationIndex] : presets[translationIndex];
+
+        // Determine the key based on message type
+        const key = messageType === 'presets' ? (item as CoMapeoPreset).icon : (item as CoMapeoField).tagKey;
+
+        switch (sheetName) {
+          case 'Category Translations':
+            messages[lang][`${messageType}.${key}.name`] = {
+              message: translation[langIndex + 1],
+              description: `Name for preset '${key}'`
             };
-          }
-        });
+            break;
+          case 'Detail Label Translations':
+            messages[lang][`${messageType}.${key}.label`] = {
+              message: translation[langIndex + 1],
+              description: `Label for field '${key}'`
+            };
+            break;
+          case 'Detail Helper Text Translations':
+            messages[lang][`${messageType}.${key}.helperText`] = {
+              message: translation[langIndex + 1],
+              description: `Helper text for field '${key}'`
+            };
+            break;
+          case 'Detail Option Translations':
+            const fieldType = getFieldType((item as CoMapeoField).type || '');
+            if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
+              const options = translation[1].split(',').map(opt => opt.trim());
+              options.forEach((option, optionIndex) => {
+                if (item.options && item.options[optionIndex]) {
+                  const optionKey = `${messageType}.${key}.options.${item.options[optionIndex].value}`;
+                  const optionValue = {
+                    message: {
+                      label: option,
+                      value: item.options[optionIndex].value,
+                    },
+                    description: `Option '${option}' for field '${(item as CoMapeoField).label}'`,
+                  };
+                  messages[lang][optionKey] = optionValue
+                }
+              });
+              break;
+          default:
+            console.log(`Unhandled sheet name: ${sheetName}`);
+            break;
+        }
       });
     });
   });
-
   return messages;
 }
 
-function getMessageKeyAndDescription(sheetName: string, key: string, translation: any[], fields: CoMapeoField[], index: number): { messageKey: string; description: string }[] {
-  const field = fields.find(f => f.tagKey === key);
-  const baseMessageKey = sheetName.startsWith('Category') ? 'presets' : 'fields';
-  
-  switch (sheetName) {
-    case 'Category Translations':
-      return [{ messageKey: `${baseMessageKey}.${key}.name`, description: `Name for preset '${key}'` }];
-    case 'Detail Label Translations':
-      return [{ messageKey: `${baseMessageKey}.${key}.label`, description: `Label for field '${key}'` }];
-    case 'Detail Helper Text Translations':
-      if (field && field.label.trim()) {
-        return [{ messageKey: `${baseMessageKey}.${key}.placeholder`, description: `An example to guide the user for field '${field.label}'` }];
-      }
-      return [];
-    case 'Detail Option Translations':
-      const fieldType = getFieldType(field?.type || '');
-      if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
-        const options = translation[1].split(',').map(opt => opt.trim());
-        return options.map(option => ({
-          messageKey: `${baseMessageKey}.${key}.options.${slugify(option)}`,
-          description: `Label for option '${option}' for field '${field?.label}'`
-        }));
-      }
-      return [];
-    default:
-      return [];
-  }
-}
-
-function getTranslationMessage(sheetName: string, translation: any[], index: number, messageKey: string): string | { label: string; value: string } {
-  if (sheetName === 'Detail Option Translations') {
-    const options = translation[index + 1].split(',').map(opt => opt.trim());
-    const optionValue = messageKey.split('.').pop();
-    const optionLabel = options.find(opt => slugify(opt) === optionValue) || '';
-    return { label: optionLabel, value: optionLabel };
-  }
-  return translation[index + 1];
-}
 
 function getFieldType(typeString: string): string {
   const firstChar = typeString.charAt(0).toLowerCase();
