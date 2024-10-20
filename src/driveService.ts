@@ -13,6 +13,8 @@ function saveZipToDrive(zipBlob) {
 }
 
 function saveConfigToDrive(config: CoMapeoConfig): string {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const documentName = spreadsheet.getName();
   const rootFolder = DriveApp.createFolder('comapeo_config');
   const folders = {
     presets: rootFolder.createFolder('presets'),
@@ -37,6 +39,18 @@ function saveConfigToDrive(config: CoMapeoConfig): string {
     const messagesJson = JSON.stringify(messages, null, 2);
     folders.messages.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
   });
+
+  // Generate metadata
+  const metadata = {
+    dataset_id: `mapeo-${slugify(documentName)}`,
+    name: `config-${slugify(documentName)}`,
+    version: Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd'),
+    projectKey: Utilities.getUuid().replace(/-/g, '')
+  };
+
+  // Save metadata
+  const metadataJson = JSON.stringify(metadata, null, 2);
+  rootFolder.createFile('metadata.json', metadataJson, MimeType.PLAIN_TEXT);
 
   return rootFolder.getUrl();
 }
@@ -82,7 +96,7 @@ function showDownloadLink(folderUrl: string) {
       </style>
     </head>
     <body>
-      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" style="width: 100px; height: 100px; margin-bottom: 20px;">
+      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" style="width: 175px; height: 175px;">
       <h1>CoMapeo Configuration Generated</h1>
       <p>Your CoMapeo configuration files have been generated and saved to Google Drive.</p>
       <p>Click the button below to access the folder containing your configuration files.</p>
@@ -90,5 +104,5 @@ function showDownloadLink(folderUrl: string) {
     </body>
     </html>
   `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(400), 'CoMapeo Configuration Generated');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(500), 'CoMapeo Configuration Generated');
 }
