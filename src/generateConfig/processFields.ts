@@ -1,7 +1,4 @@
-import { slugify, getFieldType, getFieldOptions } from './utils';
-import { SheetData, CoMapeoField } from '../types';
-
-export function processFields(data: SheetData): CoMapeoField[] {
+function processFields(data) {
   const details = data['Details'].slice(1);
   return details.map(detail => ({
     tagKey: slugify(detail[0]),

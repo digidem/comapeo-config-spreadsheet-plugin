@@ -1,7 +1,4 @@
-import { slugify } from './utils';
-import { SheetData, CoMapeoPreset } from '../types';
-
-export function processPresets(data: SheetData): CoMapeoPreset[] {
+function processPresets(data) {
   const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
   const categories = data['Categories'].slice(1);
   const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();

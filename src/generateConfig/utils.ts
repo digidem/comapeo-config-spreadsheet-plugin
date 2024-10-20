@@ -3,7 +3,7 @@
  * @param input The input string to be converted.
  * @returns The slugified string.
  */
-export function slugify(input: any): string {
+function slugify(input) {
   const str = typeof input === 'string' ? input : String(input);
   return str
     .toLowerCase()
@@ -13,7 +13,7 @@ export function slugify(input: any): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function getFieldType(typeString: string): string {
+function getFieldType(typeString) {
   const firstChar = typeString.charAt(0).toLowerCase();
   if (firstChar === 'm') return 'select_multiple';
   if (firstChar === 'n') return 'number';
@@ -21,7 +21,7 @@ export function getFieldType(typeString: string): string {
   return 'select_one';
 }
 
-export function getFieldOptions(typeString: string, optionsString: string): Array<{ label: string; value: string }> | undefined {
+function getFieldOptions(typeString, optionsString) {
   const fieldType = getFieldType(typeString);
   if (fieldType === 'number' || fieldType === 'text') return undefined;
   return optionsString.split(',').map(opt => ({ label: opt.trim(), value: slugify(opt.trim()) }));

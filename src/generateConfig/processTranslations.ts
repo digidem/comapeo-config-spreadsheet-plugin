@@ -1,8 +1,5 @@
-import { getFieldType } from './utils';
-import { SheetData, CoMapeoField, CoMapeoPreset, CoMapeoTranslations, TranslationLanguage } from '../types';
-
-export function processTranslations(data: SheetData, fields: CoMapeoField[], presets: CoMapeoPreset[]): CoMapeoTranslations {
-  const messages: CoMapeoTranslations = { es: {}, pt: {} };
+function processTranslations(data, fields, presets) {
+  const messages = { es: {}, pt: {} };
   const translationSheets = [
     'Category Translations',
     'Detail Label Translations',
