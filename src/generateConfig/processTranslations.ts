@@ -32,7 +32,7 @@ function processTranslations(data, fields, presets) {
             };
             break;
           case 'Detail Helper Text Translations':
-            messages[lang][`${messageType}.${key}.helperText`] = {
+            messages[lang][`${messageType}.${key}.placeholder`] = {
               message: translation[langIndex + 1],
               description: `Helper text for field '${key}'`
             };
