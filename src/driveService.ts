@@ -85,17 +85,14 @@ function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeTy
   }
 }
 
-function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string | Blob, mimeType: string) {
+function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string, mimeType: string) {
   const extension = mimeType === MimeType.SVG ? 'svg' : 'png';
   return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
 }
 
-function createSmallerIcon(iconContent: string, mimeType: string): string | Blob {
+function createSmallerIcon(iconContent: string, mimeType: string): string {
   if (mimeType === MimeType.SVG) {
     return iconContent.replace(/width="(\d+)" height="(\d+)"/, 'width="24" height="24"');
-  } else {
-    const originalBlob = Utilities.newBlob(iconContent, mimeType);
-    return originalBlob.setWidth(24).setHeight(24);
   }
 }
 
@@ -106,7 +103,7 @@ function saveFields(fields: CoMapeoField[], fieldsFolder: GoogleAppsScript.Drive
   });
 }
 
-function saveMessages(messages: Record<string, Record<string, string>>, messagesFolder: GoogleAppsScript.Drive.Folder) {
+function saveMessages(messages: CoMapeoTranslations, messagesFolder: GoogleAppsScript.Drive.Folder) {
   Object.entries(messages).forEach(([lang, langMessages]) => {
     const messagesJson = JSON.stringify(langMessages, null, 2);
     messagesFolder.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);

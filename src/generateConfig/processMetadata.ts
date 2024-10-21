@@ -23,7 +23,7 @@ function createMetadataSheet(spreadsheet) {
 
 function getOrCreateMetadata(sheet, documentName) {
     const metadata = {
-        dataset_id: getOrSetValue(sheet, 'dataset_id', `mapeo-${slugify(documentName)}`),
+        dataset_id: getOrSetValue(sheet, 'dataset_id', `comapeo-${slugify(documentName)}`),
         name: getOrSetValue(sheet, 'name', `config-${slugify(documentName)}`),
         version: getOrSetValue(sheet, 'version', Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd')),
         projectKey: getOrSetValue(sheet, 'projectKey', generateRandomBytes(64))
@@ -55,7 +55,7 @@ function createPackageJson(metadata) {
     return {
         "name": metadata.dataset_id,
         "version": metadata.version,
-        "description": `Mapeo configuration for ${metadata.name}`,
+        "description": `CoMapeo configuration for ${metadata.name}`,
         "dependencies": {
             "mapeo-settings-builder": "^6.0.0"
         },
