@@ -1,8 +1,32 @@
+function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
+  const folder: GoogleAppsScript.Drive.Folder = DriveApp.getFolderById(folderId);
+  const blobs: GoogleAppsScript.Base.Blob[] = [];
+
+  function addFolderContentsToBlobs(currentFolder: GoogleAppsScript.Drive.Folder, path: string = '') {
+    const files = currentFolder.getFiles();
+    while (files.hasNext()) {
+      const file = files.next();
+      blobs.push(file.getBlob().setName(path + file.getName()));
+    }
+
+    const subFolders = currentFolder.getFolders();
+    while (subFolders.hasNext()) {
+      const subFolder = subFolders.next();
+      const newPath = path + subFolder.getName() + '/';
+      addFolderContentsToBlobs(subFolder, newPath);
+    }
+  }
+
+  addFolderContentsToBlobs(folder);
+  const zipBlob = Utilities.zip(blobs, folder.getName() + ".zip");
+  return zipBlob;
+}
+
 function saveZipToDrive(zipBlob) {
   var folder = DriveApp.getRootFolder();  // Save to root folder
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const fileName = `${spreadsheet.getName()}.comapeocat`;
-  var zipFile = folder.createFile(zipBlob).setName(fileName);
+  const fileName = "config.zip";
+  const doubleZippedBlob = Utilities.zip([zipBlob], fileName);
+  var zipFile = folder.createFile(doubleZippedBlob).setName(fileName);
 
   // Generate a download link
   var fileUrl = zipFile.getUrl();
@@ -12,18 +36,29 @@ function saveZipToDrive(zipBlob) {
   return fileUrl;
 }
 
-function saveConfigToDrive(config: CoMapeoConfig): string {
+function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
   const folderName = generateFolderName(config.metadata.name);
   console.log('Saving config to drive:', folderName);
-  const rootFolder = DriveApp.createFolder(folderName);
+  let rootFolder: GoogleAppsScript.Drive.Folder;
+  try {
+    rootFolder = DriveApp.createFolder(folderName);
+  } catch (error) {
+    console.error(`Error creating folder: ${error}`);
+    throw new Error(`Failed to create folder "${folderName}". Please check your Drive permissions and try again.`);
+  }
+  if (!rootFolder) {
+    throw new Error(`Failed to create folder "${folderName}". Root folder is undefined.`);
+  }
+  console.log('Created folder:', rootFolder.getName());
   const folders = createSubFolders(rootFolder);
-
   savePresetsAndIcons(config, folders);
   saveFields(config.fields, folders.fields);
   saveMessages(config.messages, folders.messages);
   saveMetadataAndPackage(config, rootFolder);
-
-  return rootFolder.getUrl();
+  return {
+    url: rootFolder.getUrl(),
+    id: rootFolder.getId()
+  };
 }
 
 function generateFolderName(documentName: string): string {
@@ -124,45 +159,77 @@ function showDownloadLink(folderUrl: string) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>CoMapeo Configuration Generated</title>
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+        
         body {
-          font-family: Arial, sans-serif;
+          font-family: 'Roboto', sans-serif;
           line-height: 1.6;
           color: #e0e0e0;
-          background-color: #1a1a1a;
-          max-width: 600px;
+          background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+          max-width: 800px;
           margin: 0 auto;
-          padding: 20px;
+          padding: 40px;
           text-align: center;
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+          border-radius: 10px;
         }
         h1 {
-          color: #330B9E;
+          color: #6d44d9;
+          font-size: 2.5em;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+          margin-bottom: 30px;
         }
         p {
-          margin-bottom: 20px;
+          margin-bottom: 25px;
+          font-size: 1.1em;
+        }
+        .logo {
+          width: 200px;
+          height: 200px;
+          margin-bottom: 30px;
+          border-radius: 50%;
+          box-shadow: 0 0 15px rgba(109, 68, 217, 0.7);
+          transition: transform 0.3s ease;
+        }
+        .logo:hover {
+          transform: scale(1.05);
         }
         .folder-btn {
           display: inline-block;
-          background-color: #330B9E;
+          background: linear-gradient(45deg, #330B9E, #6d44d9);
           color: white;
-          padding: 10px 20px;
+          padding: 15px 30px;
           text-decoration: none;
-          border-radius: 5px;
+          border-radius: 50px;
           font-weight: bold;
-          transition: background-color 0.3s ease;
+          font-size: 1.2em;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .folder-btn:hover {
-          background-color: #4A0ED6;
+          background: linear-gradient(45deg, #4A0ED6, #8a67e8);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+        .container {
+          background-color: rgba(255, 255, 255, 0.05);
+          padding: 30px;
+          border-radius: 15px;
+          margin-top: 30px;
         }
       </style>
     </head>
     <body>
-      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" style="width: 175px; height: 175px;">
+      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" class="logo">
       <h1>CoMapeo Configuration Generated</h1>
-      <p>Your CoMapeo configuration files have been generated and saved to Google Drive.</p>
-      <p>Click the button below to access the folder containing your configuration files.</p>
-      <a href="${folderUrl}" target="_blank" class="folder-btn">Open Google Drive Folder</a>
+      <div class="container">
+        <p>Your CoMapeo configuration files have been successfully generated and compressed into a zip file.</p>
+        <p>To download your configuration, click the button below.</p>
+        <p>Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
+        <a href="${folderUrl}" target="_blank" class="folder-btn">Download CoMapeo Configuration</a>
+      </div>
     </body>
     </html>
   `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(500), 'CoMapeo Configuration Generated');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(800), 'CoMapeo Configuration Generated');
 }

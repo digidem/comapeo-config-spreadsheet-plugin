@@ -10,7 +10,7 @@ function translateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
     "Translate CoMapeo Category",
-    "This will translate all empty cells in the other transltion language columns. Continue?",
+    "This will translate all empty cells in the other translation language columns. Continue?",
     ui.ButtonSet.YES_NO,
   );
 

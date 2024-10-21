@@ -35,7 +35,6 @@ function processIcons(data): CoMapeoIcon[] {
         const generatedIcon = getIconForPreset(preset);
         if (generatedIcon) {
           icons.push(generatedIcon);
-          // updateIconUrlInSheet(categoriesSheet, index + 2, 2, generatedIcon.svg);
         }
       }
     } else {

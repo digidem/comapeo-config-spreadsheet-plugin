@@ -1,8 +1,11 @@
 function generateCoMapeoConfig() {
   const data = getSpreadsheetData();
   const config = processDataForCoMapeo(data);
-  const folderUrl = saveConfigToDrive(config);
-  showDownloadLink(folderUrl);
+  const { id } = saveConfigToDrive(config);
+  console.log("Zipping folder ID: " + id);
+  const folderZip = saveDriveFolderToZip(id);
+  const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata.name);
+  showDownloadLink(configUrl);
 }
 
 function processDataForCoMapeo(data) {

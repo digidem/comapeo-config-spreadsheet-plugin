@@ -1,18 +1,24 @@
-function sendDataToApiAndGetZip() {
-  const data = getSpreadsheetData();
-  const formattedData = JSON.stringify(data);
-
-  const apiUrl = "http://builer.comapeo.app/api/v1/jsonBuilder";  // Your API URL
-
-  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-    method: "post",
-    contentType: "application/json",
-    payload: formattedData
+function sendDataToApiAndGetZip(zipFile: GoogleAppsScript.Base.Blob, fileName?: string) {
+  const apiUrl = "http://137.184.153.36:3000/";
+  console.log('Posting zip to API URL:', apiUrl);
+  const form = {
+    file: zipFile
   };
 
+  console.log('Setting up request options');
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    method: 'post',
+    payload: form,
+    muteHttpExceptions: true
+  };
+  console.log('Sending request to API');
   const response = UrlFetchApp.fetch(apiUrl, options);
+  console.log('Response code:', response.getResponseCode());
   
-  // Handle the ZIP file response
-  const zipBlob = response.getBlob();
-  return saveZipToDrive(zipBlob);  // Save the ZIP to Google Drive
+  if (response.getResponseCode() === 200) {
+    const zipBlob = response.getBlob().setName(`${fileName}.comapeocat` || "config.comapeocat");
+    return saveZipToDrive(zipBlob);  // Save the ZIP to Google Drive
+  } else {
+    throw new Error(`API request failed with status ${response.getResponseCode()}: ${response.getContentText()}`);
+  }
 }
