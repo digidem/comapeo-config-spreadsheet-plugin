@@ -22,17 +22,28 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
   return zipBlob;
 }
 
-function saveZipToDrive(zipBlob) {
-  var folder = DriveApp.getRootFolder();  // Save to root folder
+function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob): string {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const configFolderName = slugify(spreadsheet.getName());
+  const buildsFolder = 'builds';
+  
+  let configFolder = DriveApp.getRootFolder().getFoldersByName(configFolderName).next();
+  if (!configFolder) {
+    configFolder = DriveApp.getRootFolder().createFolder(configFolderName);
+  }
+  
+  let buildsFolderObj = configFolder.getFoldersByName(buildsFolder).next();
+  if (!buildsFolderObj) {
+    buildsFolderObj = configFolder.createFolder(buildsFolder);
+  }
+  
   const fileName = "config.zip";
   const doubleZippedBlob = Utilities.zip([zipBlob], fileName);
-  var zipFile = folder.createFile(doubleZippedBlob).setName(fileName);
+  const zipFile = buildsFolderObj.createFile(doubleZippedBlob).setName(fileName);
 
-  // Generate a download link
-  var fileUrl = zipFile.getUrl();
+  const fileUrl = zipFile.getUrl();
   Logger.log("Download the ZIP file here: " + fileUrl);
 
-  // Optionally send the link to the user via email or show in the UI
   return fileUrl;
 }
 
@@ -51,7 +62,7 @@ function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
   }
   console.log('Created folder:', rootFolder.getName());
   const folders = createSubFolders(rootFolder);
-  savePresetsAndIcons(config, folders);
+  savePresetsAndIcons(config, folders, ['-100px', '-24px']);
   saveFields(config.fields, folders.fields);
   saveMessages(config.messages, folders.messages);
   saveMetadataAndPackage(config, rootFolder);
@@ -75,12 +86,22 @@ function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
   };
 }
 
-function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAppsScript.Drive.Folder, icons: GoogleAppsScript.Drive.Folder }) {
+function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAppsScript.Drive.Folder, icons: GoogleAppsScript.Drive.Folder }, suffixes?: string[]) {
+  savePresets(config.presets, folders.presets);
+  saveIcons(config.icons, folders.icons, suffixes);
+}
+
+function savePresets(presets: CoMapeoPreset[], presetsFolder: GoogleAppsScript.Drive.Folder) {
+  presets.forEach(preset => {
+    savePreset(preset, presetsFolder);
+  });
+}
+
+function saveIcons(icons: CoMapeoIcon[], iconsFolder: GoogleAppsScript.Drive.Folder, suffixes?: string[]) {
   const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
-  config.presets.forEach((preset, index) => {
-    savePreset(preset, folders.presets);
-    if (config.icons[index]) {
-      saveIcon(config.icons[index], folders.icons, categoriesSheet, index);
+  icons.forEach((icon, index) => {
+    if (icon) {
+      saveIcon(icon, iconsFolder, categoriesSheet, index, suffixes);
     }
   });
 }
@@ -90,19 +111,29 @@ function savePreset(preset: CoMapeoPreset, presetsFolder: GoogleAppsScript.Drive
   presetsFolder.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
 }
 
-function saveIcon(icon: CoMapeoIcon, iconsFolder: GoogleAppsScript.Drive.Folder, categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet, index: number) {
+function saveIcon(icon: CoMapeoIcon, iconsFolder: GoogleAppsScript.Drive.Folder, categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet, index: number, suffixes?: string[]) {
   const { iconContent, mimeType } = getIconContent(icon);
-  if (!iconContent) return;
+  console.log(`Saving icon for category ${icon.name}:`, iconContent);
+  if (!iconContent) {
+    throw new Error('Icon content is missing or invalid');
+  }
 
-  const file100px = createIconFile(iconsFolder, icon.name, '100px', iconContent, mimeType);
-  const smallerContent = createSmallerIcon(iconContent, mimeType);
-  createIconFile(iconsFolder, icon.name, '24px', smallerContent, mimeType);
+  const suffixesToUse = suffixes || [''];
 
-  updateIconUrlInSheet(categoriesSheet, index + 2, 2, file100px.getUrl());
+  suffixesToUse.forEach((suffix, i) => {
+    const file = createIconFile(iconsFolder, icon.name, suffix, iconContent, mimeType);
+    console.log(`Generated icon with suffix ${suffix}:`, file.getUrl());
+    
+    if (i === 0) {
+      updateIconUrlInSheet(categoriesSheet, index + 2, 2, file.getUrl());
+    }
+  });
 }
 
 function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeType: string } {
+  console.log(`Getting icon content for ${icon.name}:`, icon.svg);
   if (icon.svg.startsWith('data:image/svg+xml,')) {
+    console.log('Saving data:image/svg+xml icon as SVG');
     return {
       iconContent: decodeURIComponent(icon.svg.replace(/data:image\/svg\+xml,/, '')),
       mimeType: MimeType.SVG
@@ -120,9 +151,11 @@ function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeTy
   }
 }
 
-function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string, mimeType: string) {
+function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, suffix: string | undefined, content: string, mimeType: string) {
+  console.log(`Creating icon file for ${name}${suffix ? ' of size ' + suffix : ''}:`, content);
   const extension = mimeType === MimeType.SVG ? 'svg' : 'png';
-  return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
+  const fileName = suffix ? `${name}${suffix}.${extension}` : `${name}.${extension}`;
+  return folder.createFile(fileName, content, mimeType);
 }
 
 function createSmallerIcon(iconContent: string, mimeType: string): string {
@@ -148,86 +181,4 @@ function saveMessages(messages: CoMapeoTranslations, messagesFolder: GoogleAppsS
 function saveMetadataAndPackage(config: CoMapeoConfig, rootFolder: GoogleAppsScript.Drive.Folder) {
   rootFolder.createFile('metadata.json', JSON.stringify(config.metadata, null, 2), MimeType.PLAIN_TEXT);
   rootFolder.createFile('package.json', JSON.stringify(config.packageJson, null, 2), MimeType.PLAIN_TEXT);
-}
-
-function showDownloadLink(folderUrl: string) {
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-        
-        body {
-          font-family: 'Roboto', sans-serif;
-          line-height: 1.6;
-          color: #e0e0e0;
-          background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 40px;
-          text-align: center;
-          box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-          border-radius: 10px;
-        }
-        h1 {
-          color: #6d44d9;
-          font-size: 2.5em;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-          margin-bottom: 30px;
-        }
-        p {
-          margin-bottom: 25px;
-          font-size: 1.1em;
-        }
-        .logo {
-          width: 200px;
-          height: 200px;
-          margin-bottom: 30px;
-          border-radius: 50%;
-          box-shadow: 0 0 15px rgba(109, 68, 217, 0.7);
-          transition: transform 0.3s ease;
-        }
-        .logo:hover {
-          transform: scale(1.05);
-        }
-        .folder-btn {
-          display: inline-block;
-          background: linear-gradient(45deg, #330B9E, #6d44d9);
-          color: white;
-          padding: 15px 30px;
-          text-decoration: none;
-          border-radius: 50px;
-          font-weight: bold;
-          font-size: 1.2em;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .folder-btn:hover {
-          background: linear-gradient(45deg, #4A0ED6, #8a67e8);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-        }
-        .container {
-          background-color: rgba(255, 255, 255, 0.05);
-          padding: 30px;
-          border-radius: 15px;
-          margin-top: 30px;
-        }
-      </style>
-    </head>
-    <body>
-      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" class="logo">
-      <h1>CoMapeo Configuration Generated</h1>
-      <div class="container">
-        <p>Your CoMapeo configuration files have been successfully generated and compressed into a zip file.</p>
-        <p>To download your configuration, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
-        <a href="${folderUrl}" target="_blank" class="folder-btn">Download CoMapeo Configuration</a>
-      </div>
-    </body>
-    </html>
-  `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), 'CoMapeo Configuration Generated');
 }
