@@ -1,19 +1,15 @@
 function processTranslations(data, fields, presets) {
-  const messages = { es: {}, pt: {} };
-  const translationSheets = [
-    'Category Translations',
-    'Detail Label Translations',
-    'Detail Helper Text Translations',
-    'Detail Option Translations'
-  ];
-
+  const messages: CoMapeoTranslations = Object.fromEntries(
+    Object.keys(languages()).map(lang => [lang, {}])
+  );
+  const translationSheets = sheets(true);
   translationSheets.forEach(sheetName => {
     const translations = data[sheetName].slice(1);
 
     translations.forEach((translation, translationIndex) => {
-      const languages: TranslationLanguage[] = ['es', 'pt'];
+      const targetLanguages: TranslationLanguage[] = Object.keys(languages()) as TranslationLanguage[];
 
-      languages.forEach((lang, langIndex) => {
+      targetLanguages.forEach((lang, langIndex) => {
         const messageType = sheetName.startsWith('Category') ? 'presets' : 'fields';
         const item = messageType === 'fields' ? fields[translationIndex] : presets[translationIndex];
         const key = messageType === 'presets' ? (item as CoMapeoPreset).icon : (item as CoMapeoField).tagKey;

@@ -1,11 +1,5 @@
 function removeTranslationAndMetadataSheets(): void {
-  const sheetsToRemove = [
-    "Detail Label Translations",
-    "Detail Helper Text Translations",
-    "Detail Option Translations",
-    "Category Translations",
-    "Metadata"
-  ];
+  const sheetsToRemove = [...sheets(true), "Metadata"];
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -22,7 +16,7 @@ function removeTranslationAndMetadataSheets(): void {
   console.log("Finished removing translation sheets");
 }
 
-function deleteCategoriesSheetBColumn(): void {
+function deleteIcons(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const categoriesSheet = spreadsheet.getSheetByName("Categories");
 
@@ -38,12 +32,13 @@ function deleteCategoriesSheetBColumn(): void {
   }
 
   // Delete column B content, excluding the header
-  categoriesSheet.getRange(2, 2, lastRow - 1, 1).clearContent();
+  const range = categoriesSheet.getRange(2, 2, lastRow - 1, 1);
+  range.clearContent();
 
-  console.log("Deleted content from column B in Categories sheet, excluding the header");
+  console.log("Deleted content from column B in Categories sheet, excluding the header and non-empty cells");
 }
 
 function cleanup(): void {
   removeTranslationAndMetadataSheets();
-  deleteCategoriesSheetBColumn();
+  deleteIcons();
 }

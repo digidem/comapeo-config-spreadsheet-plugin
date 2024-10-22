@@ -6,9 +6,9 @@ function translateSheet(
   if (!sheet) {
     throw new Error(`Sheet "${sheetName}" not found`);
   }
-
   const lastRow = sheet.getLastRow();
-  const targetColumn = targetLanguage === "es" ? 2 : 3;
+  const languagesList = languages();
+  const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
     const englishText = sheet.getRange(i, 1).getValue() as string;
@@ -27,34 +27,40 @@ function translateSheet(
 }
 
 function autoTranslateSheets(): void {
-  const sheetNames = [
-    "Category Translations",
-    "Detail Label Translations",
-    "Detail Helper Text Translations",
-    "Detail Option Translations",
-  ];
+  const allSheets = sheets();
+  const translationSheets = sheets(true);
+  const categoriesAndDetailsSheets = allSheets.filter(sheet => !translationSheets.includes(sheet));
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const detailsSheet = spreadsheet.getSheetByName("Details");
+  const categoriesSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[0]);
+  const detailsSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[1]);
 
   if (!categoriesSheet || !detailsSheet) {
     throw new Error("Categories or Details sheet not found");
   }
 
-  for (const sheetName of sheetNames) {
+  for (const sheetName of translationSheets) {
     let sheet = spreadsheet.getSheetByName(sheetName);
     if (!sheet) {
       sheet = spreadsheet.insertSheet(sheetName);
-      const headers = ["English", "Spanish", "Portuguese"];
-      sheet.getRange(1, 1, 1, 3).setValues([headers]).setFontWeight("bold");
+      const headers = ["English", ...Object.values(languages())];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
 
-      const sourceColumn = sheetName.startsWith("Category") ? categoriesSheet.getRange("A2:A") : detailsSheet.getRange("A2:A");
+      let sourceColumn;
+      if (sheetName.startsWith("Category")) {
+        sourceColumn = categoriesSheet.getRange("A2:A");
+      } else if (sheetName === "Detail Helper Text Translations") {
+        sourceColumn = detailsSheet.getRange("B2:B");
+      } else if (sheetName === "Detail Option Translations") {
+        sourceColumn = detailsSheet.getRange("D2:D");
+      } else {
+        sourceColumn = detailsSheet.getRange("A2:A");
+      }
       const sourceValues = sourceColumn.getValues().filter(row => row[0] !== "");
       sheet.getRange(2, 1, sourceValues.length, 1).setValues(sourceValues);
     }
-
-    translateSheet(sheetName, "es");
-    translateSheet(sheetName, "pt");
+    Object.keys(languages()).forEach(lang => {
+      translateSheet(sheetName, lang as TranslationLanguage);
+    });
   }
 }

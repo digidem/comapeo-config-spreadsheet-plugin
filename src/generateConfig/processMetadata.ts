@@ -2,7 +2,7 @@ function processMetadata(data) {
     const { documentName } = data;
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     let metadataSheet = spreadsheet.getSheetByName('Metadata');
-    
+
     if (!metadataSheet) {
         metadataSheet = createMetadataSheet(spreadsheet);
     }

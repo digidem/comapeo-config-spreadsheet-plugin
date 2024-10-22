@@ -22,22 +22,34 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
   return zipBlob;
 }
 
-function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob): string {
+function getConfigFolder (): GoogleAppsScript.Drive.Folder {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const configFolderName = slugify(spreadsheet.getName());
-  const buildsFolder = 'builds';
-  
-  let configFolder = DriveApp.getRootFolder().getFoldersByName(configFolderName).next();
-  if (!configFolder) {
+
+  let configFolder: GoogleAppsScript.Drive.Folder;
+  const configFolders = DriveApp.getRootFolder().getFoldersByName(configFolderName);
+
+  if (configFolders.hasNext()) {
+    configFolder = configFolders.next();
+  } else {
     configFolder = DriveApp.getRootFolder().createFolder(configFolderName);
   }
-  
-  let buildsFolderObj = configFolder.getFoldersByName(buildsFolder).next();
-  if (!buildsFolderObj) {
+  return configFolder;
+}
+
+function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
+  console.log('Saving ZIP file to Drive...');
+  const configFolder = getConfigFolder()
+  const buildsFolder = 'builds';
+  let buildsFolderObj;
+  const buildsFolders = configFolder.getFoldersByName(buildsFolder);
+  if (buildsFolders.hasNext()) {
+    buildsFolderObj = buildsFolders.next();
+  } else {
     buildsFolderObj = configFolder.createFolder(buildsFolder);
   }
-  
-  const fileName = "config.zip";
+  console.log('Saving ZIP file to Drive...');
+  const fileName = `${version}.zip`;
   const doubleZippedBlob = Utilities.zip([zipBlob], fileName);
   const zipFile = buildsFolderObj.createFile(doubleZippedBlob).setName(fileName);
 
@@ -47,20 +59,25 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob): string {
   return fileUrl;
 }
 
+
 function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
-  const folderName = generateFolderName(config.metadata.name);
+  const configFolder = getConfigFolder();
+  const folderName = `${slugify(config.metadata.version)}`;
   console.log('Saving config to drive:', folderName);
   let rootFolder: GoogleAppsScript.Drive.Folder;
   try {
-    rootFolder = DriveApp.createFolder(folderName);
+    const rawBuildsFolder = configFolder.getFoldersByName('rawBuilds').hasNext()
+      ? configFolder.getFoldersByName('rawBuilds').next()
+      : configFolder.createFolder('rawBuilds');
+    rootFolder = rawBuildsFolder.createFolder(folderName);
   } catch (error) {
     console.error(`Error creating folder: ${error}`);
-    throw new Error(`Failed to create folder "${folderName}". Please check your Drive permissions and try again.`);
+    throw new Error(`Failed to create folder "${folderName}" in "rawBuilds". Please check your Drive permissions and try again.`);
   }
   if (!rootFolder) {
-    throw new Error(`Failed to create folder "${folderName}". Root folder is undefined.`);
+    throw new Error(`Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`);
   }
-  console.log('Created folder:', rootFolder.getName());
+  console.log('Created folder:', rootFolder.getName(), 'in rawBuilds');
   const folders = createSubFolders(rootFolder);
   savePresetsAndIcons(config, folders, ['-100px', '-24px']);
   saveFields(config.fields, folders.fields);
@@ -72,11 +89,6 @@ function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
   };
 }
 
-function generateFolderName(documentName: string): string {
-  const version = Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd');
-  return `${slugify(documentName)}-${version}`;
-}
-
 function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
   return {
     presets: rootFolder.createFolder('presets'),
@@ -86,9 +98,9 @@ function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
   };
 }
 
-function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAppsScript.Drive.Folder, icons: GoogleAppsScript.Drive.Folder }) {
+function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAppsScript.Drive.Folder, icons: GoogleAppsScript.Drive.Folder }, suffixes: string[]) {
   savePresets(config.presets, folders.presets);
-  config.icons = processIcons(folders.icons);
+  config.icons = processIcons(folders.icons, suffixes);
 }
 
 function savePresets(presets: CoMapeoPreset[], presetsFolder: GoogleAppsScript.Drive.Folder) {

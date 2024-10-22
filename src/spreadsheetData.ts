@@ -1,12 +1,30 @@
-function getSpreadsheetData(): SheetData {
-  const sheetNames: string[] = [
-    "Category Translations", 
-    "Detail Label Translations", 
-    "Detail Helper Text Translations", 
+function languages(): Record<string, string> {
+  return {
+    es: 'Spanish',
+    pt: 'Portuguese'
+  };
+}
+
+function sheets(translationsOnly: boolean = false): string[] {
+  const translationSheets = [
+    "Category Translations",
+    "Detail Label Translations",
+    "Detail Helper Text Translations",
     "Detail Option Translations",
-    "Categories",
-    "Details",
   ];
+
+  if (translationsOnly) {
+    return translationSheets;
+  }
+
+  return [
+    ...translationSheets,
+    "Categories",
+    "Details"
+  ];
+}
+function getSpreadsheetData(): SheetData {
+  const sheetNames = sheets();
 
   let data: any = {};
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();

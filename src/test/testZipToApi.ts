@@ -1,7 +1,7 @@
 function testZipToApi() {
     const rootFolder = DriveApp.getRootFolder();
     const files = rootFolder.getFilesByName("test_config.zip");
-    
+
     if (files.hasNext()) {
       const file = files.next();
       const folderZip = file.getBlob();

@@ -66,4 +66,4 @@ interface CoMapeoConfig {
   icons: CoMapeoIcon[];
   messages: CoMapeoTranslations;
 }
-type TranslationLanguage = "es" | "pt";
+type TranslationLanguage = string;

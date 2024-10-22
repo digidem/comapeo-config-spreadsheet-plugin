@@ -1,4 +1,5 @@
-function sendDataToApiAndGetZip(zipFile: GoogleAppsScript.Base.Blob, fileName?: string) {
+function sendDataToApiAndGetZip(zipFile: GoogleAppsScript.Base.Blob, metadata: { name: string, version: string }) {
+  const fileName = `${metadata.name}.comapeocat`
   const apiUrl = "http://137.184.153.36:3000/";
   console.log('Posting zip to API URL:', apiUrl);
   const form = {
@@ -14,10 +15,10 @@ function sendDataToApiAndGetZip(zipFile: GoogleAppsScript.Base.Blob, fileName?: 
   console.log('Sending request to API');
   const response = UrlFetchApp.fetch(apiUrl, options);
   console.log('Response code:', response.getResponseCode());
-  
+
   if (response.getResponseCode() === 200) {
-    const zipBlob = response.getBlob().setName(`${fileName}.comapeocat` || "config.comapeocat");
-    return saveZipToDrive(zipBlob);  // Save the ZIP to Google Drive
+    const zipBlob = response.getBlob().setName(fileName || "config.comapeocat");
+    return saveZipToDrive(zipBlob, metadata.version);  // Save the ZIP to Google Drive
   } else {
     throw new Error(`API request failed with status ${response.getResponseCode()}: ${response.getContentText()}`);
   }
