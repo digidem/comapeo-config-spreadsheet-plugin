@@ -157,7 +157,6 @@ function showDownloadLink(folderUrl: string) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>CoMapeo Configuration Generated</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
         
@@ -224,12 +223,11 @@ function showDownloadLink(folderUrl: string) {
       <h1>CoMapeo Configuration Generated</h1>
       <div class="container">
         <p>Your CoMapeo configuration files have been successfully generated and compressed into a zip file.</p>
-        <p>To download your configuration, click the button below.</p>
-        <p>Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
+        <p>To download your configuration, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
         <a href="${folderUrl}" target="_blank" class="folder-btn">Download CoMapeo Configuration</a>
       </div>
     </body>
     </html>
   `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(750).setHeight(980), 'CoMapeo Configuration Generated');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), 'CoMapeo Configuration Generated');
 }
