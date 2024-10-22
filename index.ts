@@ -36,7 +36,7 @@ function generateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
     "Generate CoMapeo Category",
-    "This will generate the CoMapeo configuration based on the current spreadsheet data. Continue?",
+    "This will generate a CoMapeo category based on the current spreadsheet data. It may take a few minutes to process. Continue?",
     ui.ButtonSet.YES_NO,
   );
 

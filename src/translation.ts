@@ -34,7 +34,26 @@ function autoTranslateSheets(): void {
     "Detail Option Translations",
   ];
 
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  const detailsSheet = spreadsheet.getSheetByName("Details");
+
+  if (!categoriesSheet || !detailsSheet) {
+    throw new Error("Categories or Details sheet not found");
+  }
+
   for (const sheetName of sheetNames) {
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+      const headers = ["English", "Spanish", "Portuguese"];
+      sheet.getRange(1, 1, 1, 3).setValues([headers]).setFontWeight("bold");
+
+      const sourceColumn = sheetName.startsWith("Category") ? categoriesSheet.getRange("A2:A") : detailsSheet.getRange("A2:A");
+      const sourceValues = sourceColumn.getValues().filter(row => row[0] !== "");
+      sheet.getRange(2, 1, sourceValues.length, 1).setValues(sourceValues);
+    }
+
     translateSheet(sheetName, "es");
     translateSheet(sheetName, "pt");
   }

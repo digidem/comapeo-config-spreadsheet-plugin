@@ -231,5 +231,5 @@ function showDownloadLink(folderUrl: string) {
     </body>
     </html>
   `;
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(650).setHeight(800), 'CoMapeo Configuration Generated');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(750).setHeight(980), 'CoMapeo Configuration Generated');
 }
