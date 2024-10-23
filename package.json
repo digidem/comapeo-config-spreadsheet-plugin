@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "clasp push --watch",
     "push": "clasp push",
-    "lint": "bunx biome lint --write --unsafe ."
+    "lint": "bunx biome lint --write --unsafe .",
+    "push:all": "bash src/scripts/push-all.sh"
   },
   "devDependencies": {
     "@types/bun": "latest",
