@@ -1,5 +1,5 @@
 function sendDataToApiAndGetZip(zipFile: GoogleAppsScript.Base.Blob, metadata: { name: string, version: string }) {
-  const fileName = `${metadata.name}.comapeocat`
+  const fileName = `${metadata.name}-${metadata.version}.comapeocat`
   const apiUrl = "http://137.184.153.36:3000/";
   console.log('Posting zip to API URL:', apiUrl);
   const form = {

@@ -138,7 +138,8 @@ function showHelpDialog() {
       <li>Check the generated icons in the icons folder and modify them using the <br /><a href="https://icons.earthdefenderstoolkit.com" target="_blank">Icon Generator App</a> if necessary.</li>
       <li>Copy the shared link for each icon and paste it into the corresponding icon cell in the spreadsheet.</li>
       <li>Use the "Lint Sheets" option to ensure proper formatting and capitalization of your data.</li>
-      <li>Repeat steps 1-7 as needed, updating translations and icons until you're satisfied with the results.</li>
+      <li>Use the "Generate Project Key" option to create a unique key for your project. This key ensures that your configuration can only be synced with projects using the same key, enhancing security.</li>
+      <li>Repeat steps 1-8 as needed, updating translations, icons, and the project key until you're satisfied with the results.</li>
       <li>When ready, use the "Generate CoMapeo Category" option to create your final configuration. This process may take a few minutes and will produce a zip file containing your .comapeocat file, ready for use with the CoMapeo app.</li>
     </ol>
     <p>For more detailed information, visit our GitHub repository:</p>

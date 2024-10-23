@@ -3,7 +3,10 @@ function onOpen() {
   ui.createMenu("CoMapeo Tools")
     .addItem("Translate CoMapeo Category", "translateCoMapeoCategory")
     .addItem("Generate Category Icons", "generateIcons")
+    .addItem("Generate Project Key", "generateProjectKey")
+    .addSeparator()
     .addItem("Generate CoMapeo Category", "generateCoMapeoCategory")
+    .addSeparator()
     .addItem("Lint Sheets", "lintAllSheets")
     .addItem("Reset Spreadsheet", "cleanAllSheets")
     .addItem("Help", "openHelpPage")
@@ -47,6 +50,27 @@ function generateIcons() {
   if (result === ui.Button.YES) {
     try {
       generateIconsConfig();
+    } catch (error) {
+      ui.alert(
+        "Error",
+        `An error occurred while generating the configuration: ${error.message}`,
+        ui.ButtonSet.OK,
+      );
+    }
+  }
+}
+
+function generateProjectKey() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    "Generate Project Key",
+    "This will generate a project key for your CoMapeo Category. Continue?",
+    ui.ButtonSet.YES_NO,
+  );
+
+  if (result === ui.Button.YES) {
+    try {
+      generateProjectKeyConfig();
     } catch (error) {
       ui.alert(
         "Error",

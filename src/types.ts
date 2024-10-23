@@ -42,7 +42,7 @@ interface CoMapeoMetadata {
   dataset_id: string;
   name: string;
   version: string;
-  projectKey: string;
+  projectKey?: string;
 }
 
 interface CoMapeoPackageJson {
