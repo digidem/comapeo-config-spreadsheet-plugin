@@ -46,18 +46,24 @@ function autoTranslateSheets(): void {
       const headers = ["English", ...Object.values(languages())];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
 
-      let sourceColumn;
+      let sourceSheet, sourceColumn;
       if (sheetName.startsWith("Category")) {
-        sourceColumn = categoriesSheet.getRange("A2:A");
+        sourceSheet = "Categories";
+        sourceColumn = "A";
       } else if (sheetName === "Detail Helper Text Translations") {
-        sourceColumn = detailsSheet.getRange("B2:B");
+        sourceSheet = "Details";
+        sourceColumn = "B";
       } else if (sheetName === "Detail Option Translations") {
-        sourceColumn = detailsSheet.getRange("D2:D");
+        sourceSheet = "Details";
+        sourceColumn = "D";
       } else {
-        sourceColumn = detailsSheet.getRange("A2:A");
+        sourceSheet = "Details";
+        sourceColumn = "A";
       }
-      const sourceValues = sourceColumn.getValues().filter(row => row[0] !== "");
-      sheet.getRange(2, 1, sourceValues.length, 1).setValues(sourceValues);
+
+      const lastRow = spreadsheet.getSheetByName(sourceSheet)!.getLastRow();
+      const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+      sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
     }
     Object.keys(languages()).forEach(lang => {
       translateSheet(sheetName, lang as TranslationLanguage);
