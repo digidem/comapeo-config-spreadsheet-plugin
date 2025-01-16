@@ -67,3 +67,44 @@ interface CoMapeoConfig {
   messages: CoMapeoTranslations;
 }
 type TranslationLanguage = string;
+
+interface MenuTexts {
+  menu: string;
+  translateCoMapeoCategory: string;
+  generateIcons: string;
+  generateProjectKey: string;
+  generateCoMapeoCategory: string;
+  lintAllSheets: string;
+  cleanAllSheets: string;
+  openHelpPage: string;
+}
+
+interface TranslateTexts {
+  action: string;
+  actionText: string;
+  completed: string;
+  completedText: string;
+  error: string;
+  errorText: string;
+}
+
+interface IconTexts {
+  action: string;
+  actionText: string;
+  error: string;
+  errorText: string;
+}
+
+interface ProjectKeyTexts {
+  action: string;
+  actionText: string;
+  error: string;
+  errorText: string;
+}
+
+interface CategoryTexts {
+  action: string;
+  actionText: string;
+  error: string;
+  errorText: string;
+}
