@@ -17,8 +17,8 @@ function onOpen() {
 function translateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    translateTexts[locale].action,
-    translateTexts[locale].actionText,
+    translateMenuTexts[locale].action,
+    translateMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -26,14 +26,14 @@ function translateCoMapeoCategory() {
     try {
       autoTranslateSheets();
       ui.alert(
-        translateTexts[locale].completed,
-        translateTexts[locale].completedText,
+        translateMenuTexts[locale].completed,
+        translateMenuTexts[locale].completedText,
         ui.ButtonSet.OK,
       );
     } catch (error) {
       ui.alert(
-         translateTexts[locale].error,
-        translateTexts[locale].errorText + error.message,
+         translateMenuTexts[locale].error,
+        translateMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
@@ -43,8 +43,8 @@ function translateCoMapeoCategory() {
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    iconTexts[locale].action,
-    iconTexts[locale].actionText,
+    iconMenuTexts[locale].action,
+    iconMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -53,8 +53,8 @@ function generateIcons() {
       generateIconsConfig();
     } catch (error) {
       ui.alert(
-        iconTexts[locale].error,
-        iconTexts[locale].errorText + error.message,
+        iconMenuTexts[locale].error,
+        iconMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
@@ -64,8 +64,8 @@ function generateIcons() {
 function generateProjectKey() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    projectKeyTexts[locale].action,
-    projectKeyTexts[locale].actionText,
+    projectKeyMenuTexts[locale].action,
+    projectKeyMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -74,8 +74,8 @@ function generateProjectKey() {
       generateProjectKeyConfig();
     } catch (error) {
       ui.alert(
-        projectKeyTexts[locale].error,
-        projectKeyTexts[locale].errorText,
+        projectKeyMenuTexts[locale].error,
+        projectKeyMenuTexts[locale].errorText,
         ui.ButtonSet.OK,
       );
     }
@@ -85,8 +85,8 @@ function generateProjectKey() {
 function generateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    categoryTexts[locale].action,
-    categoryTexts[locale].actionText,
+    categoryMenuTexts[locale].action,
+    categoryMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -95,8 +95,8 @@ function generateCoMapeoCategory() {
       generateCoMapeoConfig();
     } catch (error) {
       ui.alert(
-        categoryTexts[locale].error,
-        categoryTexts[locale].errorText + error.message,
+        categoryMenuTexts[locale].error,
+        categoryMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
@@ -106,8 +106,8 @@ function generateCoMapeoCategory() {
 function lintCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    lintTexts[locale].action,
-    lintTexts[locale].actionText,
+    lintMenuTexts[locale].action,
+    lintMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO
   );
 
@@ -115,14 +115,14 @@ function lintCoMapeoCategory() {
     try {
       lintAllSheets();
       ui.alert(
-        lintTexts[locale].completed,
-        lintTexts[locale].completedText,
+        lintMenuTexts[locale].completed,
+        lintMenuTexts[locale].completedText,
         ui.ButtonSet.OK
       );
     } catch (error) {
       ui.alert(
-        lintTexts[locale].error,
-        lintTexts[locale].errorText + error.message,
+        lintMenuTexts[locale].error,
+        lintMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK
       );
     }
@@ -132,8 +132,8 @@ function lintCoMapeoCategory() {
 function cleanAllSheets() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    cleanAllTexts[locale].action,
-    cleanAllTexts[locale].actionText,
+    cleanAllMenuTexts[locale].action,
+    cleanAllMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO
   );
 
@@ -141,14 +141,14 @@ function cleanAllSheets() {
     try {
       removeTranslationAndMetadataSheets();
       ui.alert(
-        cleanAllTexts[locale].completed,
-        cleanAllTexts[locale].completedText,
+        cleanAllMenuTexts[locale].completed,
+        cleanAllMenuTexts[locale].completedText,
         ui.ButtonSet.OK
       );
     } catch (error) {
       ui.alert(
-        cleanAllTexts[locale].error,
-        cleanAllTexts[locale].errorText + error.message,
+        cleanAllMenuTexts[locale].error,
+        cleanAllMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK
       );
     }

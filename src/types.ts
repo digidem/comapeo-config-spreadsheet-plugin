@@ -68,7 +68,7 @@ interface CoMapeoConfig {
 }
 type TranslationLanguage = string;
 
-interface MenuTexts {
+interface MainMenuText {
   menu: string;
   translateCoMapeoCategory: string;
   generateIcons: string;
@@ -79,32 +79,23 @@ interface MenuTexts {
   openHelpPage: string;
 }
 
-interface TranslateTexts {
+interface MenuText {
   action: string;
   actionText: string;
-  completed: string;
-  completedText: string;
+  completed?: string;
+  completedText?: string;
   error: string;
   errorText: string;
 }
 
-interface IconTexts {
-  action: string;
-  actionText: string;
-  error: string;
-  errorText: string;
+interface DialogText {
+  title: string;
+  message: string[];
+  buttonText?: string;
 }
 
-interface ProjectKeyTexts {
-  action: string;
-  actionText: string;
-  error: string;
-  errorText: string;
+interface DialogInstructions {
+  instructions: string[];
+  footer: string;
 }
 
-interface CategoryTexts {
-  action: string;
-  actionText: string;
-  error: string;
-  errorText: string;
-}

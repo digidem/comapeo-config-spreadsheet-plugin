@@ -1,4 +1,5 @@
-let menuTexts: Record<string,MenuTexts> = {
+// MENU
+let menuTexts: Record<string,MainMenuText> = {
   es: {
     menu: "Herramientas CoMapeo",
     translateCoMapeoCategory: "Traducir Categorías de CoMapeo",
@@ -21,7 +22,7 @@ let menuTexts: Record<string,MenuTexts> = {
   }
 }
 
-let translateTexts: Record<string,TranslateTexts> = {
+let translateMenuTexts: Record<string,MenuText> = {
   es: {
     action: "Traducir Categoría de CoMapeo",
     actionText: "Esto traducirá todas las celdas vacías en todas las otras columnas de traducción de lenguages. Continuar?",
@@ -42,10 +43,10 @@ let translateTexts: Record<string,TranslateTexts> = {
 }
 
 
-let iconTexts: Record<string,IconTexts> = {
+let iconMenuTexts: Record<string,MenuText> = {
   es: {
     action: "Generar Íconos",
-    actionText: "Esta acción generará íconos usando la información de la plantilla actual. Esto puede llevar algunos minutos para processar. ¿Continuar?",
+    actionText: "Esta acción generará íconos usando la información de la planilla actual. Esto puede llevar algunos minutos para processar. ¿Continuar?",
     error: "Error",
     errorText: "Un error ocurrió generando los íconos: "
   },
@@ -57,7 +58,7 @@ let iconTexts: Record<string,IconTexts> = {
   }
 }
 
-let projectKeyTexts: Record<string, ProjectKeyTexts> = {
+let projectKeyMenuTexts: Record<string, MenuText> = {
   es: {
     action:"Generar Clave de Proyecto",
     actionText: "Esto generará una clave de proyecto para tus Categorías de CoMapeo. ¿Continuar?",
@@ -72,10 +73,10 @@ let projectKeyTexts: Record<string, ProjectKeyTexts> = {
   }
 }
 
-let categoryTexts: Record<string,CategoryTexts> = {
+let categoryMenuTexts: Record<string,MenuText> = {
   es: {
     action: "Generar Categorías de CoMapeo",
-    actionText: "Esto generará las categorías de CoMapeo basándose en la información de la plantilla actual. Puede llevar unos minutos procesar. ¿Continuar?",
+    actionText: "Esto generará las categorías de CoMapeo basándose en la información de la planilla actual. Puede llevar unos minutos procesar. ¿Continuar?",
     error: "Error",
     errorText: "Ocurrió un error mientras se generaba la configuración: "
   },
@@ -87,12 +88,12 @@ let categoryTexts: Record<string,CategoryTexts> = {
   }
 }
 
-let lintTexts: Record<string, LintTexts> = {
+let lintMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Validar Categorías de CoMapeo",
-    actionText: "Esto validará todas las plantillas en la hoja de cálculo. ¿Continuar?",
+    actionText: "Esto validará todas las planillas en la hoja de cálculo. ¿Continuar?",
     completed: "Validación terminada",
-    completedText: "Todas las plantillas fueron validadas con éxito",
+    completedText: "Todas las planillas fueron validadas con éxito",
     error: "Error",
     errorText: "Un error ocurrió en la validación: "
   },
@@ -106,12 +107,12 @@ let lintTexts: Record<string, LintTexts> = {
   }
 }
 
-let cleanAllTexts: Record<string, CleanAllTexts> = {
+let cleanAllMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Resetear Plantillas",
     actionText: "!Atención! Esto eliminará todas las traducciones, metadata e íconos the la hoja de cálculos. Esta acción no se puede revertir. ¿Continuar?",
     completed: "Reseteo Completado",
-    completedText: "Todas las plantillas fueron reseteadas con éxito",
+    completedText: "Todas las planillas fueron reseteadas con éxito",
     error: "Error",
     errorText: "Un error ocurrió durante el reseteo: "
   },

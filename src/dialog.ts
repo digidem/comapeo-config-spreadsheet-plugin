@@ -1,4 +1,4 @@
-function generateDialog(title: string, message: string, buttonText: string, buttonUrl: string): string {
+function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string): string {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -94,7 +94,9 @@ function generateDialog(title: string, message: string, buttonText: string, butt
       <h1>${title}</h1>
       <div class="container">
         ${message}
-        <a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>
+        ${(buttonUrl && buttonText)
+            ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>`
+            : ''}
       </div>
     </body>
     </html>
@@ -102,49 +104,45 @@ function generateDialog(title: string, message: string, buttonText: string, butt
 }
 
 function showIconsGeneratedDialog(folderUrl: string) {
-  const title = "CoMapeo Icons Generated";
-  const message = `
-    <p>Your CoMapeo icons have been successfully generated and saved to a folder in your Google Drive.</p>
-    <p>To view and manage your generated icons, click the button below. You can download, modify, or replace icons as needed.</p>
-    <p>Remember to update the icon URLs in the spreadsheet if you make any changes.</p>
-  `;
-  const buttonText = "View Generated Icons";
+  const title = iconDialogTexts[locale].title ;
+  const message = iconDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n")
+  const buttonText = iconDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title);
 }
 
+function showProcessingModalDialog(text:string){
+  const title = "Generating Comapeo Config"
+  const message = ` <p>${text}</p> `
+  const html = generateDialog(title, message)
+    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title)
+
+}
 
 function showConfigurationGeneratedDialog(folderUrl: string) {
-  const title = "CoMapeo Category Generated";
-  const message = `
-    <p>Your CoMapeo Category file has been successfully generated and compressed into a zip file.</p>
-    <p>To download your Category, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
-  `;
-  const buttonText = "Download CoMapeo Category";
+  const title =generatedConfigDialogTexts[locale].title ;
+  const message =  generatedConfigDialogTexts[locale].message
+  .map(msg => `<p>${msg}</p>`).join("\n")
+  const buttonText = generatedConfigDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
 }
 
 function showHelpDialog() {
-  const title = "CoMapeo Tools Help";
+  const title = helpDialogTexts[locale].title
+  const msgHeader = helpDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n");
+  const instructions = helpDialogTexts[locale].instructions
+  .map(instruction => `<li>${instruction}</li>`).join("\n");
+  const footer = `<p>${helpDialogTexts[locale].footer}</p>`
+
   const message = `
-    <p>Welcome to CoMapeo Tools! This add-on helps you manage and generate CoMapeo categories. Here's how to use it:</p>
-    <p>The general workflow for creating and managing CoMapeo categories is as follows:</p>
-    <ol style="text-align: left;">
-      <li>Edit the "Categories" and "Details" sheets to define your custom categories and their associated details. Note that the background color you set for categories and icons will reflect their color in the CoMapeo app.</li>
-      <li>Use the "Translate CoMapeo Category" option to automatically generate translations for empty cells in other language columns.</li>
-      <li>Review and refine the auto-generated translations as needed.</li>
-      <li>Use the "Generate Icons" option to create icons for your categories. The background color of the icons will match the color you set in the spreadsheet.</li>
-      <li>Check the generated icons in the icons folder and modify them using the <br /><a href="https://icons.earthdefenderstoolkit.com" target="_blank">Icon Generator App</a> if necessary.</li>
-      <li>Copy the shared link for each icon and paste it into the corresponding icon cell in the spreadsheet.</li>
-      <li>Use the "Lint Sheets" option to ensure proper formatting and capitalization of your data.</li>
-      <li>Use the "Generate Project Key" option to create a unique key for your project. This key ensures that your configuration can only be synced with projects using the same key, enhancing security.</li>
-      <li>Repeat steps 1-8 as needed, updating translations, icons, and the project key until you're satisfied with the results.</li>
-      <li>When ready, use the "Generate CoMapeo Category" option to create your final configuration. This process may take a few minutes and will produce a zip file containing your .comapeocat file, ready for use with the CoMapeo app.</li>
-    </ol>
-    <p>For more detailed information, visit our GitHub repository:</p>
-  `;
-  const buttonText = "Visit GitHub Repository";
+  ${msgHeader}
+  <ol style="text-align: left";>
+  ${instructions}
+  </ol>
+  ${footer}
+`
+  const buttonText = helpDialogTexts[locale].buttonText;
   const buttonUrl = "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
   const html = generateDialog(title, message, buttonText, buttonUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
