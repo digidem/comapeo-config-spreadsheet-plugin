@@ -1,5 +1,4 @@
-const ENGLISH_COLUMN = "A";
-const ENGLISH_HEADER = "English";
+const MAIN_LANGUAGE_COLUMN = "A";
 const CATEGORIES_SHEET = "Categories";
 const DETAILS_SHEET = "Details";
 const CATEGORY_TRANSLATIONS_SHEET = "Category Translations";
@@ -18,16 +17,21 @@ function translateSheet(
   }
   const lastRow = sheet.getLastRow();
   const languagesList = languages();
+  const mainLanguage = Object.keys(languages(true))[0];
+  console.log('Main language', mainLanguage);
+  for (const [code, name] of Object.entries(languagesList)) {
+    console.log(`Language code: ${code}, name: ${name}`);
+  }
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
-    const englishText = sheet.getRange(i, 1).getValue() as string;
-    if (englishText) {
+    const originalText = sheet.getRange(i, 1).getValue() as string;
+    if (originalText) {
       const targetCell = sheet.getRange(i, targetColumn);
       if (!targetCell.getValue()) {
         const translation = LanguageApp.translate(
-          englishText,
-          "en",
+          originalText,
+          mainLanguage,
           targetLanguage,
         );
         targetCell.setValue(translation);
@@ -42,13 +46,15 @@ function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
 
   if (!sheet) {
     sheet = spreadsheet.insertSheet(CATEGORY_TRANSLATIONS_SHEET);
-    const headers = [spreadsheet.getSheetByName(CATEGORIES_SHEET)?.getRange("A1").getValue() || ENGLISH_HEADER, ...Object.values(languages())];
+    const mainLanguage = Object.entries(languages(true))[0];
+    const otherLanguages = Object.entries(languages());
+    const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
 
     const categoriesSheet = spreadsheet.getSheetByName(CATEGORIES_SHEET);
     if (categoriesSheet) {
       const lastRow = categoriesSheet.getLastRow();
-      const formula = `=${CATEGORIES_SHEET}!${ENGLISH_COLUMN}2:${ENGLISH_COLUMN}${lastRow}`;
+      const formula = `=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}2:${MAIN_LANGUAGE_COLUMN}${lastRow}`;
       sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
     }
   }
@@ -75,7 +81,9 @@ function autoTranslateSheets(): void {
         sheet = createCategoryTranslationsSheet();
       } else {
         sheet = spreadsheet.insertSheet(sheetName);
-        const headers = [spreadsheet.getSheetByName(CATEGORIES_SHEET)?.getRange("A1").getValue() || ENGLISH_HEADER, ...Object.values(languages())];
+        const mainLanguage = Object.entries(languages(true))[0];
+        const otherLanguages = Object.entries(languages());
+        const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
 
         let sourceSheet: string;
@@ -88,7 +96,7 @@ function autoTranslateSheets(): void {
           sourceColumn = DETAILS_OPTIONS_COLUMN;
         } else {
           sourceSheet = DETAILS_SHEET;
-          sourceColumn = ENGLISH_COLUMN;
+          sourceColumn = MAIN_LANGUAGE_COLUMN;
         }
 
         const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
@@ -106,7 +114,7 @@ function autoTranslateSheets(): void {
   }
 }
 
-function addNewLanguages(newLanguages: { name: string }[]): void {
+function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
   console.log("Adding new languages...", newLanguages);
   const sheet = createCategoryTranslationsSheet();
 
@@ -116,11 +124,12 @@ function addNewLanguages(newLanguages: { name: string }[]): void {
 
   // Add new language columns
   for (const lang of newLanguages) {
+    const headerText = `${lang.name} - ${lang.iso}`;
     // Skip if language already exists
-    if (headers.includes(lang.name)) continue;
+    if (headers.includes(headerText)) continue;
 
     // Add new header
-    sheet.getRange(1, startCol).setValue(lang.name).setFontWeight("bold");
+    sheet.getRange(1, startCol).setValue(headerText).setFontWeight("bold");
     startCol++;
   }
 }

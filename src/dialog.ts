@@ -118,20 +118,20 @@ function generateDialog(title: string, message: string, buttonText: string, butt
         ${message}
         ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ''}
         ${buttonFunction ? `
-          <button onclick="handleClick(this, ${buttonFunction})" class="action-btn">
+          <button onclick="handleClick()" class="action-btn">
             <span class="btn-text">${buttonText}</span>
             <span class="spinner"></span>
           </button>
           <script>
-            function handleClick(button, fn) {
-              if (typeof fn !== 'function') {
-                console.error('Invalid function passed to handleClick');
-                return;
-              }
+            function handleClick() {
+              const button = document.querySelector('.action-btn');
               button.classList.add('processing');
-              Promise.resolve(fn()).finally(() => {
+              try {
+                ${buttonFunction}();
+              } catch (error) {
+                console.error('Error:', error);
                 button.classList.remove('processing');
-              });
+              }
             }
           </script>
         ` : ''}
@@ -140,6 +140,7 @@ function generateDialog(title: string, message: string, buttonText: string, butt
     </html>
   `;
 }
+
 function showIconsGeneratedDialog(folderUrl: string) {
   const title = "CoMapeo Icons Generated";
   const message = `
@@ -151,7 +152,6 @@ function showIconsGeneratedDialog(folderUrl: string) {
   const html = generateDialog(title, message, buttonText, folderUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title);
 }
-
 
 function showConfigurationGeneratedDialog(folderUrl: string) {
   const title = "CoMapeo Category Generated";
@@ -191,41 +191,65 @@ function showHelpDialog() {
 
 function showAddLanguagesDialog() {
   const title = "Add Languages for Translation";
+  const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
+  const languages = JSON.parse(UrlFetchApp.fetch(languagesUrl).getContentText());
+  const languageOptions = Object.entries(languages)
+    .map(([code, lang]) => `<option value="${code}">${(lang as {englishName: string}).englishName} (${code})</option>`)
+    .join('');
+
   const message = `
-    <p>Add custom languages for translation. Enter the language name and click "Add Another Language" to add more.</p>
+    <p>Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click "Add Another Language" to add more.</p>
+    <select id="languageSelect" class="language-select" onchange="updateFields()" style="margin-bottom: 15px;">
+      <option value="">Select a common language...</option>
+      ${languageOptions}
+    </select>
     <div id="languageInputs">
       <div class="language-row">
         <input type="text" class="language-name" placeholder="Language name (e.g. Spanish)" />
+        <input type="text" class="language-iso" placeholder="ISO code (e.g. es)" />
       </div>
     </div>
     <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">Add Another Language</button>
     <script>
+      function updateFields() {
+        const select = document.getElementById('languageSelect');
+        const rows = document.querySelectorAll('.language-row');
+        const lastRow = rows[rows.length - 1];
+        const option = select.options[select.selectedIndex];
+        if (option.value) {
+          const name = option.text.split(' (')[0];
+          const iso = option.value;
+          lastRow.querySelector('.language-name').value = name;
+          lastRow.querySelector('.language-iso').value = iso;
+        }
+      }
+
       function addLanguageRow() {
         const container = document.getElementById('languageInputs');
         const newRow = document.createElement('div');
         newRow.className = 'language-row';
-        newRow.innerHTML = document.querySelector('.language-row').innerHTML;
+        newRow.innerHTML = container.querySelector('.language-row').innerHTML;
+        // Reset values in the new row
+        newRow.querySelector('.language-name').value = '';
+        newRow.querySelector('.language-iso').value = '';
         container.appendChild(newRow);
       }
 
       function getSelectedLanguages() {
-        // Disable add language button
-        document.getElementById('addLanguageBtn').disabled = true;
-
         const rows = document.querySelectorAll('.language-row');
         const languages = Array.from(rows)
           .map(row => ({
-            name: row.querySelector('.language-name').value
+            name: row.querySelector('.language-name').value,
+            iso: row.querySelector('.language-iso').value
           }))
-          .filter(lang => lang.name);
+          .filter(lang => lang.name && lang.iso);
         if (languages.length === 0) {
-          document.getElementById('addLanguageBtn').disabled = false;
           return;
         }
         google.script.run
           .withFailureHandler((error) => {
             console.error('Failed to add languages:', error);
-            document.getElementById('addLanguageBtn').disabled = false;
+            document.querySelector('.action-btn').classList.remove('processing');
           })
           .withSuccessHandler(() => {
             google.script.host.close();
@@ -234,8 +258,9 @@ function showAddLanguagesDialog() {
       }
     </script>
     <style>
-      .language-row { margin: 10px 0; }
-      input { width: 180px; padding: 5px; margin-right: 5px; }
+      .language-row { margin: 10px 0; display: flex; gap: 5px; }
+      input { width: 180px; padding: 5px; }
+      select { width: 100%; padding: 5px; }
       button { padding: 8px 16px; }
       button:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
@@ -244,7 +269,7 @@ function showAddLanguagesDialog() {
   const html = generateDialog(title, message, buttonText, null, 'getSelectedLanguages');
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html)
-      .setWidth(500)
+      .setWidth(600)
       .setHeight(800),
     title
   );

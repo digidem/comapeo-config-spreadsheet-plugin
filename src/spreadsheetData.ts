@@ -1,10 +1,21 @@
-function languages(): Record<string, string> {
-  return {
-    es: 'Spanish',
-    pt: 'Portuguese'
-  };
-}
+function languages(includePrimary = false): Record<string, string> {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  const primaryLanguage = categoriesSheet?.getRange("A1").getValue() as string;
 
+  const allLanguages = {
+    en: 'English',
+    es: 'Español',
+    pt: 'Português'
+  };
+
+  return Object.entries(allLanguages)
+    .filter(([_, name]) => includePrimary ? name === primaryLanguage : name !== primaryLanguage)
+    .reduce((acc, [code, name]) => {
+      acc[code] = name;
+      return acc;
+    }, {} as Record<string, string>);
+}
 function sheets(translationsOnly = false): string[] {
   const translationSheets = [
     "Category Translations",
