@@ -1,15 +1,3 @@
-function generateProjectKeyConfig(): void {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    let metadataSheet = spreadsheet.getSheetByName('Metadata');
-
-    if (!metadataSheet) {
-        metadataSheet = createMetadataSheet(spreadsheet);
-    }
-
-    const projectKey = generateRandomBytes(64);
-    getOrSetValue(metadataSheet, 'projectKey', projectKey);
-}
-
 function processMetadata(data) {
     const { documentName } = data;
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();

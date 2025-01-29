@@ -4,7 +4,6 @@ function onOpen() {
     .addItem("Translate CoMapeo Category", "translateCoMapeoCategory")
     .addItem("Add Custom Languages", "addCustomLanguages")
     .addItem("Generate Category Icons", "generateIcons")
-    .addItem("Generate Project Key", "generateProjectKey")
     .addSeparator()
     .addItem("Generate CoMapeo Category", "generateCoMapeoCategory")
     .addSeparator()
@@ -64,27 +63,6 @@ function generateIcons() {
   if (result === ui.Button.YES) {
     try {
       generateIconsConfig();
-    } catch (error) {
-      ui.alert(
-        "Error",
-        `An error occurred while generating the configuration: ${error.message}`,
-        ui.ButtonSet.OK,
-      );
-    }
-  }
-}
-
-function generateProjectKey() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    "Generate Project Key",
-    "This will generate a project key for your CoMapeo Category. Continue?",
-    ui.ButtonSet.YES_NO,
-  );
-
-  if (result === ui.Button.YES) {
-    try {
-      generateProjectKeyConfig();
     } catch (error) {
       ui.alert(
         "Error",
