@@ -84,4 +84,93 @@ let helpDialogTexts: Record<string,DialogText & DialogInstructions> = {
   }
 }
 
+let processingDialogTitle = {
+  en:  "Generating CoMapeo Config",
+  es:  "Generando Configuracion de CoMapeo"
+}
+
+let processingDialogTexts: Record<string,DialogText>[] = [
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Generating Comapeo Config (1/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Generando Configuración de CoMapeo (1/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Auto translating (2/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Generando tradducciones automáticas (2/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Linting CoMapeo Categories (3/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Validando Categorías de CoMapeo (3/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Getting spreadsheet data (4/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Obteniendo información de las planillas (4/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Processing data (this may take a while) (5/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Procesando información (esto puede llevar un rato) (5/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Saving generated categories to drive (6/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Guardando categrías generadas al drive (6/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Zipping folder (7/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Comprimiendo carpeta (7/8)"]
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle['en'],
+      message:  ["Retrieving URL for zipped folder (8/8)"]
+    },
+    es: {
+      title: processingDialogTitle['es'],
+      message:  ["Obteniendo URL para carpeta comprimida (7/8)"]
+    },
+  }
+]
+
+
 

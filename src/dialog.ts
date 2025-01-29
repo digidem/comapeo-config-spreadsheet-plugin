@@ -111,11 +111,10 @@ function showIconsGeneratedDialog(folderUrl: string) {
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title);
 }
 
-function showProcessingModalDialog(text:string){
-  const title = "Generating Comapeo Config"
-  const message = ` <p>${text}</p> `
-  const html = generateDialog(title, message)
-    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title)
+function showProcessingModalDialog(dialogText: DialogText){
+  const message = ` <p>${dialogText.message}</p> `
+  const html = generateDialog(dialogText.title, message)
+    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), dialogText.title)
 
 }
 
