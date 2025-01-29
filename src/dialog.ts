@@ -1,4 +1,4 @@
-function generateDialog(title: string, message: string, buttonText: string, buttonUrl?: string, buttonFunction?: string): string {
+function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string, buttonFunction?: string): string {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -142,55 +142,51 @@ function generateDialog(title: string, message: string, buttonText: string, butt
 }
 
 function showIconsGeneratedDialog(folderUrl: string) {
-  const title = "CoMapeo Icons Generated";
-  const message = `
-    <p>Your CoMapeo icons have been successfully generated and saved to a folder in your Google Drive.</p>
-    <p>To view and manage your generated icons, click the button below. You can download, modify, or replace icons as needed.</p>
-    <p>Remember to update the icon URLs in the spreadsheet if you make any changes.</p>
-  `;
-  const buttonText = "View Generated Icons";
+  const title = iconDialogTexts[locale].title ;
+  const message = iconDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n")
+  const buttonText = iconDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title);
 }
 
+function showProcessingModalDialog(dialogText: DialogText){
+  const message = ` <p>${dialogText.message}</p> `
+  const html = generateDialog(dialogText.title, message)
+    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), dialogText.title)
+
+}
+
 function showConfigurationGeneratedDialog(folderUrl: string) {
-  const title = "CoMapeo Category Generated";
-  const message = `
-    <p>Your CoMapeo Category file has been successfully generated and compressed into a zip file.</p>
-    <p>To download your Category, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.</p>
-  `;
-  const buttonText = "Download CoMapeo Category";
+  const title =generatedConfigDialogTexts[locale].title ;
+  const message =  generatedConfigDialogTexts[locale].message
+  .map(msg => `<p>${msg}</p>`).join("\n")
+  const buttonText = generatedConfigDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
 }
 
 function showHelpDialog() {
-  const title = "CoMapeo Tools Help";
+  const title = helpDialogTexts[locale].title
+  const msgHeader = helpDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n");
+  const instructions = helpDialogTexts[locale].instructions
+  .map(instruction => `<li>${instruction}</li>`).join("\n");
+  const footer = `<p>${helpDialogTexts[locale].footer}</p>`
+
   const message = `
-    <p>Welcome to CoMapeo Tools! This add-on helps you manage and generate CoMapeo categories. Here's how to use it:</p>
-    <p>The general workflow for creating and managing CoMapeo categories is as follows:</p>
-    <ol style="text-align: left;">
-      <li>Edit the "Categories" and "Details" sheets to define your custom categories and their associated details. Note that the background color you set for categories and icons will reflect their color in the CoMapeo app.</li>
-      <li>Use the "Translate CoMapeo Category" option to automatically generate translations for empty cells in other language columns.</li>
-      <li>Review and refine the auto-generated translations as needed.</li>
-      <li>Use the "Generate Icons" option to create icons for your categories. The background color of the icons will match the color you set in the spreadsheet.</li>
-      <li>Check the generated icons in the icons folder and modify them using the <br /><a href="https://icons.earthdefenderstoolkit.com" target="_blank">Icon Generator App</a> if necessary.</li>
-      <li>Copy the shared link for each icon and paste it into the corresponding icon cell in the spreadsheet.</li>
-      <li>Use the "Lint Sheets" option to ensure proper formatting and capitalization of your data.</li>
-      <li>Use the "Generate Project Key" option to create a unique key for your project. This key ensures that your configuration can only be synced with projects using the same key, enhancing security.</li>
-      <li>Repeat steps 1-8 as needed, updating translations, icons, and the project key until you're satisfied with the results.</li>
-      <li>When ready, use the "Generate CoMapeo Category" option to create your final configuration. This process may take a few minutes and will produce a zip file containing your .comapeocat file, ready for use with the CoMapeo app.</li>
-    </ol>
-    <p>For more detailed information, visit our GitHub repository:</p>
-  `;
-  const buttonText = "Visit GitHub Repository";
+  ${msgHeader}
+  <ol style="text-align: left";>
+  ${instructions}
+  </ol>
+  ${footer}
+`
+  const buttonText = helpDialogTexts[locale].buttonText;
   const buttonUrl = "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
   const html = generateDialog(title, message, buttonText, buttonUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
 }
 
 function showAddLanguagesDialog() {
-  const title = "Add Languages for Translation";
+  const title = addLanguageDialogText[locale].title;
   const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
   const languages = JSON.parse(UrlFetchApp.fetch(languagesUrl).getContentText());
   const languageOptions = Object.entries(languages)
@@ -198,9 +194,9 @@ function showAddLanguagesDialog() {
     .join('');
 
   const message = `
-    <p>Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click "Add Another Language" to add more.</p>
+    <p>${addLanguageDialogText[locale].message[0]}</p>
     <select id="languageSelect" class="language-select" onchange="updateFields()" style="margin-bottom: 15px;">
-      <option value="">Select a common language...</option>
+      <option value="">${addLanguageDialogText[locale].message[1]}</option>
       ${languageOptions}
     </select>
     <div id="languageInputs">
@@ -209,7 +205,7 @@ function showAddLanguagesDialog() {
         <input type="text" class="language-iso" placeholder="ISO code (e.g. es)" />
       </div>
     </div>
-    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">Add Another Language</button>
+    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">${addLanguageDialogText[locale].message[2]}</button>
     <script>
       function updateFields() {
         const select = document.getElementById('languageSelect');
@@ -265,7 +261,7 @@ function showAddLanguagesDialog() {
       button:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
   `;
-  const buttonText = "Add Languages";
+  const buttonText = addLanguageDialogText[locale].buttonText;
   const html = generateDialog(title, message, buttonText, null, 'getSelectedLanguages');
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html)

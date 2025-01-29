@@ -1,15 +1,23 @@
 function generateCoMapeoConfig() {
+  showProcessingModalDialog(processingDialogTexts[0][locale])
   console.log('Generating CoMapeo config...');
+  showProcessingModalDialog(processingDialogTexts[1][locale])
   console.log('Auto translating...');
   autoTranslateSheets();
   console.log('Linting CoMapeo config...');
+  showProcessingModalDialog(processingDialogTexts[2][locale])
   lintAllSheets();
   const data = getSpreadsheetData();
+  showProcessingModalDialog(processingDialogTexts[3][locale])
   const config = processDataForCoMapeo(data);
+  showProcessingModalDialog(processingDialogTexts[4][locale])
   const { id } = saveConfigToDrive(config);
-  console.log(`Zipping folder ID: ${id}`);
+  showProcessingModalDialog(processingDialogTexts[5][locale])
+  console.log("Zipping folder ID: " + id);
+  showProcessingModalDialog(processingDialogTexts[6][locale])
   const folderZip = saveDriveFolderToZip(id);
   const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata);
+  showProcessingModalDialog(processingDialogTexts[7][locale])
   showConfigurationGeneratedDialog(configUrl);
 }
 

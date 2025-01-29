@@ -66,3 +66,36 @@ interface CoMapeoConfig {
   messages: CoMapeoTranslations;
 }
 type TranslationLanguage = string;
+
+interface MainMenuText {
+  menu: string;
+  translateCoMapeoCategory: string;
+  addCustomLanguages: string;
+  generateIcons: string;
+  generateProjectKey: string;
+  generateCoMapeoCategory: string;
+  lintAllSheets: string;
+  cleanAllSheets: string;
+  openHelpPage: string;
+}
+
+interface MenuText {
+  action: string;
+  actionText: string;
+  completed?: string;
+  completedText?: string;
+  error: string;
+  errorText: string;
+}
+
+interface DialogText {
+  title: string;
+  message: string[];
+  buttonText?: string;
+}
+
+interface DialogInstructions {
+  instructions: string[];
+  footer: string;
+}
+
