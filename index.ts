@@ -1,4 +1,8 @@
-let locale = Session.getActiveUserLocale().split("_")[0];
+let activeUserLocale = Session.getActiveUserLocale().split("_")[0];
+const supportedLocales = ["en", "es"]
+const defaultLocale = "en"
+let locale = supportedLocales.includes(activeUserLocale) ? activeUserLocale : defaultLocale
+
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu(menuTexts[locale].menu)
