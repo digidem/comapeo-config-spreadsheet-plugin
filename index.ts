@@ -5,7 +5,6 @@ let locale = supportedLocales.includes(activeUserLocale) ? activeUserLocale : de
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-<<<<<<< HEAD
   ui.createMenu(menuTexts[locale].menu)
     .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
     .addItem("Add Custom Languages", "addCustomLanguages")
