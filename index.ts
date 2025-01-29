@@ -9,7 +9,6 @@ function onOpen() {
     .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
     .addItem(menuTexts[locale].addCustomLanguages, "addCustomLanguages")
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
-    .addItem(menuTexts[locale].generateProjectKey, "generateProjectKey")
     .addSeparator()
     .addItem(menuTexts[locale].generateCoMapeoCategory, "generateCoMapeoCategory")
     .addSeparator()
@@ -46,31 +45,16 @@ function translateCoMapeoCategory() {
 }
 
 function addCustomLanguages() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    customLanguageMenuTexts[locale].action,
-    customLanguageMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO
-  )
-
-  if (result === ui.Button.YES) {
-    try {
-      showAddLanguagesDialog();
-      ui.alert(
-        customLanguageMenuTexts[locale].completed,
-        customLanguageMenuTexts[locale].completedText,
-        ui.ButtonSet.OK
-      )
-    } catch (error) {
-      ui.alert(
-        customLanguageMenuTexts[locale].error,
-        customLanguageMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK
-      );
-    }
+  try {
+    showAddLanguagesDialog();
+  } catch (error) {
+    SpreadsheetApp.getUi().alert(
+      "Error",
+      `An error occurred while adding languages: ${error.message}`,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
   }
 }
-
 
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();

@@ -5,7 +5,6 @@ let menuTexts: Record<string,MainMenuText> = {
     translateCoMapeoCategory: "Traducir Categorías de CoMapeo",
     addCustomLanguages: "Agregar lenguajes customizados",
     generateIcons:"Generar Íconos para Categorías",
-    generateProjectKey:"Generar Clave de Proyecto",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
@@ -16,7 +15,6 @@ let menuTexts: Record<string,MainMenuText> = {
     translateCoMapeoCategory: "Translate CoMapeo Category",
     addCustomLanguages: "Add Custom Languages",
     generateIcons:"Generate Category Icons",
-    generateProjectKey:"Generate Project Key",
     generateCoMapeoCategory: "Generate CoMapeo Category",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
@@ -44,26 +42,6 @@ let translateMenuTexts: Record<string,MenuText> = {
   }
 }
 
-let customLanguageMenuTexts: Record<string, MenuText> = {
-  es: {
-    action: "Agregar idioma",
-    actionText: "Esta acción agregará un idioma. Continuar?",
-    completed: "Idioma agregado",
-    completedText: "Idioma agregado con éxito",
-    error: "Error",
-    errorText: "Ocurrió un error agregando un idioma: "
-  },
-  en: {
-    action: "Add Custom Language",
-    actionText: "This action will add a custom language. Continue?",
-    completed: "Language added",
-    completedText: "Language added sucessfully",
-    error: "Error",
-    errorText:  "An error occurred while adding languages: "
-  }
-}
-
-
 let iconMenuTexts: Record<string,MenuText> = {
   es: {
     action: "Generar Íconos",
@@ -76,21 +54,6 @@ let iconMenuTexts: Record<string,MenuText> = {
     actionText: "This will generate icons based on the current spreadsheet data. It may take a few minutes to process. Continue?",
     error: "Error",
     errorText: "An error occurred while generating the icons: "
-  }
-}
-
-let projectKeyMenuTexts: Record<string, MenuText> = {
-  es: {
-    action:"Generar Clave de Proyecto",
-    actionText: "Esto generará una clave de proyecto para tus Categorías de CoMapeo. ¿Continuar?",
-    error: "Error",
-    errorText: "Ocurrió un error mientras se generaba la clave del proyecto: ",
-  },
-  en: {
-    action:"Generate Project Key",
-    actionText: "This will generate a project key for your CoMapeo Category. Continue?",
-    error:"Error",
-    errorText:"An error occurred while generating the configuration: "
   }
 }
 
