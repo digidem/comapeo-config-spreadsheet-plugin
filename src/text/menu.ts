@@ -3,6 +3,7 @@ let menuTexts: Record<string,MainMenuText> = {
   es: {
     menu: "Herramientas CoMapeo",
     translateCoMapeoCategory: "Traducir Categorías de CoMapeo",
+    addCustomLanguages: "Agregar lenguajes customizados",
     generateIcons:"Generar Íconos para Categorías",
     generateProjectKey:"Generar Clave de Proyecto",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
@@ -13,6 +14,7 @@ let menuTexts: Record<string,MainMenuText> = {
   en: {
     menu: "CoMapeo Tools",
     translateCoMapeoCategory: "Translate CoMapeo Category",
+    addCustomLanguages: "Add Custom Languages",
     generateIcons:"Generate Category Icons",
     generateProjectKey:"Generate Project Key",
     generateCoMapeoCategory: "Generate CoMapeo Category",
@@ -29,7 +31,7 @@ let translateMenuTexts: Record<string,MenuText> = {
     completed: "Traducción Completada",
     completedText: "Todas las planillas fueron traducidas con éxito",
     error: "Error",
-    errorText: "Un error ocurrió durante la traducción: "
+    errorText: "Ocurrió un error durante la traducción: "
   },
   en: {
     action: "Translate CoMapeo Category",
@@ -39,6 +41,25 @@ let translateMenuTexts: Record<string,MenuText> = {
     error: "Error",
     errorText: "An error occurred during translation: "
 
+  }
+}
+
+let customLanguageMenuTexts: Record<string, MenuText> = {
+  es: {
+    action: "Agregar idioma",
+    actionText: "Esta acción agregará un idioma. Continuar?",
+    completed: "Idioma agregado",
+    completedText: "Idioma agregado con éxito",
+    error: "Error",
+    errorText: "Ocurrió un error agregando un idioma: "
+  },
+  en: {
+    action: "Add Custom Language",
+    actionText: "This action will add a custom language. Continue?",
+    completed: "Language added",
+    completedText: "Language added sucessfully",
+    error: "Error",
+    errorText:  "An error occurred while adding languages: "
   }
 }
 

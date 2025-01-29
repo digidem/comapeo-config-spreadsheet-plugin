@@ -1,3 +1,16 @@
+let addLanguageDialogText: Record<string,DialogText> = {
+  es: {
+    title: "Agregar lenguajes para traducir",
+    buttonText: "Agregar lenguages",
+    message: ["Agregá lenguages propios para traducir. Ingresa el lenguage y su código ISO, o selecciona de una lista de lenguajes comúnes. Haz Click en 'Agrega otro lenguage' para agregar más", "Selecciona un lenguaje", "Agrega otro lenguage"]
+  },
+  en: {
+    title:  "Add Languages for Translation",
+    buttonText: "Add languages",
+    message: ["Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click 'Add Another Language' to add more.", "Select a common language", "Add another language"]
+  }
+}
+
 let iconDialogTexts: Record<string,DialogText> = {
   es: {
     title: "Íconos de CoMapeo Generados",

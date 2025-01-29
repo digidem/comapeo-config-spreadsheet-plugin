@@ -70,6 +70,7 @@ type TranslationLanguage = string;
 interface MainMenuText {
   menu: string;
   translateCoMapeoCategory: string;
+  addCustomLanguages: string;
   generateIcons: string;
   generateProjectKey: string;
   generateCoMapeoCategory: string;

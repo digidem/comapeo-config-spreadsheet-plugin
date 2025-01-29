@@ -186,7 +186,7 @@ function showHelpDialog() {
 }
 
 function showAddLanguagesDialog() {
-  const title = "Add Languages for Translation";
+  const title = addLanguageDialogText[locale].title;
   const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
   const languages = JSON.parse(UrlFetchApp.fetch(languagesUrl).getContentText());
   const languageOptions = Object.entries(languages)
@@ -194,9 +194,9 @@ function showAddLanguagesDialog() {
     .join('');
 
   const message = `
-    <p>Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click "Add Another Language" to add more.</p>
+    <p>${addLanguageDialogText[locale].message[0]}</p>
     <select id="languageSelect" class="language-select" onchange="updateFields()" style="margin-bottom: 15px;">
-      <option value="">Select a common language...</option>
+      <option value="">${addLanguageDialogText[locale].message[1]}</option>
       ${languageOptions}
     </select>
     <div id="languageInputs">
@@ -205,7 +205,7 @@ function showAddLanguagesDialog() {
         <input type="text" class="language-iso" placeholder="ISO code (e.g. es)" />
       </div>
     </div>
-    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">Add Another Language</button>
+    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">${addLanguageDialogText[locale].message[2]}</button>
     <script>
       function updateFields() {
         const select = document.getElementById('languageSelect');
@@ -261,7 +261,7 @@ function showAddLanguagesDialog() {
       button:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
   `;
-  const buttonText = "Add Languages";
+  const buttonText = addLanguageDialogText[locale].buttonText;
   const html = generateDialog(title, message, buttonText, null, 'getSelectedLanguages');
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html)

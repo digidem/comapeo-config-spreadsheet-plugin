@@ -7,7 +7,7 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu(menuTexts[locale].menu)
     .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
-    .addItem("Add Custom Languages", "addCustomLanguages")
+    .addItem(menuTexts[locale].addCustomLanguages, "addCustomLanguages")
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addItem(menuTexts[locale].generateProjectKey, "generateProjectKey")
     .addSeparator()
@@ -46,14 +46,28 @@ function translateCoMapeoCategory() {
 }
 
 function addCustomLanguages() {
-  try {
-    showAddLanguagesDialog();
-  } catch (error) {
-    SpreadsheetApp.getUi().alert(
-      "Error",
-      `An error occurred while adding languages: ${error.message}`,
-      SpreadsheetApp.getUi().ButtonSet.OK
-    );
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    customLanguageMenuTexts[locale].action,
+    customLanguageMenuTexts[locale].actionText,
+    ui.ButtonSet.YES_NO
+  )
+
+  if (result === ui.Button.YES) {
+    try {
+      showAddLanguagesDialog();
+      ui.alert(
+        customLanguageMenuTexts[locale].completed,
+        customLanguageMenuTexts[locale].completedText,
+        ui.ButtonSet.OK
+      )
+    } catch (error) {
+      ui.alert(
+        customLanguageMenuTexts[locale].error,
+        customLanguageMenuTexts[locale].errorText + error.message,
+        ui.ButtonSet.OK
+      );
+    }
   }
 }
 
