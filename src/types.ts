@@ -1,5 +1,5 @@
 interface SheetData {
-  [key: string]: any[][];
+  [key: string]: (string | number | boolean)[][];
 }
 
 interface CoMapeoField {
@@ -59,7 +59,7 @@ interface CoMapeoPackageJson {
 
 interface CoMapeoConfig {
   metadata: CoMapeoMetadata;
-  packageJson: any;
+  packageJson: CoMapeoPackageJson;
   fields: CoMapeoField[];
   presets: CoMapeoPreset[];
   icons: CoMapeoIcon[];

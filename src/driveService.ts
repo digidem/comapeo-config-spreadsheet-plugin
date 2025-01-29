@@ -2,23 +2,23 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
   const folder: GoogleAppsScript.Drive.Folder = DriveApp.getFolderById(folderId);
   const blobs: GoogleAppsScript.Base.Blob[] = [];
 
-  function addFolderContentsToBlobs(currentFolder: GoogleAppsScript.Drive.Folder, path: string = '') {
+  function addFolderContentsToBlobs(currentFolder: GoogleAppsScript.Drive.Folder, path = '') {
     const files = currentFolder.getFiles();
     while (files.hasNext()) {
       const file = files.next();
-      blobs.push(file.getBlob().setName(path + file.getName()));
+      blobs.push(file.getBlob().setName(`${path}${file.getName()}`));
     }
 
     const subFolders = currentFolder.getFolders();
     while (subFolders.hasNext()) {
       const subFolder = subFolders.next();
-      const newPath = path + subFolder.getName() + '/';
+      const newPath = `${path}${subFolder.getName()}/`;
       addFolderContentsToBlobs(subFolder, newPath);
     }
   }
 
   addFolderContentsToBlobs(folder);
-  const zipBlob = Utilities.zip(blobs, folder.getName() + ".zip");
+  const zipBlob = Utilities.zip(blobs, `${folder.getName()}.zip`);
   return zipBlob;
 }
 
@@ -39,9 +39,9 @@ function getConfigFolder (): GoogleAppsScript.Drive.Folder {
 
 function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   console.log('Saving ZIP file to Drive...');
-  const configFolder = getConfigFolder()
+  const configFolder = getConfigFolder();
   const buildsFolder = 'builds';
-  let buildsFolderObj;
+  let buildsFolderObj: GoogleAppsScript.Drive.Folder;
   const buildsFolders = configFolder.getFoldersByName(buildsFolder);
   if (buildsFolders.hasNext()) {
     buildsFolderObj = buildsFolders.next();
@@ -52,9 +52,8 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   const fileName = `${version}.zip`;
   const doubleZippedBlob = Utilities.zip([zipBlob], fileName);
   const zipFile = buildsFolderObj.createFile(doubleZippedBlob).setName(fileName);
-
   const fileUrl = zipFile.getUrl();
-  Logger.log("Download the ZIP file here: " + fileUrl);
+  Logger.log(`Download the ZIP file here: ${fileUrl}`);
 
   return fileUrl;
 }
@@ -104,24 +103,24 @@ function savePresetsAndIcons(config: CoMapeoConfig, folders: { presets: GoogleAp
 }
 
 function savePresets(presets: CoMapeoPreset[], presetsFolder: GoogleAppsScript.Drive.Folder) {
-  presets.forEach(preset => {
+  for (const preset of presets) {
     const presetJson = JSON.stringify(preset, null, 2);
     presetsFolder.createFile(`${preset.icon}.json`, presetJson, MimeType.PLAIN_TEXT);
-  });
+  }
 }
 
 function saveFields(fields: CoMapeoField[], fieldsFolder: GoogleAppsScript.Drive.Folder) {
-  fields.forEach(field => {
+  for (const field of fields) {
     const fieldJson = JSON.stringify(field, null, 2);
     fieldsFolder.createFile(`${field.tagKey}.json`, fieldJson, MimeType.PLAIN_TEXT);
-  });
+  }
 }
 
 function saveMessages(messages: CoMapeoTranslations, messagesFolder: GoogleAppsScript.Drive.Folder) {
-  Object.entries(messages).forEach(([lang, langMessages]) => {
+  for (const [lang, langMessages] of Object.entries(messages)) {
     const messagesJson = JSON.stringify(langMessages, null, 2);
     messagesFolder.createFile(`${lang}.json`, messagesJson, MimeType.PLAIN_TEXT);
-  });
+  }
 }
 
 function saveMetadataAndPackage(config: CoMapeoConfig, rootFolder: GoogleAppsScript.Drive.Folder) {
