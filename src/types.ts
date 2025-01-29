@@ -6,7 +6,7 @@ interface CoMapeoField {
   tagKey: string;
   type: string;
   label: string;
-  placeholder?: string;
+  helperText?: string;
   options?: Array<{ label: string; value: string }>;
   universal: boolean;
 }
