@@ -47,7 +47,7 @@ function addCustomLanguages() {
     SpreadsheetApp.getUi().alert(
       "Error",
       `An error occurred while adding languages: ${error.message}`,
-      ui.ButtonSet.OK
+      SpreadsheetApp.getUi().ButtonSet.OK
     );
   }
 }

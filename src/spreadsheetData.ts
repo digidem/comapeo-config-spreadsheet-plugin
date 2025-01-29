@@ -5,7 +5,7 @@ function languages(): Record<string, string> {
   };
 }
 
-function sheets(translationsOnly: boolean = false): string[] {
+function sheets(translationsOnly = false): string[] {
   const translationSheets = [
     "Category Translations",
     "Detail Label Translations",
