@@ -2,6 +2,7 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu("CoMapeo Tools")
     .addItem("Translate CoMapeo Category", "translateCoMapeoCategory")
+    .addItem("Add Custom Languages", "addCustomLanguages")
     .addItem("Generate Category Icons", "generateIcons")
     .addItem("Generate Project Key", "generateProjectKey")
     .addSeparator()
@@ -38,6 +39,19 @@ function translateCoMapeoCategory() {
     }
   }
 }
+
+function addCustomLanguages() {
+  try {
+    showAddLanguagesDialog();
+  } catch (error) {
+    SpreadsheetApp.getUi().alert(
+      "Error",
+      `An error occurred while adding languages: ${error.message}`,
+      ui.ButtonSet.OK
+    );
+  }
+}
+
 
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();
