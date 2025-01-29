@@ -36,7 +36,7 @@ function processDataForCoMapeo(data) {
   console.log('Processing CoMapeo data...');
   const fields = processFields(data);
   console.log(`Done processing ${fields.length} fields`);
-  console.log(`Processing presets...`);
+  console.log('Processing presets...');
   const presets = processPresets(data);
   console.log(`Done processing ${presets.length} presets`);
   console.log('Processing icons...');

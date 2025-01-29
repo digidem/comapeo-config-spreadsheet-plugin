@@ -1,12 +1,12 @@
 interface SheetData {
-  [key: string]: any[][];
+  [key: string]: (string | number | boolean)[][];
 }
 
 interface CoMapeoField {
   tagKey: string;
   type: string;
   label: string;
-  placeholder?: string;
+  helperText?: string;
   options?: Array<{ label: string; value: string }>;
   universal: boolean;
 }
@@ -42,7 +42,6 @@ interface CoMapeoMetadata {
   dataset_id: string;
   name: string;
   version: string;
-  projectKey?: string;
 }
 
 interface CoMapeoPackageJson {
@@ -60,7 +59,7 @@ interface CoMapeoPackageJson {
 
 interface CoMapeoConfig {
   metadata: CoMapeoMetadata;
-  packageJson: any;
+  packageJson: CoMapeoPackageJson;
   fields: CoMapeoField[];
   presets: CoMapeoPreset[];
   icons: CoMapeoIcon[];

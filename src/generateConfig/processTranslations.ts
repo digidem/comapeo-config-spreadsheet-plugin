@@ -3,13 +3,14 @@ function processTranslations(data, fields, presets) {
     Object.keys(languages()).map(lang => [lang, {}])
   );
   const translationSheets = sheets(true);
-  translationSheets.forEach(sheetName => {
+  for (const sheetName of translationSheets) {
     const translations = data[sheetName].slice(1);
 
-    translations.forEach((translation, translationIndex) => {
-      const targetLanguages: TranslationLanguage[] = Object.keys(languages()) as TranslationLanguage[];
+    for (const [translationIndex, translation] of translations.entries()) {
+      const targetLanguages = Object.keys(languages());
 
-      targetLanguages.forEach((lang, langIndex) => {
+      for (let langIndex = 0; langIndex < targetLanguages.length; langIndex++) {
+        const lang = targetLanguages[langIndex] as TranslationLanguage;
         const messageType = sheetName.startsWith('Category') ? 'presets' : 'fields';
         const item = messageType === 'fields' ? fields[translationIndex] : presets[translationIndex];
         const key = messageType === 'presets' ? (item as CoMapeoPreset).icon : (item as CoMapeoField).tagKey;
@@ -28,17 +29,17 @@ function processTranslations(data, fields, presets) {
             };
             break;
           case 'Detail Helper Text Translations':
-            messages[lang][`${messageType}.${key}.placeholder`] = {
+            messages[lang][`${messageType}.${key}.helperText`] = {
               message: translation[langIndex + 1],
               description: `Helper text for field '${key}'`
             };
             break;
-          case 'Detail Option Translations':
+          case 'Detail Option Translations': {
             const fieldType = getFieldType((item as CoMapeoField).type || '');
             if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
               const options = translation[1].split(',').map(opt => opt.trim());
-              options.forEach((option, optionIndex) => {
-                if (item.options && item.options[optionIndex]) {
+              for (const [optionIndex, option] of options.entries()) {
+                if (item.options?.[optionIndex]) {
                   const optionKey = `${messageType}.${key}.options.${item.options[optionIndex].value}`;
                   const optionValue = {
                     message: {
@@ -49,15 +50,16 @@ function processTranslations(data, fields, presets) {
                   };
                   messages[lang][optionKey] = optionValue;
                 }
-              });
+              }
             }
             break;
+          }
           default:
             console.log(`Unhandled sheet name: ${sheetName}`);
             break;
         }
-      });
-    });
-  });
+      }
+    }
+  }
   return messages;
 }

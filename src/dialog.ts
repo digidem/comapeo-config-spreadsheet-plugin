@@ -1,4 +1,4 @@
-function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string): string {
+function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string, buttonFunction?: string): string {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -30,8 +30,8 @@ function generateDialog(title: string, message: string, buttonText?: string, but
           font-size: 1.1em;
         }
         .logo {
-          width: 200px;
-          height: 200px;
+          width: 80px;
+          height: 80px;
           margin-bottom: 30px;
           border-radius: 50%;
           box-shadow: 0 0 15px rgba(109, 68, 217, 0.7);
@@ -51,6 +51,8 @@ function generateDialog(title: string, message: string, buttonText?: string, but
           font-size: 1.2em;
           transition: all 0.3s ease;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          border: none;
+          cursor: pointer;
         }
         .action-btn:hover {
           background: linear-gradient(45deg, #4A0ED6, #8a67e8);
@@ -63,30 +65,50 @@ function generateDialog(title: string, message: string, buttonText?: string, but
           border-radius: 15px;
           margin-top: 30px;
         }
-      a {
-        font-weight: bold;
-        color: #ffffff;
-        text-decoration: none;
-        position: relative;
-        transition: color 0.3s ease;
-      }
-      a::before {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 0;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.9);
-        transition: width 0.3s ease;
-        z-index: -1;
-      }
-      a:hover {
-        color: #330B9E;
-      }
-      a:hover::before {
-        width: 100%;
-      }
+        a {
+          font-weight: bold;
+          color: #ffffff;
+          text-decoration: none;
+          position: relative;
+          transition: color 0.3s ease;
+        }
+        a::before {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 0;
+          height: 100%;
+          background-color: rgba(255, 255, 255, 0.9);
+          transition: width 0.3s ease;
+          z-index: -1;
+        }
+        a:hover {
+          color: #330B9E;
+        }
+        a:hover::before {
+          width: 100%;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .spinner {
+          display: none;
+          width: 20px;
+          height: 20px;
+          margin: 0 10px;
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #6d44d9;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        .processing .spinner {
+          display: inline-block;
+        }
+        .processing .btn-text {
+          display: none;
+        }
       </style>
     </head>
     <body>
@@ -94,9 +116,25 @@ function generateDialog(title: string, message: string, buttonText?: string, but
       <h1>${title}</h1>
       <div class="container">
         ${message}
-        ${(buttonUrl && buttonText)
-            ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>`
-            : ''}
+        ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ''}
+        ${buttonFunction ? `
+          <button onclick="handleClick()" class="action-btn">
+            <span class="btn-text">${buttonText}</span>
+            <span class="spinner"></span>
+          </button>
+          <script>
+            function handleClick() {
+              const button = document.querySelector('.action-btn');
+              button.classList.add('processing');
+              try {
+                ${buttonFunction}();
+              } catch (error) {
+                console.error('Error:', error);
+                button.classList.remove('processing');
+              }
+            }
+          </script>
+        ` : ''}
       </div>
     </body>
     </html>
@@ -145,4 +183,90 @@ function showHelpDialog() {
   const buttonUrl = "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
   const html = generateDialog(title, message, buttonText, buttonUrl);
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
+}
+
+function showAddLanguagesDialog() {
+  const title = "Add Languages for Translation";
+  const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
+  const languages = JSON.parse(UrlFetchApp.fetch(languagesUrl).getContentText());
+  const languageOptions = Object.entries(languages)
+    .map(([code, lang]) => `<option value="${code}">${(lang as {englishName: string}).englishName} (${code})</option>`)
+    .join('');
+
+  const message = `
+    <p>Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click "Add Another Language" to add more.</p>
+    <select id="languageSelect" class="language-select" onchange="updateFields()" style="margin-bottom: 15px;">
+      <option value="">Select a common language...</option>
+      ${languageOptions}
+    </select>
+    <div id="languageInputs">
+      <div class="language-row">
+        <input type="text" class="language-name" placeholder="Language name (e.g. Spanish)" />
+        <input type="text" class="language-iso" placeholder="ISO code (e.g. es)" />
+      </div>
+    </div>
+    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">Add Another Language</button>
+    <script>
+      function updateFields() {
+        const select = document.getElementById('languageSelect');
+        const rows = document.querySelectorAll('.language-row');
+        const lastRow = rows[rows.length - 1];
+        const option = select.options[select.selectedIndex];
+        if (option.value) {
+          const name = option.text.split(' (')[0];
+          const iso = option.value;
+          lastRow.querySelector('.language-name').value = name;
+          lastRow.querySelector('.language-iso').value = iso;
+        }
+      }
+
+      function addLanguageRow() {
+        const container = document.getElementById('languageInputs');
+        const newRow = document.createElement('div');
+        newRow.className = 'language-row';
+        newRow.innerHTML = container.querySelector('.language-row').innerHTML;
+        // Reset values in the new row
+        newRow.querySelector('.language-name').value = '';
+        newRow.querySelector('.language-iso').value = '';
+        container.appendChild(newRow);
+      }
+
+      function getSelectedLanguages() {
+        const rows = document.querySelectorAll('.language-row');
+        const languages = Array.from(rows)
+          .map(row => ({
+            name: row.querySelector('.language-name').value,
+            iso: row.querySelector('.language-iso').value
+          }))
+          .filter(lang => lang.name && lang.iso);
+        if (languages.length === 0) {
+          return;
+        }
+        google.script.run
+          .withFailureHandler((error) => {
+            console.error('Failed to add languages:', error);
+            document.querySelector('.action-btn').classList.remove('processing');
+          })
+          .withSuccessHandler(() => {
+            google.script.host.close();
+          })
+          .addNewLanguages(languages);
+      }
+    </script>
+    <style>
+      .language-row { margin: 10px 0; display: flex; gap: 5px; }
+      input { width: 180px; padding: 5px; }
+      select { width: 100%; padding: 5px; }
+      button { padding: 8px 16px; }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+    </style>
+  `;
+  const buttonText = "Add Languages";
+  const html = generateDialog(title, message, buttonText, null, 'getSelectedLanguages');
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html)
+      .setWidth(600)
+      .setHeight(800),
+    title
+  );
 }

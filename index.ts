@@ -5,8 +5,10 @@ let locale = supportedLocales.includes(activeUserLocale) ? activeUserLocale : de
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
+<<<<<<< HEAD
   ui.createMenu(menuTexts[locale].menu)
     .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
+    .addItem("Add Custom Languages", "addCustomLanguages")
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addItem(menuTexts[locale].generateProjectKey, "generateProjectKey")
     .addSeparator()
@@ -44,6 +46,19 @@ function translateCoMapeoCategory() {
   }
 }
 
+function addCustomLanguages() {
+  try {
+    showAddLanguagesDialog();
+  } catch (error) {
+    SpreadsheetApp.getUi().alert(
+      "Error",
+      `An error occurred while adding languages: ${error.message}`,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
+}
+
+
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
@@ -59,27 +74,6 @@ function generateIcons() {
       ui.alert(
         iconMenuTexts[locale].error,
         iconMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK,
-      );
-    }
-  }
-}
-
-function generateProjectKey() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    projectKeyMenuTexts[locale].action,
-    projectKeyMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO,
-  );
-
-  if (result === ui.Button.YES) {
-    try {
-      generateProjectKeyConfig();
-    } catch (error) {
-      ui.alert(
-        projectKeyMenuTexts[locale].error,
-        projectKeyMenuTexts[locale].errorText,
         ui.ButtonSet.OK,
       );
     }
