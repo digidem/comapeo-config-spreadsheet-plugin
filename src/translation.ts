@@ -120,7 +120,12 @@ function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
 
   // Get current headers
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  let startCol = Object.keys(languages()).length + 2;
+
+  // Find first empty column after D
+  let startCol = 4; // Start from column D
+  while (startCol <= headers.length && headers[startCol - 1] !== "") {
+    startCol++;
+  }
 
   // Add new language columns
   for (const lang of newLanguages) {

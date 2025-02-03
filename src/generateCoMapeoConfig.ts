@@ -13,7 +13,7 @@ function generateCoMapeoConfig() {
   showProcessingModalDialog(processingDialogTexts[4][locale])
   const { id } = saveConfigToDrive(config);
   showProcessingModalDialog(processingDialogTexts[5][locale])
-  console.log("Zipping folder ID: " + id);
+  console.log(`Zipping folder ID: ${id}`);
   showProcessingModalDialog(processingDialogTexts[6][locale])
   const folderZip = saveDriveFolderToZip(id);
   const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata);
