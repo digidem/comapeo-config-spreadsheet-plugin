@@ -46,7 +46,6 @@ function processDataForCoMapeo(data) {
   const { metadata, packageJson } = processMetadata(data);
   console.log('Processing translations...');
   const messages = processTranslations(data, fields, presets);
-  console.log(`Done processing ${Object.keys(messages.pt).length} PT and ${Object.keys(messages.es).length} ES messages`);
   console.log('Generating CoMapeo config...');
   return {
     metadata,
