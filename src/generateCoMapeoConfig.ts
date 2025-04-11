@@ -1,24 +1,60 @@
+/**
+ * Generates a CoMapeo configuration file from the spreadsheet data.
+ * Shows progress dialogs and handles errors appropriately.
+ */
 function generateCoMapeoConfig() {
-  showProcessingModalDialog(processingDialogTexts[0][locale])
-  console.log('Generating CoMapeo config...');
-  showProcessingModalDialog(processingDialogTexts[1][locale])
-  console.log('Auto translating...');
-  autoTranslateSheets();
-  console.log('Linting CoMapeo config...');
-  showProcessingModalDialog(processingDialogTexts[2][locale])
-  lintAllSheets();
-  const data = getSpreadsheetData();
-  showProcessingModalDialog(processingDialogTexts[3][locale])
-  const config = processDataForCoMapeo(data);
-  showProcessingModalDialog(processingDialogTexts[4][locale])
-  const { id } = saveConfigToDrive(config);
-  showProcessingModalDialog(processingDialogTexts[5][locale])
-  console.log(`Zipping folder ID: ${id}`);
-  showProcessingModalDialog(processingDialogTexts[6][locale])
-  const folderZip = saveDriveFolderToZip(id);
-  const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata);
-  showProcessingModalDialog(processingDialogTexts[7][locale])
-  showConfigurationGeneratedDialog(configUrl);
+  try {
+    // Step 1: Initialize
+    showProcessingModalDialog(processingDialogTexts[0][locale])
+    console.log('Generating CoMapeo config...');
+
+    // Step 2: Auto translate
+    showProcessingModalDialog(processingDialogTexts[1][locale])
+    console.log('Auto translating...');
+    autoTranslateSheets();
+
+    // Step 3: Lint
+    console.log('Linting CoMapeo config...');
+    showProcessingModalDialog(processingDialogTexts[2][locale])
+    lintAllSheets();
+
+    // Step 4: Get data
+    const data = getSpreadsheetData();
+    showProcessingModalDialog(processingDialogTexts[3][locale])
+
+    // Step 5: Process data
+    const config = processDataForCoMapeo(data);
+    showProcessingModalDialog(processingDialogTexts[4][locale])
+
+    // Step 6: Save to Drive
+    const { id } = saveConfigToDrive(config);
+    showProcessingModalDialog(processingDialogTexts[5][locale])
+    console.log('Zipping folder ID: ' + id);
+
+    // Step 7: Create zip
+    showProcessingModalDialog(processingDialogTexts[6][locale])
+    const folderZip = saveDriveFolderToZip(id);
+
+    // Step 8: Send to API and get result
+    // This function has its own retry and error handling
+    const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata);
+
+    // Step 9: Show success dialog
+    showProcessingModalDialog(processingDialogTexts[7][locale])
+    showConfigurationGeneratedDialog(configUrl);
+  } catch (error) {
+    // Handle any errors that weren't caught by specific functions
+    console.error('Error generating CoMapeo config:', error);
+
+    // Show error dialog to user
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      "Error Generating CoMapeo Category",
+      "An error occurred while generating the CoMapeo category: " + error.message +
+      "\n\nPlease try again. If the problem persists, contact support.",
+      ui.ButtonSet.OK
+    );
+  }
 }
 
 /**
