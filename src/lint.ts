@@ -297,8 +297,12 @@ function lintTranslationSheets(): void {
   });
 }
 
-// Main linting function
-function lintAllSheets(): void {
+/**
+ * Main linting function that validates all sheets in the spreadsheet.
+ *
+ * @param showAlerts - Whether to show UI alerts (default: true). Set to false when called from other functions.
+ */
+function lintAllSheets(showAlerts: boolean = true): void {
   try {
     console.log("Starting linting process...");
 
@@ -313,24 +317,30 @@ function lintAllSheets(): void {
 
     console.log("Finished linting all sheets.");
 
-    // Add a summary of issues found
-    const ui = SpreadsheetApp.getUi();
-    ui.alert(
-      "Linting Complete",
-      "All sheets have been linted. Please check for:\n" +
-      "- Yellow highlighted cells: Required fields that are missing\n" +
-      "- Red highlighted cells: Invalid values\n" +
-      "- Red text: Invalid URLs\n" +
-      "- Pink highlighted cells: Duplicate values or invalid references",
-      ui.ButtonSet.OK
-    );
+    // Add a summary of issues found, but only if showAlerts is true
+    if (showAlerts) {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        "Linting Complete",
+        "All sheets have been linted. Please check for:\n" +
+        "- Yellow highlighted cells: Required fields that are missing\n" +
+        "- Red highlighted cells: Invalid values\n" +
+        "- Red text: Invalid URLs\n" +
+        "- Pink highlighted cells: Duplicate values or invalid references",
+        ui.ButtonSet.OK
+      );
+    }
   } catch (error) {
     console.error("Error during linting process:", error);
-    const ui = SpreadsheetApp.getUi();
-    ui.alert(
-      "Linting Error",
-      "An error occurred during the linting process: " + error.message + "\n\nSome sheets may not have been fully processed.",
-      ui.ButtonSet.OK
-    );
+
+    // Only show error alert if showAlerts is true
+    if (showAlerts) {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        "Linting Error",
+        "An error occurred during the linting process: " + error.message + "\n\nSome sheets may not have been fully processed.",
+        ui.ButtonSet.OK
+      );
+    }
   }
 }

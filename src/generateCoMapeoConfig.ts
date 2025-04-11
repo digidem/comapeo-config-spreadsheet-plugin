@@ -13,10 +13,10 @@ function generateCoMapeoConfig() {
     console.log('Auto translating...');
     autoTranslateSheets();
 
-    // Step 3: Lint
+    // Step 3: Lint (passing false to prevent UI alerts)
     console.log('Linting CoMapeo config...');
     showProcessingModalDialog(processingDialogTexts[2][locale])
-    lintAllSheets();
+    lintAllSheets(false); // Pass false to prevent UI alerts when called from generateCoMapeoConfig
 
     // Step 4: Get data
     const data = getSpreadsheetData();
