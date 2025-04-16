@@ -6,6 +6,7 @@ let menuTexts: Record<string,MainMenuText> = {
     addCustomLanguages: "Agregar lenguajes customizados",
     generateIcons:"Generar Íconos para Categorías",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
+    importCategoryFile: "Importar archivo de categoría",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
     openHelpPage: "Ayuda"
@@ -16,6 +17,7 @@ let menuTexts: Record<string,MainMenuText> = {
     addCustomLanguages: "Add Custom Languages",
     generateIcons:"Generate Category Icons",
     generateCoMapeoCategory: "Generate CoMapeo Category",
+    importCategoryFile: "Import category file",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
     openHelpPage: "Help"
@@ -107,5 +109,24 @@ let cleanAllMenuTexts: Record<string, MenuText> = {
     completedText: "All sheets have been reset successfully.",
     error: "Error",
     errorText:"An error occurred during reset: "
+  }
+}
+
+let importCategoryMenuTexts: Record<string, MenuText> = {
+  es: {
+    action: "Importar archivo de categoría",
+    actionText: "Esto te permitirá importar un archivo de categoría de CoMapeo (.comapeocat) para editar. ¿Continuar?",
+    completed: "Importación Completada",
+    completedText: "El archivo de categoría ha sido importado con éxito.",
+    error: "Error",
+    errorText: "Un error ocurrió durante la importación: "
+  },
+  en: {
+    action: "Import category file",
+    actionText: "This will allow you to import a CoMapeo category file (.comapeocat) for editing. Continue?",
+    completed: "Import Complete",
+    completedText: "The category file has been successfully imported.",
+    error: "Error",
+    errorText: "An error occurred during import: "
   }
 }

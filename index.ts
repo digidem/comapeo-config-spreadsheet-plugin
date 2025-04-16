@@ -11,6 +11,7 @@ function onOpen() {
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addSeparator()
     .addItem(menuTexts[locale].generateCoMapeoCategory, "generateCoMapeoCategory")
+    .addItem(menuTexts[locale].importCategoryFile, "importCategoryFile")
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
@@ -152,4 +153,25 @@ function cleanAllSheets() {
 
 function openHelpPage() {
   showHelpDialog()
+}
+
+function importCategoryFile() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    importCategoryMenuTexts[locale].action,
+    importCategoryMenuTexts[locale].actionText,
+    ui.ButtonSet.YES_NO
+  );
+
+  if (result === ui.Button.YES) {
+    try {
+      showImportCategoryDialog();
+    } catch (error) {
+      ui.alert(
+        importCategoryMenuTexts[locale].error,
+        importCategoryMenuTexts[locale].errorText + error.message,
+        ui.ButtonSet.OK
+      );
+    }
+  }
 }
