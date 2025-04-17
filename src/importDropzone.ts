@@ -407,21 +407,33 @@ function createDropzoneHtml(): string {
 
     // Handle successful import
     function onSuccess(result) {
-      updateProgress(100);
-      dropzone.classList.add('success');
-      statusMessage.textContent = 'File imported successfully!';
-      statusMessage.classList.add('success-message');
+      if (result && result.success) {
+        updateProgress(100);
+        dropzone.classList.add('success');
+        statusMessage.textContent = result.message || 'File imported successfully!';
+        statusMessage.classList.add('success-message');
 
-      // Close the dialog after a delay
-      setTimeout(() => {
-        google.script.host.close();
-      }, 2000);
+        // Close the dialog after a delay
+        setTimeout(() => {
+          google.script.host.close();
+        }, 2000);
+      } else {
+        // Handle server-side validation errors
+        onFailure({
+          message: result && result.message ? result.message : 'Import failed'
+        });
+      }
     }
 
     // Handle import failure
     function onFailure(error) {
       dropzone.classList.add('error');
-      statusMessage.textContent = 'Error: ' + (error.message || 'Failed to import file');
+
+      // Format error message - handle multi-line errors
+      const errorMsg = error.message || 'Failed to import file';
+
+      // Replace newlines with HTML line breaks
+      statusMessage.innerHTML = 'Error: ' + errorMsg.replace(/\n/g, '<br>');
       statusMessage.classList.add('error-message');
       updateProgress(0);
     }
@@ -429,7 +441,8 @@ function createDropzoneHtml(): string {
     // Show error message
     function showError(message) {
       dropzone.classList.add('error');
-      statusMessage.textContent = message;
+      // Use innerHTML to support HTML content if needed
+      statusMessage.innerHTML = message;
       statusMessage.classList.add('error-message');
     }
 
@@ -467,79 +480,41 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
     // Decode the base64 data
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
 
-    // Create a temporary folder in Drive to extract the file
-    const tempFolder = DriveApp.createFolder('Mapeo_Settings_Import_' + new Date().getTime());
+    // Extract and validate the file
+    const extractionResult = extractAndValidateFile(fileName, blob);
 
-    // Save the blob to the temp folder
-    const file = tempFolder.createFile(blob);
-
-    // Extract the tar file (mapeosettings is a tar file)
-    // Note: Google Apps Script doesn't have built-in tar extraction
-    // We'll need to use a workaround or external library
-
-    try {
-      // Try to extract using a custom function or service
-      const extractedFiles = extractTarFile(blob, tempFolder);
-
-      // Look for the configuration files
-      const configData = extractMapeoConfigurationData(extractedFiles, tempFolder);
-
-      // Apply the configuration data to the spreadsheet
-      applyMapeoConfigurationToSpreadsheet(configData);
-
-      // Clean up the temporary folder
-      tempFolder.setTrashed(true);
-
-      // Return success
+    if (!extractionResult.success) {
+      // Return the error message
       return {
-        success: true,
-        message: 'Mapeo settings file imported successfully'
+        success: false,
+        message: extractionResult.message + (extractionResult.validationErrors ?
+          '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
       };
-    } catch (extractError) {
-      console.error('Error extracting tar file:', extractError);
-
-      // If extraction fails, try to parse it directly
-      const fileContent = blob.getDataAsString();
-      let jsonData;
-
-      try {
-        jsonData = JSON.parse(fileContent);
-
-        // Process the JSON data
-        applyMapeoJsonConfigToSpreadsheet(jsonData);
-
-        // Clean up
-        tempFolder.setTrashed(true);
-
-        return {
-          success: true,
-          message: 'Mapeo settings file imported successfully'
-        };
-      } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
-        throw new Error('Could not parse the Mapeo settings file. The file may be corrupted.');
-      }
     }
+
+    // Process the extracted files
+    const configData = extractMapeoConfigurationData(extractionResult.files, extractionResult.tempFolder);
+
+    // Apply the configuration data to the spreadsheet
+    applyMapeoConfigurationToSpreadsheet(configData);
+
+    // Clean up the temporary folder
+    if (extractionResult.tempFolder) {
+      cleanupTempResources(extractionResult.tempFolder);
+    }
+
+    // Return success
+    return {
+      success: true,
+      message: 'Mapeo settings file imported successfully'
+    };
   } catch (error) {
     console.error('Error processing Mapeo settings file:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Error processing Mapeo settings file: ' + (error instanceof Error ? error.message : String(error))
+    };
   }
-}
-
-/**
- * Extracts a tar file (workaround since GAS doesn't support tar extraction natively)
- * @param blob - The tar file blob
- * @param folder - The folder to extract to
- * @returns Array of extracted file blobs
- */
-function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScript.Drive.Folder): GoogleAppsScript.Base.Blob[] {
-  // This is a placeholder. In a real implementation, you would:
-  // 1. Either use an external service to extract the tar
-  // 2. Or implement a JavaScript tar extractor
-  // 3. Or convert the tar to a zip file first
-
-  // For now, we'll throw an error that will be caught and handled
-  throw new Error('TAR extraction not implemented');
 }
 
 /**

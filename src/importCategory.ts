@@ -143,39 +143,42 @@ function createImportCategoryHtml(): string {
  * @param base64Data - The file content as base64 string
  * @returns Success message if import was successful
  */
-function processImportedCategoryFile(fileName: string, base64Data: string) {
+function processImportedCategoryFile(fileName: string, base64Data: string): { success: boolean; message: string } {
   try {
     // Decode the base64 data
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
 
-    // Create a temporary folder in Drive to extract the file
-    const tempFolder = DriveApp.createFolder('CoMapeo_Import_Temp_' + new Date().getTime());
+    // Extract and validate the file
+    const extractionResult = extractAndValidateFile(fileName, blob);
 
-    // Save the blob to the temp folder
-    tempFolder.createFile(blob);
-
-    // Process the file based on its extension
-    if (fileName.endsWith('.comapeocat') || fileName.endsWith('.zip')) {
-      // Extract the zip file
-      const unzippedFiles = Utilities.unzip(blob);
-
-      // Look for the configuration files
-      const configData = extractConfigurationData(unzippedFiles, tempFolder);
-
-      // Apply the configuration data to the spreadsheet
-      applyConfigurationToSpreadsheet(configData);
-
-      // Clean up the temporary folder
-      tempFolder.setTrashed(true);
-
-      // Return success
-      return { success: true, message: 'Category file imported successfully' };
-    } else {
-      throw new Error('Unsupported file format. Please upload a .comapeocat or .zip file.');
+    if (!extractionResult.success) {
+      // Return the error message
+      return {
+        success: false,
+        message: extractionResult.message + (extractionResult.validationErrors ?
+          '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
+      };
     }
+
+    // Look for the configuration files
+    const configData = extractConfigurationData(extractionResult.files, extractionResult.tempFolder);
+
+    // Apply the configuration data to the spreadsheet
+    applyConfigurationToSpreadsheet(configData);
+
+    // Clean up the temporary folder
+    if (extractionResult.tempFolder) {
+      cleanupTempResources(extractionResult.tempFolder);
+    }
+
+    // Return success
+    return { success: true, message: 'Category file imported successfully' };
   } catch (error) {
     console.error('Error processing imported file:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Error processing imported file: ' + (error instanceof Error ? error.message : String(error))
+    };
   }
 }
 
