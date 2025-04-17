@@ -239,11 +239,22 @@ function createDropzoneHtml(): string {
         try {
           const base64data = e.target.result.split(',')[1];
 
-          // Call the Google Apps Script function to process the file
-          google.script.run
-            .withSuccessHandler(onSuccess)
-            .withFailureHandler(onFailure)
-            .processImportedCategoryFile(file.name, base64data);
+          // Call the appropriate Google Apps Script function based on file extension
+          const fileExtension = file.name.split('.').pop().toLowerCase();
+
+          if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
+            google.script.run
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
+              .processImportedCategoryFile(file.name, base64data);
+          } else if (fileExtension === 'mapeosettings') {
+            google.script.run
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
+              .processMapeoSettingsFile(file.name, base64data);
+          } else {
+            onFailure(new Error('Unsupported file type'));
+          }
 
           updateProgress(75);
         } catch (error) {
