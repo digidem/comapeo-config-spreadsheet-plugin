@@ -115,7 +115,7 @@ let cleanAllMenuTexts: Record<string, MenuText> = {
 let importCategoryMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Importar archivo de categoría",
-    actionText: "Esto te permitirá importar un archivo de categoría de CoMapeo (.comapeocat) para editar. ¿Continuar?",
+    actionText: "Esto te permitirá importar un archivo de categoría de CoMapeo (.comapeocat) o archivo de configuración de Mapeo (.mapeosettings) para editar. ADVERTENCIA: Esto borrará todos los datos actuales de la hoja de cálculo y los reemplazará con el contenido del archivo. ¿Continuar?",
     completed: "Importación Completada",
     completedText: "El archivo de categoría ha sido importado con éxito.",
     error: "Error",
@@ -123,7 +123,7 @@ let importCategoryMenuTexts: Record<string, MenuText> = {
   },
   en: {
     action: "Import category file",
-    actionText: "This will allow you to import a CoMapeo category file (.comapeocat) for editing. Continue?",
+    actionText: "This will allow you to import a CoMapeo category file (.comapeocat) or Mapeo settings file (.mapeosettings) for editing. WARNING: This will erase all current spreadsheet data and replace it with content from the file. Continue?",
     completed: "Import Complete",
     completedText: "The category file has been successfully imported.",
     error: "Error",
