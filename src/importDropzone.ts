@@ -309,6 +309,318 @@ function createDropzoneHtml(): string {
  * @param base64Data - Base64 encoded file data
  * @returns Result of the import operation
  */
+/**
+ * Processes a .mapeosettings file (classic Mapeo configuration)
+ * @param fileName - Name of the uploaded file
+ * @param base64Data - Base64 encoded file data
+ * @returns Result of the import operation
+ */
+function processMapeoSettingsFile(fileName: string, base64Data: string): { success: boolean; message: string } {
+  try {
+    // Decode the base64 data
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+
+    // Create a temporary folder in Drive to extract the file
+    const tempFolder = DriveApp.createFolder('Mapeo_Settings_Import_' + new Date().getTime());
+
+    // Save the blob to the temp folder
+    const file = tempFolder.createFile(blob);
+
+    // Extract the tar file (mapeosettings is a tar file)
+    // Note: Google Apps Script doesn't have built-in tar extraction
+    // We'll need to use a workaround or external library
+
+    try {
+      // Try to extract using a custom function or service
+      const extractedFiles = extractTarFile(blob, tempFolder);
+
+      // Look for the configuration files
+      const configData = extractMapeoConfigurationData(extractedFiles, tempFolder);
+
+      // Apply the configuration data to the spreadsheet
+      applyMapeoConfigurationToSpreadsheet(configData);
+
+      // Clean up the temporary folder
+      tempFolder.setTrashed(true);
+
+      // Return success
+      return {
+        success: true,
+        message: 'Mapeo settings file imported successfully'
+      };
+    } catch (extractError) {
+      console.error('Error extracting tar file:', extractError);
+
+      // If extraction fails, try to parse it directly
+      const fileContent = blob.getDataAsString();
+      let jsonData;
+
+      try {
+        jsonData = JSON.parse(fileContent);
+
+        // Process the JSON data
+        applyMapeoJsonConfigToSpreadsheet(jsonData);
+
+        // Clean up
+        tempFolder.setTrashed(true);
+
+        return {
+          success: true,
+          message: 'Mapeo settings file imported successfully'
+        };
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error('Could not parse the Mapeo settings file. The file may be corrupted.');
+      }
+    }
+  } catch (error) {
+    console.error('Error processing Mapeo settings file:', error);
+    throw error;
+  }
+}
+
+/**
+ * Extracts a tar file (workaround since GAS doesn't support tar extraction natively)
+ * @param blob - The tar file blob
+ * @param folder - The folder to extract to
+ * @returns Array of extracted file blobs
+ */
+function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScript.Drive.Folder): GoogleAppsScript.Base.Blob[] {
+  // This is a placeholder. In a real implementation, you would:
+  // 1. Either use an external service to extract the tar
+  // 2. Or implement a JavaScript tar extractor
+  // 3. Or convert the tar to a zip file first
+
+  // For now, we'll throw an error that will be caught and handled
+  throw new Error('TAR extraction not implemented');
+}
+
+/**
+ * Extracts configuration data from Mapeo settings files
+ * @param extractedFiles - Array of extracted file blobs
+ * @param tempFolder - Temporary folder containing the files
+ * @returns Configuration data object
+ */
+function extractMapeoConfigurationData(extractedFiles: GoogleAppsScript.Base.Blob[], tempFolder: GoogleAppsScript.Drive.Folder): any {
+  // Initialize configuration data object
+  const configData: any = {
+    metadata: null,
+    presets: [],
+    fields: [],
+    icons: []
+  };
+
+  // Process each extracted file
+  for (const file of extractedFiles) {
+    const fileName = file.getName();
+    const fileContent = file.getDataAsString();
+
+    try {
+      // Parse JSON content if applicable
+      if (fileName.endsWith('.json')) {
+        const jsonContent = JSON.parse(fileContent);
+
+        // Determine file type and add to appropriate section of configData
+        if (fileName === 'metadata.json' || fileName === 'meta.json') {
+          configData.metadata = jsonContent;
+        } else if (fileName === 'presets.json') {
+          configData.presets = jsonContent.presets || [];
+        } else if (fileName === 'fields.json') {
+          configData.fields = jsonContent.fields || [];
+        }
+      } else if (fileName.startsWith('icons/') || fileName.includes('/icons/')) {
+        // Save icon file to temp folder and get URL
+        const iconFile = tempFolder.createFile(file);
+        configData.icons.push({
+          name: fileName.split('/').pop().replace(/\.[^/.]+$/, ''),
+          svg: iconFile.getUrl()
+        });
+      }
+    } catch (error) {
+      console.warn('Error parsing file ' + fileName + ':', error);
+      // Continue with other files even if one fails
+    }
+  }
+
+  return configData;
+}
+
+/**
+ * Applies Mapeo JSON configuration directly to the spreadsheet
+ * @param jsonData - The parsed JSON data from the Mapeo settings file
+ */
+function applyMapeoJsonConfigToSpreadsheet(jsonData: any): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create or clear necessary sheets
+  const categoriesSheet = createOrClearSheet(spreadsheet, 'Categories');
+  const detailsSheet = createOrClearSheet(spreadsheet, 'Details');
+  const metadataSheet = createOrClearSheet(spreadsheet, 'Metadata');
+
+  // Process metadata if available
+  if (jsonData.metadata) {
+    applyMetadataToSheet(metadataSheet, jsonData.metadata);
+  }
+
+  // Process presets (categories) if available
+  if (jsonData.presets) {
+    const presets = [];
+
+    // Convert from Mapeo format to our internal format
+    for (const presetId in jsonData.presets) {
+      if (jsonData.presets.hasOwnProperty(presetId)) {
+        const preset = jsonData.presets[presetId];
+        presets.push({
+          id: presetId,
+          name: preset.name,
+          icon: preset.icon,
+          color: preset.color,
+          fields: preset.fields || []
+        });
+      }
+    }
+
+    applyCategoriesFromMapeo(categoriesSheet, presets, jsonData.icons || []);
+  }
+
+  // Process fields (details) if available
+  if (jsonData.fields) {
+    const fields = [];
+
+    // Convert from Mapeo format to our internal format
+    for (const fieldId in jsonData.fields) {
+      if (jsonData.fields.hasOwnProperty(fieldId)) {
+        const field = jsonData.fields[fieldId];
+        fields.push({
+          id: fieldId,
+          key: fieldId,
+          tagKey: fieldId,
+          label: field.label,
+          type: field.type,
+          helperText: field.placeholder || '',
+          options: field.options || []
+        });
+      }
+    }
+
+    applyFieldsFromMapeo(detailsSheet, fields);
+  }
+}
+
+/**
+ * Applies metadata to the metadata sheet
+ * @param sheet - The metadata sheet
+ * @param metadata - Metadata object
+ */
+function applyMetadataToSheet(sheet: GoogleAppsScript.Spreadsheet.Sheet, metadata: any): void {
+  // Set headers
+  sheet.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]);
+  sheet.getRange(1, 1, 1, 2).setFontWeight('bold');
+
+  // Add metadata rows
+  const metadataRows = Object.entries(metadata).map(([key, value]) => [key, value]);
+  if (metadataRows.length > 0) {
+    sheet.getRange(2, 1, metadataRows.length, 2).setValues(metadataRows);
+  }
+}
+
+/**
+ * Applies categories from Mapeo format to the Categories sheet
+ * @param sheet - The Categories sheet
+ * @param presets - Array of preset objects
+ * @param icons - Array of icon objects
+ */
+function applyCategoriesFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, presets: any[], icons: any[]): void {
+  // Set headers
+  sheet.getRange(1, 1, 1, 3).setValues([['English', 'Icons', 'Details']]);
+  sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+
+  // Prepare category rows
+  const categoryRows = presets.map(preset => {
+    // Find matching icon
+    const iconObj = icons.find(icon => icon.id === preset.icon);
+    const iconUrl = iconObj ? iconObj.url : '';
+
+    // Get fields as comma-separated string
+    const fields = preset.fields ? preset.fields.join(', ') : '';
+
+    return [preset.name, iconUrl, fields];
+  });
+
+  // Add category rows
+  if (categoryRows.length > 0) {
+    sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
+  }
+
+  // Set background colors if available
+  presets.forEach((preset, index) => {
+    if (preset.color) {
+      sheet.getRange(index + 2, 1).setBackground(preset.color);
+    }
+  });
+}
+
+/**
+ * Applies fields from Mapeo format to the Details sheet
+ * @param sheet - The Details sheet
+ * @param fields - Array of field objects
+ */
+function applyFieldsFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]): void {
+  // Set headers
+  sheet.getRange(1, 1, 1, 4).setValues([['Label', 'Helper Text', 'Type', 'Options']]);
+  sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+
+  // Prepare field rows
+  const fieldRows = fields.map(field => {
+    // Convert field type to spreadsheet format
+    let typeStr = 'text';
+    if (field.type === 'select') typeStr = 'select';
+    if (field.type === 'multiselect') typeStr = 'multiple';
+    if (field.type === 'number') typeStr = 'number';
+
+    // Convert options to comma-separated string
+    let optionsStr = '';
+    if (field.options && field.options.length > 0) {
+      optionsStr = field.options.map((opt: any) => opt.label || opt.value).join(', ');
+    }
+
+    return [field.label, field.helperText || '', typeStr, optionsStr];
+  });
+
+  // Add field rows
+  if (fieldRows.length > 0) {
+    sheet.getRange(2, 1, fieldRows.length, 4).setValues(fieldRows);
+  }
+}
+
+/**
+ * Applies Mapeo configuration data to the spreadsheet
+ * @param configData - Configuration data object
+ */
+function applyMapeoConfigurationToSpreadsheet(configData: any): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Create or clear necessary sheets
+  const categoriesSheet = createOrClearSheet(spreadsheet, 'Categories');
+  const detailsSheet = createOrClearSheet(spreadsheet, 'Details');
+  const metadataSheet = createOrClearSheet(spreadsheet, 'Metadata');
+
+  // Apply metadata if available
+  if (configData.metadata) {
+    applyMetadataToSheet(metadataSheet, configData.metadata);
+  }
+
+  // Apply categories (presets) if available
+  if (configData.presets && configData.presets.length > 0) {
+    applyCategoriesFromMapeo(categoriesSheet, configData.presets, configData.icons);
+  }
+
+  // Apply details (fields) if available
+  if (configData.fields && configData.fields.length > 0) {
+    applyFieldsFromMapeo(detailsSheet, configData.fields);
+  }
+}
+
 function handleFileImport(fileName: string, base64Data: string): { success: boolean; message: string } {
   try {
     // Validate file extension
@@ -322,8 +634,8 @@ function handleFileImport(fileName: string, base64Data: string): { success: bool
       // Call the global processImportedCategoryFile function
       return processImportedCategoryFile(fileName, base64Data);
     } else if (fileExtension === 'mapeosettings') {
-      // TODO: Implement processing for .mapeosettings files
-      throw new Error('Processing .mapeosettings files is not yet implemented.');
+      // Process the .mapeosettings file
+      return processMapeoSettingsFile(fileName, base64Data);
     }
 
     throw new Error('Unsupported file type.');
