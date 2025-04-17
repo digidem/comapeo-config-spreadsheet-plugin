@@ -112,7 +112,7 @@ let cleanAllMenuTexts: Record<string, MenuText> = {
   }
 }
 
-export let importCategoryMenuTexts: Record<string, MenuText> = {
+let importCategoryMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Importar archivo de categoría",
     actionText: "Esto te permitirá importar un archivo de categoría de CoMapeo (.comapeocat) para editar. ¿Continuar?",

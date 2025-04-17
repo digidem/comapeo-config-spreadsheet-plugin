@@ -102,7 +102,7 @@ let processingDialogTitle = {
   es:  "Generando Configuracion de CoMapeo"
 }
 
-export let importCategoryDialogTexts: Record<string,DialogText> = {
+let importCategoryDialogTexts: Record<string,DialogText> = {
   es: {
     title: "Importar archivo de categoría",
     message: [

@@ -5,7 +5,7 @@ import { importCategoryDialogTexts } from './text/dialog';
 /**
  * Shows the import category dialog.
  */
-export function showImportCategoryDialog() {
+function showImportCategoryDialog() {
   const title = importCategoryDialogTexts[locale].title;
   const htmlOutput = HtmlService.createHtmlOutput(createImportCategoryHtml())
     .setWidth(800)
@@ -143,7 +143,7 @@ function createImportCategoryHtml(): string {
  * @param base64Data - The file content as base64 string
  * @returns Success message if import was successful
  */
-export function processImportedCategoryFile(fileName: string, base64Data: string) {
+function processImportedCategoryFile(fileName: string, base64Data: string) {
   try {
     // Decode the base64 data
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
