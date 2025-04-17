@@ -241,8 +241,8 @@ function createDropzoneHtml(): string {
       <div class="dropzone-icon">📁</div>
       <div class="dropzone-text">Drag and drop your file here</div>
       <div class="dropzone-subtext">or click to browse files</div>
-      <div class="dropzone-subtext">Accepted file types: .comapeocat, .mapeosettings</div>
-      <input type="file" id="file-input" class="file-input" accept=".comapeocat,.mapeosettings">
+      <div class="dropzone-subtext">Accepted file types: .comapeocat, .mapeosettings, .zip, .tar</div>
+      <input type="file" id="file-input" class="file-input" accept=".comapeocat,.mapeosettings,.zip,.tar">
       <div class="progress-container" id="progress-container">
         <div class="progress-bar">
           <div class="progress" id="progress"></div>
@@ -283,43 +283,79 @@ function createDropzoneHtml(): string {
     const btnConfirm = document.getElementById('btn-confirm');
 
     // Add event listeners
-    dropzone.addEventListener('click', () => fileInput.click());
+    // Use a more specific click handler to ensure it works
+    dropzone.addEventListener('click', function(e) {
+      // Prevent the click from being handled by other elements
+      e.preventDefault();
+      e.stopPropagation();
+      // Trigger the file input click
+      fileInput.click();
+    });
+
+    // Make sure drag events are properly handled
     dropzone.addEventListener('dragover', handleDragOver);
     dropzone.addEventListener('dragleave', handleDragLeave);
     dropzone.addEventListener('drop', handleDrop);
+    document.addEventListener('dragover', function(e) {
+      // Prevent default to allow drop
+      e.preventDefault();
+    });
+    document.addEventListener('drop', function(e) {
+      // Prevent default drop behavior outside our dropzone
+      e.preventDefault();
+    });
+
+    // Handle file selection from the file input
     fileInput.addEventListener('change', handleFileSelect);
 
     // Handle drag over event
     function handleDragOver(e) {
       e.preventDefault();
       e.stopPropagation();
+      // Add visual feedback
       dropzone.classList.add('dragover');
+      return false; // Ensure the event is canceled
     }
 
     // Handle drag leave event
     function handleDragLeave(e) {
       e.preventDefault();
       e.stopPropagation();
+      // Remove visual feedback
       dropzone.classList.remove('dragover');
+      return false; // Ensure the event is canceled
     }
 
     // Handle drop event
     function handleDrop(e) {
+      // Prevent default behavior (prevent file from being opened)
       e.preventDefault();
       e.stopPropagation();
+
+      // Remove visual feedback
       dropzone.classList.remove('dragover');
 
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
+      // Get the dropped files
+      const dt = e.dataTransfer;
+      const files = dt.files;
+
+      // Process the first file if any were dropped
+      if (files && files.length > 0) {
+        console.log('File dropped:', files[0].name); // Debug log
         processFile(files[0]);
       }
+
+      return false; // Ensure the event is canceled
     }
 
     // Handle file selection
     function handleFileSelect(e) {
       const files = e.target.files;
-      if (files.length > 0) {
+      if (files && files.length > 0) {
+        console.log('File selected:', files[0].name); // Debug log
         processFile(files[0]);
+      } else {
+        console.log('No files selected'); // Debug log
       }
     }
 
