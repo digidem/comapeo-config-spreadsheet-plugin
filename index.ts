@@ -165,7 +165,8 @@ function importCategoryFile() {
 
   if (result === ui.Button.YES) {
     try {
-      showImportCategoryDialog();
+      // Use the new dropzone UI instead of the old dialog
+      showImportDropzoneDialog();
     } catch (error) {
       ui.alert(
         importCategoryMenuTexts[locale].error,
