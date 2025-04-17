@@ -54,6 +54,93 @@ function createDropzoneHtml(): string {
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       padding: 20px;
     }
+    .warning-box {
+      background-color: #fff3e0;
+      border-left: 4px solid #ff9800;
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .warning-title {
+      color: #e65100;
+      font-weight: bold;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+    .warning-icon {
+      margin-right: 8px;
+    }
+    .warning-text {
+      color: #bf360c;
+    }
+    .confirmation-dialog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+    .confirmation-dialog.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .confirmation-content {
+      background-color: white;
+      border-radius: 8px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    .confirmation-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #d32f2f;
+    }
+    .confirmation-text {
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .confirmation-buttons {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.3s ease;
+    }
+    .btn-cancel {
+      background-color: #e0e0e0;
+      color: #424242;
+      margin-right: 12px;
+    }
+    .btn-cancel:hover {
+      background-color: #bdbdbd;
+    }
+    .btn-confirm {
+      background-color: #d32f2f;
+      color: white;
+    }
+    .btn-confirm:hover {
+      background-color: #b71c1c;
+    }
     h1 {
       font-size: 1.5em;
       margin-top: 0;
@@ -138,6 +225,18 @@ function createDropzoneHtml(): string {
 <body>
   <div class="container">
     <h1>Import Configuration File</h1>
+
+    <div class="warning-box">
+      <div class="warning-title">
+        <span class="warning-icon">⚠️</span>
+        <span>Warning</span>
+      </div>
+      <div class="warning-text">
+        Importing a configuration file will erase all current spreadsheet data and replace it with content from the file.
+        Make sure you have a backup of your current data if needed.
+      </div>
+    </div>
+
     <div id="dropzone" class="dropzone">
       <div class="dropzone-icon">📁</div>
       <div class="dropzone-text">Drag and drop your file here</div>
@@ -153,6 +252,22 @@ function createDropzoneHtml(): string {
     <div id="status-message" class="status-message"></div>
   </div>
 
+  <!-- Confirmation Dialog -->
+  <div id="confirmation-dialog" class="confirmation-dialog">
+    <div class="confirmation-content">
+      <div class="confirmation-title">Confirm Import</div>
+      <div class="confirmation-text">
+        This action will erase all current data in your spreadsheet and replace it with the content from the imported file. This cannot be undone.
+        <br><br>
+        Are you sure you want to continue?
+      </div>
+      <div class="confirmation-buttons">
+        <button id="btn-cancel" class="btn btn-cancel">Cancel</button>
+        <button id="btn-confirm" class="btn btn-confirm">Yes, Import</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Store dropzone options
     const dropzoneOptions = ${JSON.stringify(dropzoneOptions)};
@@ -163,6 +278,9 @@ function createDropzoneHtml(): string {
     const progressContainer = document.getElementById('progress-container');
     const progress = document.getElementById('progress');
     const statusMessage = document.getElementById('status-message');
+    const confirmationDialog = document.getElementById('confirmation-dialog');
+    const btnCancel = document.getElementById('btn-cancel');
+    const btnConfirm = document.getElementById('btn-confirm');
 
     // Add event listeners
     dropzone.addEventListener('click', () => fileInput.click());
@@ -205,6 +323,12 @@ function createDropzoneHtml(): string {
       }
     }
 
+    // Add event listeners for confirmation dialog
+    btnCancel.addEventListener('click', () => {
+      confirmationDialog.classList.remove('visible');
+      resetUI();
+    });
+
     // Process the selected file
     function processFile(file) {
       // Reset UI
@@ -224,49 +348,61 @@ function createDropzoneHtml(): string {
         return;
       }
 
-      // Show progress
-      progressContainer.style.display = 'block';
-      updateProgress(10);
-      statusMessage.textContent = 'Reading file...';
+      // Store the file for later processing
+      const selectedFile = file;
 
-      // Read the file
-      const reader = new FileReader();
+      // Show confirmation dialog
+      confirmationDialog.classList.add('visible');
 
-      reader.onload = function(e) {
-        updateProgress(50);
-        statusMessage.textContent = 'Processing file...';
+      // Set up confirmation button action
+      btnConfirm.onclick = function() {
+        // Hide confirmation dialog
+        confirmationDialog.classList.remove('visible');
 
-        try {
-          const base64data = e.target.result.split(',')[1];
+        // Show progress
+        progressContainer.style.display = 'block';
+        updateProgress(10);
+        statusMessage.textContent = 'Reading file...';
 
-          // Call the appropriate Google Apps Script function based on file extension
-          const fileExtension = file.name.split('.').pop().toLowerCase();
+        // Read the file
+        const reader = new FileReader();
 
-          if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
-            google.script.run
-              .withSuccessHandler(onSuccess)
-              .withFailureHandler(onFailure)
-              .processImportedCategoryFile(file.name, base64data);
-          } else if (fileExtension === 'mapeosettings') {
-            google.script.run
-              .withSuccessHandler(onSuccess)
-              .withFailureHandler(onFailure)
-              .processMapeoSettingsFile(file.name, base64data);
-          } else {
-            onFailure(new Error('Unsupported file type'));
+        reader.onload = function(e) {
+          updateProgress(50);
+          statusMessage.textContent = 'Processing file...';
+
+          try {
+            const base64data = e.target.result.split(',')[1];
+
+            // Call the appropriate Google Apps Script function based on file extension
+            const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
+              google.script.run
+                .withSuccessHandler(onSuccess)
+                .withFailureHandler(onFailure)
+                .processImportedCategoryFile(selectedFile.name, base64data);
+            } else if (fileExtension === 'mapeosettings') {
+              google.script.run
+                .withSuccessHandler(onSuccess)
+                .withFailureHandler(onFailure)
+                .processMapeoSettingsFile(selectedFile.name, base64data);
+            } else {
+              onFailure(new Error('Unsupported file type'));
+            }
+
+            updateProgress(75);
+          } catch (error) {
+            onFailure(error);
           }
+        };
 
-          updateProgress(75);
-        } catch (error) {
-          onFailure(error);
-        }
+        reader.onerror = function() {
+          onFailure(new Error('Error reading file'));
+        };
+
+        reader.readAsDataURL(selectedFile);
       };
-
-      reader.onerror = function() {
-        onFailure(new Error('Error reading file'));
-      };
-
-      reader.readAsDataURL(file);
     }
 
     // Handle successful import
