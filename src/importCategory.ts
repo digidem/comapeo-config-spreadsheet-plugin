@@ -160,6 +160,11 @@ function processImportedCategoryFile(fileName: string, base64Data: string): { su
       };
     }
 
+    // If we have warnings, log them but continue
+    if (extractionResult.validationWarnings && extractionResult.validationWarnings.length > 0) {
+      console.log('Validation warnings:', extractionResult.validationWarnings);
+    }
+
     // Look for the configuration files
     const configData = extractConfigurationData(extractionResult.files, extractionResult.tempFolder);
 

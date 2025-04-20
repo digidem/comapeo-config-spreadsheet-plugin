@@ -18,7 +18,7 @@ function showImportDropzoneDialog(): void {
     .setWidth(600)
     .setHeight(400)
     .setTitle('Import Configuration File');
-  
+
   SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Import Configuration File');
 }
 
@@ -31,7 +31,7 @@ function createDropzoneHtml(): string {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     multiple: false
   };
-  
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -225,7 +225,7 @@ function createDropzoneHtml(): string {
 <body>
   <div class="container">
     <h1>Import Configuration File</h1>
-    
+
     <div class="warning-box">
       <div class="warning-title">
         <span class="warning-icon">⚠️</span>
@@ -236,7 +236,7 @@ function createDropzoneHtml(): string {
         Make sure you have a backup of your current data if needed.
       </div>
     </div>
-    
+
     <div id="dropzone" class="dropzone">
       <div class="dropzone-icon">📁</div>
       <div class="dropzone-text">Drag and drop your file here</div>
@@ -251,7 +251,7 @@ function createDropzoneHtml(): string {
     </div>
     <div id="status-message" class="status-message"></div>
   </div>
-  
+
   <!-- Confirmation Dialog -->
   <div id="confirmation-dialog" class="confirmation-dialog">
     <div class="confirmation-content">
@@ -271,7 +271,7 @@ function createDropzoneHtml(): string {
   <script>
     // Store dropzone options
     const dropzoneOptions = ${JSON.stringify(dropzoneOptions)};
-    
+
     // Wait for DOM to be fully loaded
     window.onload = function() {
       // DOM elements
@@ -283,39 +283,39 @@ function createDropzoneHtml(): string {
       const confirmationDialog = document.getElementById('confirmation-dialog');
       const btnCancel = document.getElementById('btn-cancel');
       const btnConfirm = document.getElementById('btn-confirm');
-      
+
       console.log('DOM elements initialized');
-      
+
       // Click handler for dropzone
       dropzone.onclick = function() {
         console.log('Dropzone clicked');
         fileInput.click();
       };
-      
+
       // Drag and drop handlers
       dropzone.ondragover = function(e) {
         e.preventDefault();
         e.stopPropagation();
         dropzone.classList.add('dragover');
       };
-      
+
       dropzone.ondragleave = function(e) {
         e.preventDefault();
         e.stopPropagation();
         dropzone.classList.remove('dragover');
       };
-      
+
       dropzone.ondrop = function(e) {
         e.preventDefault();
         e.stopPropagation();
         dropzone.classList.remove('dragover');
-        
+
         const files = e.dataTransfer.files;
         if (files.length > 0) {
           processFile(files[0]);
         }
       };
-      
+
       // File input change handler
       fileInput.onchange = function(e) {
         const files = e.target.files;
@@ -323,61 +323,61 @@ function createDropzoneHtml(): string {
           processFile(files[0]);
         }
       };
-      
+
       // Cancel button handler
       btnCancel.onclick = function() {
         confirmationDialog.classList.remove('visible');
         resetUI();
       };
-      
+
       // Process the selected file
       function processFile(file) {
         // Reset UI
         resetUI();
-        
+
         // Validate file type
         const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
         if (!dropzoneOptions.acceptedFileTypes.includes(fileExtension)) {
           showError('Invalid file type. Please upload a .comapeocat, .mapeosettings, .zip, or .tar file.');
           return;
         }
-        
+
         // Validate file size
         if (file.size > dropzoneOptions.maxFileSize) {
-          showError('File is too large. Maximum file size is ' + 
+          showError('File is too large. Maximum file size is ' +
             (dropzoneOptions.maxFileSize / (1024 * 1024)) + 'MB.');
           return;
         }
-        
+
         // Store the file for later processing
         const selectedFile = file;
-        
+
         // Show confirmation dialog
         confirmationDialog.classList.add('visible');
-        
+
         // Confirm button handler
         btnConfirm.onclick = function() {
           // Hide confirmation dialog
           confirmationDialog.classList.remove('visible');
-          
+
           // Show progress
           progressContainer.style.display = 'block';
           updateProgress(10);
           statusMessage.textContent = 'Reading file...';
-          
+
           // Read the file
           const reader = new FileReader();
-          
+
           reader.onload = function(e) {
             updateProgress(50);
             statusMessage.textContent = 'Processing file...';
-            
+
             try {
               const base64data = e.target.result.split(',')[1];
-              
+
               // Call the appropriate Google Apps Script function based on file extension
               const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
-              
+
               if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
                 google.script.run
                   .withSuccessHandler(onSuccess)
@@ -391,21 +391,21 @@ function createDropzoneHtml(): string {
               } else {
                 onFailure(new Error('Unsupported file type'));
               }
-              
+
               updateProgress(75);
             } catch (error) {
               onFailure(error);
             }
           };
-          
+
           reader.onerror = function() {
             onFailure(new Error('Error reading file'));
           };
-          
+
           reader.readAsDataURL(selectedFile);
         };
       }
-      
+
       // Handle successful import
       function onSuccess(result) {
         if (result && result.success) {
@@ -413,7 +413,7 @@ function createDropzoneHtml(): string {
           dropzone.classList.add('success');
           statusMessage.innerHTML = result.message || 'File imported successfully!';
           statusMessage.classList.add('success-message');
-          
+
           // Close the dialog after a delay
           setTimeout(() => {
             google.script.host.close();
@@ -425,32 +425,32 @@ function createDropzoneHtml(): string {
           });
         }
       }
-      
+
       // Handle import failure
       function onFailure(error) {
         dropzone.classList.add('error');
-        
+
         // Format error message - handle multi-line errors
         const errorMsg = error.message || 'Failed to import file';
-        
+
         // Replace newlines with HTML line breaks
         statusMessage.innerHTML = 'Error: ' + errorMsg.replace(/\\n/g, '<br>');
         statusMessage.classList.add('error-message');
         updateProgress(0);
       }
-      
+
       // Show error message
       function showError(message) {
         dropzone.classList.add('error');
         statusMessage.innerHTML = message;
         statusMessage.classList.add('error-message');
       }
-      
+
       // Update progress bar
       function updateProgress(percent) {
         progress.style.width = percent + '%';
       }
-      
+
       // Reset UI
       function resetUI() {
         dropzone.classList.remove('error', 'success', 'dragover');
@@ -474,34 +474,39 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
   try {
     // Decode the base64 data
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
-    
+
     // Extract and validate the file
     const extractionResult = extractAndValidateFile(fileName, blob);
-    
+
     if (!extractionResult.success) {
       // Return the error message
       return {
         success: false,
-        message: extractionResult.message + (extractionResult.validationErrors ? 
+        message: extractionResult.message + (extractionResult.validationErrors ?
           '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
       };
     }
-    
+
+    // If we have warnings, log them but continue
+    if (extractionResult.validationWarnings && extractionResult.validationWarnings.length > 0) {
+      console.log('Validation warnings:', extractionResult.validationWarnings);
+    }
+
     // Process the extracted files
     const configData = extractMapeoConfigurationData(extractionResult.files, extractionResult.tempFolder);
-    
+
     // Apply the configuration data to the spreadsheet
     applyMapeoConfigurationToSpreadsheet(configData);
-    
+
     // Clean up the temporary folder
     if (extractionResult.tempFolder) {
       cleanupTempResources(extractionResult.tempFolder);
     }
-    
+
     // Return success
-    return { 
-      success: true, 
-      message: 'Mapeo settings file imported successfully' 
+    return {
+      success: true,
+      message: 'Mapeo settings file imported successfully'
     };
   } catch (error) {
     console.error('Error processing Mapeo settings file:', error);
