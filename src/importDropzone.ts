@@ -282,88 +282,57 @@ function createDropzoneHtml(): string {
     const btnCancel = document.getElementById('btn-cancel');
     const btnConfirm = document.getElementById('btn-confirm');
 
-    // Add event listeners
-    // Use a more specific click handler to ensure it works
-    dropzone.addEventListener('click', function(e) {
-      // Prevent the click from being handled by other elements
-      e.preventDefault();
-      e.stopPropagation();
-      // Trigger the file input click
+    // Simple event listeners that are known to work
+    dropzone.onclick = function() {
       fileInput.click();
-    });
+    };
 
-    // Make sure drag events are properly handled
-    dropzone.addEventListener('dragover', handleDragOver);
-    dropzone.addEventListener('dragleave', handleDragLeave);
-    dropzone.addEventListener('drop', handleDrop);
-    document.addEventListener('dragover', function(e) {
-      // Prevent default to allow drop
-      e.preventDefault();
-    });
-    document.addEventListener('drop', function(e) {
-      // Prevent default drop behavior outside our dropzone
-      e.preventDefault();
-    });
+    // Handle drag events
+    dropzone.ondragover = handleDragOver;
+    dropzone.ondragleave = handleDragLeave;
+    dropzone.ondrop = handleDrop;
 
-    // Handle file selection from the file input
-    fileInput.addEventListener('change', handleFileSelect);
-
-    // Handle drag over event
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Add visual feedback
-      dropzone.classList.add('dragover');
-      return false; // Ensure the event is canceled
-    }
-
-    // Handle drag leave event
-    function handleDragLeave(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Remove visual feedback
-      dropzone.classList.remove('dragover');
-      return false; // Ensure the event is canceled
-    }
-
-    // Handle drop event
-    function handleDrop(e) {
-      // Prevent default behavior (prevent file from being opened)
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Remove visual feedback
-      dropzone.classList.remove('dragover');
-
-      // Get the dropped files
-      const dt = e.dataTransfer;
-      const files = dt.files;
-
-      // Process the first file if any were dropped
-      if (files && files.length > 0) {
-        console.log('File dropped:', files[0].name); // Debug log
-        processFile(files[0]);
-      }
-
-      return false; // Ensure the event is canceled
-    }
+    // Prevent default browser behavior for drag events
+    document.ondragover = function(e) { e.preventDefault(); };
+    document.ondrop = function(e) { e.preventDefault(); };
 
     // Handle file selection
-    function handleFileSelect(e) {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        console.log('File selected:', files[0].name); // Debug log
-        processFile(files[0]);
-      } else {
-        console.log('No files selected'); // Debug log
+    fileInput.onchange = handleFileSelect;
+
+    // Simple drag over handler
+    function handleDragOver(e) {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    }
+
+    // Simple drag leave handler
+    function handleDragLeave(e) {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    }
+
+    // Simple drop handler
+    function handleDrop(e) {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+
+      if (e.dataTransfer.files.length > 0) {
+        processFile(e.dataTransfer.files[0]);
       }
     }
 
-    // Add event listeners for confirmation dialog
-    btnCancel.addEventListener('click', () => {
+    // Simple file selection handler
+    function handleFileSelect(e) {
+      if (e.target.files.length > 0) {
+        processFile(e.target.files[0]);
+      }
+    }
+
+    // Simple event handlers for confirmation dialog
+    btnCancel.onclick = function() {
       confirmationDialog.classList.remove('visible');
       resetUI();
-    });
+    };
 
     // Process the selected file
     function processFile(file) {
