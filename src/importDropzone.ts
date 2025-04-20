@@ -216,9 +216,18 @@ function createDropzoneHtml(): string {
     }
     .error-message {
       color: #ea4335;
+      font-weight: bold;
     }
     .success-message {
       color: #34a853;
+      font-weight: bold;
+    }
+    .info-message {
+      color: #4285f4;
+    }
+    .warning-message {
+      color: #fbbc05;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -363,42 +372,76 @@ function createDropzoneHtml(): string {
           // Show progress
           progressContainer.style.display = 'block';
           updateProgress(10);
-          statusMessage.textContent = 'Reading file...';
+          updateStatus('Reading file...', 'info');
+
+          // Set a timeout to show a message if processing takes too long
+          const processingTimeout = setTimeout(() => {
+            updateStatus('Still processing... This may take a few minutes for large files.', 'info');
+          }, 10000); // 10 seconds
 
           // Read the file
           const reader = new FileReader();
 
           reader.onload = function(e) {
             updateProgress(50);
-            statusMessage.textContent = 'Processing file...';
+            updateStatus('Processing file...', 'info');
 
             try {
               const base64data = e.target.result.split(',')[1];
 
               // Call the appropriate Google Apps Script function based on file extension
               const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+              updateStatus(`Extracting ${fileExtension} file...`, 'info');
+
+              // Set a longer timeout for server processing
+              const serverTimeout = setTimeout(() => {
+                updateStatus('Server is still processing the file. This may take several minutes for large files...', 'info');
+
+                // Add another timeout for very long operations
+                setTimeout(() => {
+                  updateStatus('Processing is taking longer than expected. Please be patient...', 'warning');
+                }, 30000); // 30 seconds more
+              }, 20000); // 20 seconds
+
+              // Success handler with timeout clearing
+              const successHandler = function(result) {
+                clearTimeout(processingTimeout);
+                clearTimeout(serverTimeout);
+                onSuccess(result);
+              };
+
+              // Failure handler with timeout clearing
+              const failureHandler = function(error) {
+                clearTimeout(processingTimeout);
+                clearTimeout(serverTimeout);
+                onFailure(error);
+              };
 
               if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
                 google.script.run
-                  .withSuccessHandler(onSuccess)
-                  .withFailureHandler(onFailure)
+                  .withSuccessHandler(successHandler)
+                  .withFailureHandler(failureHandler)
                   .processImportedCategoryFile(selectedFile.name, base64data);
               } else if (fileExtension === 'mapeosettings' || fileExtension === 'tar') {
                 google.script.run
-                  .withSuccessHandler(onSuccess)
-                  .withFailureHandler(onFailure)
+                  .withSuccessHandler(successHandler)
+                  .withFailureHandler(failureHandler)
                   .processMapeoSettingsFile(selectedFile.name, base64data);
               } else {
+                clearTimeout(processingTimeout);
                 onFailure(new Error('Unsupported file type'));
               }
 
               updateProgress(75);
+              updateStatus('Waiting for server response...', 'info');
             } catch (error) {
+              clearTimeout(processingTimeout);
               onFailure(error);
             }
           };
 
           reader.onerror = function() {
+            clearTimeout(processingTimeout);
             onFailure(new Error('Error reading file'));
           };
 
@@ -406,22 +449,88 @@ function createDropzoneHtml(): string {
         };
       }
 
+      // Update status message with type (info, warning, error, success)
+      function updateStatus(message, type = 'info') {
+        // Clear previous status classes
+        statusMessage.classList.remove('info-message', 'warning-message', 'error-message', 'success-message');
+
+        // Add appropriate class based on type
+        statusMessage.classList.add(`${type}-message`);
+
+        // Update message content
+        statusMessage.innerHTML = message;
+
+        // Log to console for debugging
+        console.log(`[${type}] ${message}`);
+      }
+
       // Handle successful import
       function onSuccess(result) {
         if (result && result.success) {
           updateProgress(100);
           dropzone.classList.add('success');
-          statusMessage.innerHTML = result.message || 'File imported successfully!';
-          statusMessage.classList.add('success-message');
+
+          // Log details for debugging
+          console.log('Import successful:', result);
+
+          // Create a detailed success message if details are available
+          let successMessage = result.message || 'File imported successfully!';
+
+          if (result.details) {
+            // Add details to the success message
+            const details = result.details;
+            let detailsMessage = '<br><br><strong>Imported:</strong><ul>';
+
+            if (details.presets) {
+              detailsMessage += `<li>${details.presets} categories</li>`;
+            }
+
+            if (details.fields) {
+              detailsMessage += `<li>${details.fields} detail fields</li>`;
+            }
+
+            if (details.icons) {
+              detailsMessage += `<li>${details.icons} icons</li>`;
+            }
+
+            if (details.languages && Array.isArray(details.languages)) {
+              detailsMessage += `<li>${details.languages.length} languages: ${details.languages.join(', ')}</li>`;
+            }
+
+            detailsMessage += '</ul>';
+            successMessage += detailsMessage;
+          }
+
+          updateStatus(successMessage, 'success');
 
           // Close the dialog after a delay
           setTimeout(() => {
             google.script.host.close();
-          }, 2000);
+          }, 5000); // Longer delay to allow reading the details
         } else {
           // Handle server-side validation errors
+          console.warn('Server returned error:', result);
+
+          // Create a detailed error message if details are available
+          let errorMessage = result && result.message ? result.message : 'Import failed';
+
+          if (result && result.details) {
+            const details = result.details;
+            if (details.stage) {
+              errorMessage += `<br><br>Failed during: <strong>${details.stage}</strong>`;
+            }
+
+            if (details.errors && Array.isArray(details.errors)) {
+              errorMessage += '<br><br><strong>Errors:</strong><ul>';
+              details.errors.forEach(err => {
+                errorMessage += `<li>${err}</li>`;
+              });
+              errorMessage += '</ul>';
+            }
+          }
+
           onFailure({
-            message: result && result.message ? result.message : 'Import failed'
+            message: errorMessage
           });
         }
       }
@@ -433,17 +542,19 @@ function createDropzoneHtml(): string {
         // Format error message - handle multi-line errors
         const errorMsg = error.message || 'Failed to import file';
 
+        // Log the error for debugging
+        console.error('Import failed:', error);
+
         // Replace newlines with HTML line breaks
-        statusMessage.innerHTML = 'Error: ' + errorMsg.replace(/\\n/g, '<br>');
-        statusMessage.classList.add('error-message');
+        updateStatus('Error: ' + errorMsg.replace(/\\n/g, '<br>'), 'error');
         updateProgress(0);
       }
 
       // Show error message
       function showError(message) {
         dropzone.classList.add('error');
-        statusMessage.innerHTML = message;
-        statusMessage.classList.add('error-message');
+        updateStatus(message, 'error');
+        console.error('Validation error:', message);
       }
 
       // Update progress bar
@@ -455,7 +566,7 @@ function createDropzoneHtml(): string {
       function resetUI() {
         dropzone.classList.remove('error', 'success', 'dragover');
         statusMessage.innerHTML = '';
-        statusMessage.classList.remove('error-message', 'success-message');
+        statusMessage.classList.remove('error-message', 'success-message', 'info-message', 'warning-message');
         updateProgress(0);
       }
     };
@@ -470,20 +581,30 @@ function createDropzoneHtml(): string {
  * @param base64Data - Base64 encoded file data
  * @returns Result of the import operation
  */
-function processMapeoSettingsFile(fileName: string, base64Data: string): { success: boolean; message: string } {
+function processMapeoSettingsFile(fileName: string, base64Data: string): { success: boolean; message: string; details?: any } {
   try {
+    console.log(`Starting import of Mapeo settings file: ${fileName}`);
+
     // Decode the base64 data
+    console.log('Decoding base64 data...');
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+    console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
     // Extract and validate the file
+    console.log('Extracting and validating file...');
     const extractionResult = extractAndValidateFile(fileName, blob);
 
     if (!extractionResult.success) {
       // Return the error message
+      console.error('Extraction failed:', extractionResult.message, extractionResult.validationErrors);
       return {
         success: false,
         message: extractionResult.message + (extractionResult.validationErrors ?
-          '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
+          '\n- ' + extractionResult.validationErrors.join('\n- ') : ''),
+        details: {
+          stage: 'extraction',
+          errors: extractionResult.validationErrors
+        }
       };
     }
 
@@ -493,26 +614,48 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
     }
 
     // Process the extracted files
+    console.log('Extracting Mapeo configuration data from files...');
     const configData = extractMapeoConfigurationData(extractionResult.files, extractionResult.tempFolder);
+    console.log('Configuration data extracted');
 
     // Apply the configuration data to the spreadsheet
+    console.log('Applying configuration data to spreadsheet...');
     applyMapeoConfigurationToSpreadsheet(configData);
+    console.log('Configuration data applied to spreadsheet successfully');
 
     // Clean up the temporary folder
     if (extractionResult.tempFolder) {
+      console.log('Cleaning up temporary resources...');
       cleanupTempResources(extractionResult.tempFolder);
     }
 
-    // Return success
+    // Return success with details
+    console.log('Import completed successfully');
     return {
       success: true,
-      message: 'Mapeo settings file imported successfully'
+      message: 'Mapeo settings file imported successfully',
+      details: {
+        metadata: !!configData.metadata,
+        presets: configData.presets ? Object.keys(configData.presets).length : 0,
+        fields: configData.fields ? Object.keys(configData.fields).length : 0,
+        icons: configData.icons ? configData.icons.length : 0
+      }
     };
   } catch (error) {
     console.error('Error processing Mapeo settings file:', error);
+
+    // Get stack trace if available
+    const stack = error instanceof Error && error.stack ? error.stack : 'No stack trace available';
+    console.error('Stack trace:', stack);
+
     return {
       success: false,
-      message: 'Error processing Mapeo settings file: ' + (error instanceof Error ? error.message : String(error))
+      message: 'Error processing Mapeo settings file: ' + (error instanceof Error ? error.message : String(error)),
+      details: {
+        stage: 'processing',
+        error: String(error),
+        stack: stack
+      }
     };
   }
 }

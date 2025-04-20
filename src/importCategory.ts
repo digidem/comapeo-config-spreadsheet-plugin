@@ -143,20 +143,30 @@ function createImportCategoryHtml(): string {
  * @param base64Data - The file content as base64 string
  * @returns Success message if import was successful
  */
-function processImportedCategoryFile(fileName: string, base64Data: string): { success: boolean; message: string } {
+function processImportedCategoryFile(fileName: string, base64Data: string): { success: boolean; message: string; details?: any } {
   try {
+    console.log(`Starting import of file: ${fileName}`);
+
     // Decode the base64 data
+    console.log('Decoding base64 data...');
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+    console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
     // Extract and validate the file
+    console.log('Extracting and validating file...');
     const extractionResult = extractAndValidateFile(fileName, blob);
 
     if (!extractionResult.success) {
       // Return the error message
+      console.error('Extraction failed:', extractionResult.message, extractionResult.validationErrors);
       return {
         success: false,
         message: extractionResult.message + (extractionResult.validationErrors ?
-          '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
+          '\n- ' + extractionResult.validationErrors.join('\n- ') : ''),
+        details: {
+          stage: 'extraction',
+          errors: extractionResult.validationErrors
+        }
       };
     }
 
@@ -166,23 +176,57 @@ function processImportedCategoryFile(fileName: string, base64Data: string): { su
     }
 
     // Look for the configuration files
+    console.log('Extracting configuration data from files...');
     const configData = extractConfigurationData(extractionResult.files, extractionResult.tempFolder);
+    console.log('Configuration data extracted:', {
+      metadata: !!configData.metadata,
+      presets: configData.presets.length,
+      fields: configData.fields.length,
+      icons: configData.icons.length,
+      languages: Object.keys(configData.messages).length
+    });
 
     // Apply the configuration data to the spreadsheet
+    console.log('Applying configuration data to spreadsheet...');
     applyConfigurationToSpreadsheet(configData);
+    console.log('Configuration data applied to spreadsheet successfully');
 
     // Clean up the temporary folder
     if (extractionResult.tempFolder) {
+      console.log('Cleaning up temporary resources...');
       cleanupTempResources(extractionResult.tempFolder);
     }
 
-    // Return success
-    return { success: true, message: 'Category file imported successfully' };
+    // Return success with details
+    console.log('Import completed successfully');
+    return {
+      success: true,
+      message: 'Category file imported successfully',
+      details: {
+        presets: configData.presets.length,
+        fields: configData.fields.length,
+        icons: configData.icons.length,
+        languages: Object.keys(configData.messages)
+      }
+    };
   } catch (error) {
     console.error('Error processing imported file:', error);
+
+    // Get stack trace if available
+    const stack = error instanceof Error && error.stack ? error.stack : 'No stack trace available';
+    console.error('Stack trace:', stack);
+
+    // Create a detailed error message
+    let errorMessage = 'Error processing imported file: ' + (error instanceof Error ? error.message : String(error));
+
     return {
       success: false,
-      message: 'Error processing imported file: ' + (error instanceof Error ? error.message : String(error))
+      message: errorMessage,
+      details: {
+        stage: 'processing',
+        error: String(error),
+        stack: stack
+      }
     };
   }
 }
