@@ -229,10 +229,24 @@ function createDropzoneHtml(): string {
       color: #fbbc05;
       font-weight: bold;
     }
+    .browse-button {
+      margin-top: 15px;
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .browse-button:hover {
+      background-color: #1a73e8;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" onclick="if(event.target.id === 'dropzone' || event.target.closest('#dropzone')) handleDropzoneClick(event);">
     <h1>Import Configuration File</h1>
 
     <div class="warning-box">
@@ -246,11 +260,12 @@ function createDropzoneHtml(): string {
       </div>
     </div>
 
-    <div id="dropzone" class="dropzone">
-      <div class="dropzone-icon">📁</div>
-      <div class="dropzone-text">Drag and drop your file here</div>
-      <div class="dropzone-subtext">or click to browse files</div>
-      <div class="dropzone-subtext">Accepted file types: .comapeocat, .mapeosettings, .zip, .tar</div>
+    <div id="dropzone" class="dropzone" onclick="handleDropzoneClick(event)">
+      <div class="dropzone-icon" onclick="handleDropzoneClick(event)">📁</div>
+      <div class="dropzone-text" onclick="handleDropzoneClick(event)">Drag and drop your file here</div>
+      <div class="dropzone-subtext" onclick="handleDropzoneClick(event)">or click to browse files</div>
+      <div class="dropzone-subtext" onclick="handleDropzoneClick(event)">Accepted file types: .comapeocat, .mapeosettings, .zip, .tar</div>
+      <button class="browse-button" onclick="document.getElementById('file-input').click(); return false;">Browse Files</button>
       <input type="file" id="file-input" class="file-input" accept=".comapeocat,.mapeosettings,.zip,.tar">
       <div class="progress-container" id="progress-container">
         <div class="progress-bar">
@@ -281,6 +296,13 @@ function createDropzoneHtml(): string {
     // Store dropzone options
     const dropzoneOptions = ${JSON.stringify(dropzoneOptions)};
 
+    // Global click handler for dropzone
+    function handleDropzoneClick(e) {
+      console.log('Dropzone clicked (global handler)');
+      document.getElementById('file-input').click();
+      return false;
+    }
+
     // Wait for DOM to be fully loaded
     window.onload = function() {
       // DOM elements
@@ -295,11 +317,60 @@ function createDropzoneHtml(): string {
 
       console.log('DOM elements initialized');
 
-      // Click handler for dropzone
-      dropzone.onclick = function() {
-        console.log('Dropzone clicked');
-        fileInput.click();
+      // Multiple click handlers for dropzone to ensure at least one works
+      // Method 1: Direct onclick property
+      dropzone.onclick = function(e) {
+        console.log('Dropzone clicked (onclick property)');
+        if (e.target === dropzone) {
+          fileInput.click();
+        }
       };
+
+      // Method 2: addEventListener
+      dropzone.addEventListener('click', function(e) {
+        console.log('Dropzone clicked (addEventListener)');
+        if (e.target === dropzone) {
+          fileInput.click();
+        }
+      });
+
+      // Method 3: Direct click handlers on child elements
+      const dropzoneIcon = document.querySelector('.dropzone-icon');
+      const dropzoneText = document.querySelector('.dropzone-text');
+      const dropzoneSubtext = document.querySelectorAll('.dropzone-subtext');
+
+      if (dropzoneIcon) {
+        dropzoneIcon.onclick = function(e) {
+          console.log('Dropzone icon clicked');
+          e.preventDefault();
+          e.stopPropagation();
+          fileInput.click();
+        };
+      }
+
+      if (dropzoneText) {
+        dropzoneText.onclick = function(e) {
+          console.log('Dropzone text clicked');
+          e.preventDefault();
+          e.stopPropagation();
+          fileInput.click();
+        };
+      }
+
+      dropzoneSubtext.forEach(function(element) {
+        element.onclick = function(e) {
+          console.log('Dropzone subtext clicked');
+          e.preventDefault();
+          e.stopPropagation();
+          fileInput.click();
+        };
+      });
+
+      // Method 4: Attach the global handler
+      dropzone.setAttribute('onclick', 'handleDropzoneClick(event)');
+
+      // Make sure the dropzone is actually clickable
+      dropzone.style.cursor = 'pointer';
 
       // Drag and drop handlers
       dropzone.ondragover = function(e) {
