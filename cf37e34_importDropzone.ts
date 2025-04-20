@@ -54,93 +54,6 @@ function createDropzoneHtml(): string {
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       padding: 20px;
     }
-    .warning-box {
-      background-color: #fff3e0;
-      border-left: 4px solid #ff9800;
-      border-radius: 4px;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .warning-title {
-      color: #e65100;
-      font-weight: bold;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-    }
-    .warning-icon {
-      margin-right: 8px;
-    }
-    .warning-text {
-      color: #bf360c;
-    }
-    .confirmation-dialog {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease;
-    }
-    .confirmation-dialog.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    .confirmation-content {
-      background-color: white;
-      border-radius: 8px;
-      padding: 24px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-    .confirmation-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 16px;
-      color: #d32f2f;
-    }
-    .confirmation-text {
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-    .confirmation-buttons {
-      display: flex;
-      justify-content: flex-end;
-    }
-    .btn {
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      transition: background-color 0.3s ease;
-    }
-    .btn-cancel {
-      background-color: #e0e0e0;
-      color: #424242;
-      margin-right: 12px;
-    }
-    .btn-cancel:hover {
-      background-color: #bdbdbd;
-    }
-    .btn-confirm {
-      background-color: #d32f2f;
-      color: white;
-    }
-    .btn-confirm:hover {
-      background-color: #b71c1c;
-    }
     h1 {
       font-size: 1.5em;
       margin-top: 0;
@@ -225,24 +138,12 @@ function createDropzoneHtml(): string {
 <body>
   <div class="container">
     <h1>Import Configuration File</h1>
-
-    <div class="warning-box">
-      <div class="warning-title">
-        <span class="warning-icon">⚠️</span>
-        <span>Warning</span>
-      </div>
-      <div class="warning-text">
-        Importing a configuration file will erase all current spreadsheet data and replace it with content from the file.
-        Make sure you have a backup of your current data if needed.
-      </div>
-    </div>
-
     <div id="dropzone" class="dropzone">
       <div class="dropzone-icon">📁</div>
       <div class="dropzone-text">Drag and drop your file here</div>
       <div class="dropzone-subtext">or click to browse files</div>
-      <div class="dropzone-subtext">Accepted file types: .comapeocat, .mapeosettings, .zip, .tar</div>
-      <input type="file" id="file-input" class="file-input" accept=".comapeocat,.mapeosettings,.zip,.tar">
+      <div class="dropzone-subtext">Accepted file types: .comapeocat, .mapeosettings</div>
+      <input type="file" id="file-input" class="file-input" accept=".comapeocat,.mapeosettings">
       <div class="progress-container" id="progress-container">
         <div class="progress-bar">
           <div class="progress" id="progress"></div>
@@ -250,22 +151,6 @@ function createDropzoneHtml(): string {
       </div>
     </div>
     <div id="status-message" class="status-message"></div>
-  </div>
-
-  <!-- Confirmation Dialog -->
-  <div id="confirmation-dialog" class="confirmation-dialog">
-    <div class="confirmation-content">
-      <div class="confirmation-title">Confirm Import</div>
-      <div class="confirmation-text">
-        This action will erase all current data in your spreadsheet and replace it with the content from the imported file. This cannot be undone.
-        <br><br>
-        Are you sure you want to continue?
-      </div>
-      <div class="confirmation-buttons">
-        <button id="btn-cancel" class="btn btn-cancel">Cancel</button>
-        <button id="btn-confirm" class="btn btn-confirm">Yes, Import</button>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -278,32 +163,29 @@ function createDropzoneHtml(): string {
     const progressContainer = document.getElementById('progress-container');
     const progress = document.getElementById('progress');
     const statusMessage = document.getElementById('status-message');
-    const confirmationDialog = document.getElementById('confirmation-dialog');
-    const btnCancel = document.getElementById('btn-cancel');
-    const btnConfirm = document.getElementById('btn-confirm');
 
-    // Add event listeners - using the exact same code from the working version
+    // Add event listeners
     dropzone.addEventListener('click', () => fileInput.click());
     dropzone.addEventListener('dragover', handleDragOver);
     dropzone.addEventListener('dragleave', handleDragLeave);
     dropzone.addEventListener('drop', handleDrop);
     fileInput.addEventListener('change', handleFileSelect);
 
-    // Handle drag over event - using the exact same code from the working version
+    // Handle drag over event
     function handleDragOver(e) {
       e.preventDefault();
       e.stopPropagation();
       dropzone.classList.add('dragover');
     }
 
-    // Handle drag leave event - using the exact same code from the working version
+    // Handle drag leave event
     function handleDragLeave(e) {
       e.preventDefault();
       e.stopPropagation();
       dropzone.classList.remove('dragover');
     }
 
-    // Handle drop event - using the exact same code from the working version
+    // Handle drop event
     function handleDrop(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -315,19 +197,13 @@ function createDropzoneHtml(): string {
       }
     }
 
-    // Handle file selection - using the exact same code from the working version
+    // Handle file selection
     function handleFileSelect(e) {
       const files = e.target.files;
       if (files.length > 0) {
         processFile(files[0]);
       }
     }
-
-    // Add event listener for confirmation dialog cancel button
-    btnCancel.addEventListener('click', function() {
-      confirmationDialog.classList.remove('visible');
-      resetUI();
-    });
 
     // Process the selected file
     function processFile(file) {
@@ -348,92 +224,68 @@ function createDropzoneHtml(): string {
         return;
       }
 
-      // Store the file for later processing
-      const selectedFile = file;
+      // Show progress
+      progressContainer.style.display = 'block';
+      updateProgress(10);
+      statusMessage.textContent = 'Reading file...';
 
-      // Show confirmation dialog
-      confirmationDialog.classList.add('visible');
+      // Read the file
+      const reader = new FileReader();
 
-      // Set up confirmation button action
-      btnConfirm.addEventListener('click', function() {
-        // Hide confirmation dialog
-        confirmationDialog.classList.remove('visible');
+      reader.onload = function(e) {
+        updateProgress(50);
+        statusMessage.textContent = 'Processing file...';
 
-        // Show progress
-        progressContainer.style.display = 'block';
-        updateProgress(10);
-        statusMessage.textContent = 'Reading file...';
+        try {
+          const base64data = e.target.result.split(',')[1];
 
-        // Read the file
-        const reader = new FileReader();
+          // Call the appropriate Google Apps Script function based on file extension
+          const fileExtension = file.name.split('.').pop().toLowerCase();
 
-        reader.onload = function(e) {
-          updateProgress(50);
-          statusMessage.textContent = 'Processing file...';
-
-          try {
-            const base64data = e.target.result.split(',')[1];
-
-            // Call the appropriate Google Apps Script function based on file extension
-            const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
-
-            if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
-              google.script.run
-                .withSuccessHandler(onSuccess)
-                .withFailureHandler(onFailure)
-                .processImportedCategoryFile(selectedFile.name, base64data);
-            } else if (fileExtension === 'mapeosettings') {
-              google.script.run
-                .withSuccessHandler(onSuccess)
-                .withFailureHandler(onFailure)
-                .processMapeoSettingsFile(selectedFile.name, base64data);
-            } else {
-              onFailure(new Error('Unsupported file type'));
-            }
-
-            updateProgress(75);
-          } catch (error) {
-            onFailure(error);
+          if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
+            google.script.run
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
+              .processImportedCategoryFile(file.name, base64data);
+          } else if (fileExtension === 'mapeosettings') {
+            google.script.run
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
+              .processMapeoSettingsFile(file.name, base64data);
+          } else {
+            onFailure(new Error('Unsupported file type'));
           }
-        };
 
-        reader.onerror = function() {
-          onFailure(new Error('Error reading file'));
-        };
+          updateProgress(75);
+        } catch (error) {
+          onFailure(error);
+        }
+      };
 
-        reader.readAsDataURL(selectedFile);
-      });
+      reader.onerror = function() {
+        onFailure(new Error('Error reading file'));
+      };
+
+      reader.readAsDataURL(file);
     }
 
     // Handle successful import
     function onSuccess(result) {
-      if (result && result.success) {
-        updateProgress(100);
-        dropzone.classList.add('success');
-        statusMessage.textContent = result.message || 'File imported successfully!';
-        statusMessage.classList.add('success-message');
+      updateProgress(100);
+      dropzone.classList.add('success');
+      statusMessage.textContent = 'File imported successfully!';
+      statusMessage.classList.add('success-message');
 
-        // Close the dialog after a delay
-        setTimeout(() => {
-          google.script.host.close();
-        }, 2000);
-      } else {
-        // Handle server-side validation errors
-        onFailure({
-          message: result && result.message ? result.message : 'Import failed'
-        });
-      }
+      // Close the dialog after a delay
+      setTimeout(() => {
+        google.script.host.close();
+      }, 2000);
     }
 
     // Handle import failure
     function onFailure(error) {
       dropzone.classList.add('error');
-
-      // Format error message - handle multi-line errors
-      const errorMsg = error.message || 'Failed to import file';
-
-      // Replace newlines with HTML line breaks
-      statusMessage.innerHTML = 'Error: ' + errorMsg.replace(/\n/g, '<br>');
+      statusMessage.textContent = 'Error: ' + (error.message || 'Failed to import file');
       statusMessage.classList.add('error-message');
       updateProgress(0);
     }
@@ -441,8 +293,7 @@ function createDropzoneHtml(): string {
     // Show error message
     function showError(message) {
       dropzone.classList.add('error');
-      // Use innerHTML to support HTML content if needed
-      statusMessage.innerHTML = message;
+      statusMessage.textContent = message;
       statusMessage.classList.add('error-message');
     }
 
@@ -480,41 +331,79 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
     // Decode the base64 data
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
 
-    // Extract and validate the file
-    const extractionResult = extractAndValidateFile(fileName, blob);
+    // Create a temporary folder in Drive to extract the file
+    const tempFolder = DriveApp.createFolder('Mapeo_Settings_Import_' + new Date().getTime());
 
-    if (!extractionResult.success) {
-      // Return the error message
+    // Save the blob to the temp folder
+    const file = tempFolder.createFile(blob);
+
+    // Extract the tar file (mapeosettings is a tar file)
+    // Note: Google Apps Script doesn't have built-in tar extraction
+    // We'll need to use a workaround or external library
+
+    try {
+      // Try to extract using a custom function or service
+      const extractedFiles = extractTarFile(blob, tempFolder);
+
+      // Look for the configuration files
+      const configData = extractMapeoConfigurationData(extractedFiles, tempFolder);
+
+      // Apply the configuration data to the spreadsheet
+      applyMapeoConfigurationToSpreadsheet(configData);
+
+      // Clean up the temporary folder
+      tempFolder.setTrashed(true);
+
+      // Return success
       return {
-        success: false,
-        message: extractionResult.message + (extractionResult.validationErrors ?
-          '\n- ' + extractionResult.validationErrors.join('\n- ') : '')
+        success: true,
+        message: 'Mapeo settings file imported successfully'
       };
+    } catch (extractError) {
+      console.error('Error extracting tar file:', extractError);
+
+      // If extraction fails, try to parse it directly
+      const fileContent = blob.getDataAsString();
+      let jsonData;
+
+      try {
+        jsonData = JSON.parse(fileContent);
+
+        // Process the JSON data
+        applyMapeoJsonConfigToSpreadsheet(jsonData);
+
+        // Clean up
+        tempFolder.setTrashed(true);
+
+        return {
+          success: true,
+          message: 'Mapeo settings file imported successfully'
+        };
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error('Could not parse the Mapeo settings file. The file may be corrupted.');
+      }
     }
-
-    // Process the extracted files
-    const configData = extractMapeoConfigurationData(extractionResult.files, extractionResult.tempFolder);
-
-    // Apply the configuration data to the spreadsheet
-    applyMapeoConfigurationToSpreadsheet(configData);
-
-    // Clean up the temporary folder
-    if (extractionResult.tempFolder) {
-      cleanupTempResources(extractionResult.tempFolder);
-    }
-
-    // Return success
-    return {
-      success: true,
-      message: 'Mapeo settings file imported successfully'
-    };
   } catch (error) {
     console.error('Error processing Mapeo settings file:', error);
-    return {
-      success: false,
-      message: 'Error processing Mapeo settings file: ' + (error instanceof Error ? error.message : String(error))
-    };
+    throw error;
   }
+}
+
+/**
+ * Extracts a tar file (workaround since GAS doesn't support tar extraction natively)
+ * @param blob - The tar file blob
+ * @param folder - The folder to extract to
+ * @returns Array of extracted file blobs
+ */
+function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScript.Drive.Folder): GoogleAppsScript.Base.Blob[] {
+  // This is a placeholder. In a real implementation, you would:
+  // 1. Either use an external service to extract the tar
+  // 2. Or implement a JavaScript tar extractor
+  // 3. Or convert the tar to a zip file first
+
+  // For now, we'll throw an error that will be caught and handled
+  throw new Error('TAR extraction not implemented');
 }
 
 /**
