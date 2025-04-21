@@ -141,6 +141,7 @@ function createDropzoneHtml(): string {
       max-height: 200px;
       overflow-y: auto;
       line-height: 1.4;
+      white-space: pre-line;
     }
     .success-message {
       color: #34a853;
@@ -150,6 +151,7 @@ function createDropzoneHtml(): string {
       border-radius: 4px;
       margin-top: 15px;
       line-height: 1.4;
+      white-space: pre-line;
     }
     .warning-message {
       background-color: #fff3e0;
@@ -331,23 +333,28 @@ function createDropzoneHtml(): string {
       let successMessage = 'File imported successfully!';
 
       if (result && result.details) {
-        successMessage += '<br><br>Imported:';
+        const detailsArray = [];
+
         if (result.details.presets) {
-          successMessage += `<br>- ${result.details.presets} categories`;
+          detailsArray.push(`${result.details.presets} categories`);
         }
         if (result.details.fields) {
-          successMessage += `<br>- ${result.details.fields} detail fields`;
+          detailsArray.push(`${result.details.fields} detail fields`);
         }
         if (result.details.icons) {
-          successMessage += `<br>- ${result.details.icons} icons`;
+          detailsArray.push(`${result.details.icons} icons`);
         }
         if (result.details.languages) {
           const langCount = Array.isArray(result.details.languages) ? result.details.languages.length : 0;
-          successMessage += `<br>- ${langCount} languages`;
+          detailsArray.push(`${langCount} languages`);
+        }
+
+        if (detailsArray.length > 0) {
+          successMessage += '\n\nImported:\n- ' + detailsArray.join('\n- ');
         }
       }
 
-      statusMessage.innerHTML = successMessage;
+      statusMessage.textContent = successMessage;
       statusMessage.classList.add('success-message');
 
       // Log success for debugging
@@ -387,7 +394,7 @@ function createDropzoneHtml(): string {
         '- Try refreshing the page and uploading again';
 
       // Display the error message
-      statusMessage.innerHTML = errorMessage.replace(/\n/g, '<br>');
+      statusMessage.textContent = errorMessage;
       statusMessage.classList.add('error-message');
       updateProgress(0);
 
