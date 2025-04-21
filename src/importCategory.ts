@@ -144,61 +144,268 @@ function createImportCategoryHtml(): string {
  * @returns Success message if import was successful
  */
 function processImportedCategoryFile(fileName: string, base64Data: string): { success: boolean; message: string; details?: any } {
+  // Import error handling module
+  const {
+    ErrorType,
+    ErrorSeverity,
+    ImportStage,
+    startImportTransaction,
+    updateImportStage,
+    addImportError,
+    addImportWarning,
+    commitImportTransaction,
+    createImportError,
+    showErrorDialog,
+    showSuccessDialog
+  } = import('./errorHandling');
+
+  // Start a new import transaction
+  const transaction = startImportTransaction();
+
   try {
     console.log(`Starting import of file: ${fileName}`);
 
+    // Update stage to file reading
+    updateImportStage(ImportStage.FILE_READING);
+
     // Decode the base64 data
-    console.log('Decoding base64 data...');
-    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
-    console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
+    let blob;
+    try {
+      console.log('Decoding base64 data...');
+      blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+      console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
+    } catch (decodeError) {
+      const error = createImportError(
+        ErrorType.PARSING,
+        ErrorSeverity.CRITICAL,
+        ImportStage.FILE_READING,
+        'Failed to decode file data',
+        'The file could not be read. It may be corrupted or in an unsupported format.',
+        {
+          details: decodeError,
+          technicalMessage: `Base64 decode error: ${decodeError}`,
+          suggestedAction: 'Try uploading the file again or use a different file.'
+        }
+      );
+      addImportError(error);
+      return commitImportTransaction(false);
+    }
+
+    // Update stage to extraction
+    updateImportStage(ImportStage.EXTRACTION);
 
     // Extract and validate the file
     console.log('Extracting and validating file...');
-    const extractionResult = extractAndValidateFile(fileName, blob);
+    let extractionResult;
+    try {
+      extractionResult = extractAndValidateFile(fileName, blob);
+    } catch (extractError) {
+      const error = createImportError(
+        ErrorType.EXTRACTION,
+        ErrorSeverity.CRITICAL,
+        ImportStage.EXTRACTION,
+        'Failed to extract file',
+        'The file could not be extracted. It may be corrupted or in an unsupported format.',
+        {
+          details: extractError,
+          technicalMessage: `Extraction error: ${extractError}`,
+          suggestedAction: 'Try uploading the file again or use a different file.'
+        }
+      );
+      addImportError(error);
+      return commitImportTransaction(false);
+    }
 
     if (!extractionResult.success) {
-      // Return the error message
+      // Log extraction errors
       console.error('Extraction failed:', extractionResult.message, extractionResult.validationErrors);
-      return {
-        success: false,
-        message: extractionResult.message + (extractionResult.validationErrors ?
-          '\n- ' + extractionResult.validationErrors.join('\n- ') : ''),
-        details: {
-          stage: 'extraction',
-          errors: extractionResult.validationErrors
-        }
-      };
+
+      // Add each validation error
+      if (extractionResult.validationErrors && extractionResult.validationErrors.length > 0) {
+        extractionResult.validationErrors.forEach(errorMsg => {
+          const error = createImportError(
+            ErrorType.VALIDATION,
+            ErrorSeverity.ERROR,
+            ImportStage.VALIDATION,
+            errorMsg,
+            `Validation error: ${errorMsg}`,
+            {
+              recoverable: false,
+              suggestedAction: 'Check that the file contains all required components.'
+            }
+          );
+          addImportError(error);
+        });
+      } else {
+        // Generic extraction error
+        const error = createImportError(
+          ErrorType.EXTRACTION,
+          ErrorSeverity.ERROR,
+          ImportStage.EXTRACTION,
+          extractionResult.message,
+          'The file could not be extracted. It may be corrupted or in an unsupported format.',
+          {
+            recoverable: false,
+            suggestedAction: 'Try uploading the file again or use a different file.'
+          }
+        );
+        addImportError(error);
+      }
+
+      return commitImportTransaction(false);
     }
 
     // If we have warnings, log them but continue
     if (extractionResult.validationWarnings && extractionResult.validationWarnings.length > 0) {
       console.log('Validation warnings:', extractionResult.validationWarnings);
+
+      // Add each validation warning
+      extractionResult.validationWarnings.forEach(warningMsg => {
+        const warning = createImportError(
+          ErrorType.VALIDATION,
+          ErrorSeverity.WARNING,
+          ImportStage.VALIDATION,
+          warningMsg,
+          `Warning: ${warningMsg}`,
+          {
+            recoverable: true
+          }
+        );
+        addImportWarning(warning);
+      });
     }
 
-    // Look for the configuration files
+    // Update stage to parsing
+    updateImportStage(ImportStage.PARSING);
+
+    // Extract configuration data from the files
     console.log('Extracting configuration data from files...');
-    const configData = extractConfigurationData(extractionResult.files, extractionResult.tempFolder);
-    console.log('Configuration data extracted:', {
-      metadata: !!configData.metadata,
-      presets: configData.presets.length,
-      fields: configData.fields.length,
-      icons: configData.icons.length,
-      languages: Object.keys(configData.messages).length
-    });
+    let configData;
+    try {
+      configData = extractConfigurationData(extractionResult.files, extractionResult.tempFolder, {
+        onProgress: (stage, percent) => {
+          console.log(`Extraction progress: ${stage} - ${percent}%`);
+        }
+      });
+      console.log('Configuration data extracted:', {
+        metadata: !!configData.metadata,
+        presets: configData.presets.length,
+        fields: configData.fields.length,
+        icons: configData.icons.length,
+        languages: Object.keys(configData.messages).length
+      });
+    } catch (parseError) {
+      const error = createImportError(
+        ErrorType.PARSING,
+        ErrorSeverity.ERROR,
+        ImportStage.PARSING,
+        'Failed to parse configuration data',
+        'The configuration data could not be parsed. The file may be corrupted or in an unsupported format.',
+        {
+          details: parseError,
+          technicalMessage: `Parse error: ${parseError}`,
+          recoverable: false,
+          suggestedAction: 'Try uploading the file again or use a different file.'
+        }
+      );
+      addImportError(error);
+
+      // Clean up the temporary folder
+      try {
+        if (extractionResult.tempFolder) {
+          extractionResult.tempFolder.setTrashed(true);
+        }
+      } catch (cleanupError) {
+        console.warn('Error cleaning up temporary folder:', cleanupError);
+      }
+
+      return commitImportTransaction(false);
+    }
+
+    // Update stage to format detection
+    updateImportStage(ImportStage.FORMAT_DETECTION);
+
+    // Detect and log the format
+    const format = configData.format || 'unknown';
+    console.log(`Detected configuration format: ${format}`);
+
+    // Update stage to mapping
+    updateImportStage(ImportStage.MAPPING);
 
     // Apply the configuration data to the spreadsheet
     console.log('Applying configuration data to spreadsheet...');
-    applyConfigurationToSpreadsheet(configData);
-    console.log('Configuration data applied to spreadsheet successfully');
+    try {
+      applyConfigurationToSpreadsheet(configData);
+      console.log('Configuration data applied to spreadsheet successfully');
+    } catch (applyError) {
+      const error = createImportError(
+        ErrorType.SPREADSHEET,
+        ErrorSeverity.CRITICAL,
+        ImportStage.SPREADSHEET_UPDATE,
+        'Failed to apply configuration to spreadsheet',
+        'The configuration could not be applied to the spreadsheet. There may be an issue with the file format or spreadsheet access.',
+        {
+          details: applyError,
+          technicalMessage: `Spreadsheet update error: ${applyError}`,
+          recoverable: false,
+          suggestedAction: 'Try uploading the file again or contact support.'
+        }
+      );
+      addImportError(error);
+
+      // Clean up the temporary folder
+      try {
+        if (extractionResult.tempFolder) {
+          extractionResult.tempFolder.setTrashed(true);
+        }
+      } catch (cleanupError) {
+        console.warn('Error cleaning up temporary folder:', cleanupError);
+      }
+
+      return commitImportTransaction(false);
+    }
+
+    // Update stage to cleanup
+    updateImportStage(ImportStage.CLEANUP);
 
     // Clean up the temporary folder
     if (extractionResult.tempFolder) {
       console.log('Cleaning up temporary resources...');
-      cleanupTempResources(extractionResult.tempFolder);
+      try {
+        cleanupTempResources(extractionResult.tempFolder);
+      } catch (cleanupError) {
+        const warning = createImportError(
+          ErrorType.UNKNOWN,
+          ErrorSeverity.WARNING,
+          ImportStage.CLEANUP,
+          'Failed to clean up temporary folder',
+          'The temporary files could not be cleaned up, but the import was successful.',
+          {
+            details: cleanupError,
+            recoverable: true
+          }
+        );
+        addImportWarning(warning);
+      }
+    }
+
+    // Update stage to complete
+    updateImportStage(ImportStage.COMPLETE);
+
+    // Commit the transaction as successful
+    console.log('Import completed successfully');
+    const result = commitImportTransaction(true);
+
+    // Show success dialog with any warnings
+    if (result.warnings && result.warnings.length > 0) {
+      showSuccessDialog(
+        'Import Successful with Warnings',
+        'The configuration file was imported successfully, but there were some warnings.',
+        result.warnings
+      );
     }
 
     // Return success with details
-    console.log('Import completed successfully');
     return {
       success: true,
       message: 'Category file imported successfully',
@@ -216,6 +423,31 @@ function processImportedCategoryFile(fileName: string, base64Data: string): { su
     const stack = error instanceof Error && error.stack ? error.stack : 'No stack trace available';
     console.error('Stack trace:', stack);
 
+    // Add the error to the transaction
+    const importError = createImportError(
+      ErrorType.UNKNOWN,
+      ErrorSeverity.CRITICAL,
+      transaction.currentStage || ImportStage.UNKNOWN,
+      'Unexpected error during import',
+      'An unexpected error occurred during the import process.',
+      {
+        details: error,
+        technicalMessage: `Error: ${error}\nStack: ${stack}`,
+        recoverable: false,
+        suggestedAction: 'Please try again or contact support if the problem persists.'
+      }
+    );
+    addImportError(importError);
+
+    // Commit the transaction as failed
+    const result = commitImportTransaction(false);
+
+    // Show error dialog
+    showErrorDialog(
+      'Import Failed',
+      result.errors || [importError]
+    );
+
     // Create a detailed error message
     let errorMessage = 'Error processing imported file: ' + (error instanceof Error ? error.message : String(error));
 
@@ -223,7 +455,8 @@ function processImportedCategoryFile(fileName: string, base64Data: string): { su
       success: false,
       message: errorMessage,
       details: {
-        stage: 'processing',
+        ...result.details,
+        stage: transaction.currentStage || 'processing',
         error: String(error),
         stack: stack
       }

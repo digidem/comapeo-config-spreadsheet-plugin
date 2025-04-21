@@ -29,39 +29,39 @@ interface NormalizedTranslations {
  */
 function extractTranslations(translationsData: any): NormalizedTranslations {
   console.log('Extracting translations...');
-  
+
   // If translationsData is null or undefined, return empty object
   if (!translationsData) {
     console.warn('No translations data provided');
     return {};
   }
-  
+
   const normalizedTranslations: NormalizedTranslations = {};
-  
+
   // Process each language
   for (const language in translationsData) {
     console.log(`Processing translations for language: ${language}`);
-    
+
     // Skip if not an object
     if (typeof translationsData[language] !== 'object') {
       console.warn(`Skipping invalid language data for ${language}`);
       continue;
     }
-    
+
     normalizedTranslations[language] = [];
     const languageData = translationsData[language];
-    
+
     // Process each translation key
     for (const key in languageData) {
       try {
         const translationData = languageData[key];
-        
+
         // Skip if not a valid translation entry
         if (!translationData || typeof translationData !== 'object') {
           console.warn(`Skipping invalid translation data for key: ${key}`);
           continue;
         }
-        
+
         // Extract message and description
         let message = '';
         if (typeof translationData.message === 'string') {
@@ -74,19 +74,19 @@ function extractTranslations(translationsData: any): NormalizedTranslations {
             message = JSON.stringify(translationData.message);
           }
         }
-        
+
         // Clean and validate the message
         message = cleanTranslationText(message);
-        
+
         // Skip empty messages
         if (!message) {
           console.warn(`Skipping empty translation for key: ${key}`);
           continue;
         }
-        
+
         // Determine translation type and normalize key
         const { type, normalizedKey, parentKey } = parseTranslationKey(key);
-        
+
         // Add to normalized translations
         normalizedTranslations[language].push({
           key,
@@ -100,10 +100,10 @@ function extractTranslations(translationsData: any): NormalizedTranslations {
         console.warn(`Error processing translation key ${key}:`, error);
       }
     }
-    
+
     console.log(`Extracted ${normalizedTranslations[language].length} translations for ${language}`);
   }
-  
+
   return normalizedTranslations;
 }
 
@@ -119,7 +119,7 @@ function parseTranslationKey(key: string): { type: 'preset' | 'field' | 'option'
     normalizedKey: key,
     parentKey: undefined as string | undefined
   };
-  
+
   // Handle CoMapeo format keys
   if (key.startsWith('presets.')) {
     // Extract preset key and property
@@ -127,7 +127,7 @@ function parseTranslationKey(key: string): { type: 'preset' | 'field' | 'option'
     if (parts.length >= 3) {
       const presetId = parts[1];
       const property = parts[2];
-      
+
       if (property === 'name') {
         result.type = 'preset';
         result.normalizedKey = presetId;
@@ -139,7 +139,7 @@ function parseTranslationKey(key: string): { type: 'preset' | 'field' | 'option'
     if (parts.length >= 3) {
       const fieldId = parts[1];
       const property = parts[2];
-      
+
       if (property === 'label') {
         result.type = 'field';
         result.normalizedKey = fieldId;
@@ -180,7 +180,7 @@ function parseTranslationKey(key: string): { type: 'preset' | 'field' | 'option'
       result.parentKey = fieldId;
     }
   }
-  
+
   return result;
 }
 
@@ -191,10 +191,10 @@ function parseTranslationKey(key: string): { type: 'preset' | 'field' | 'option'
  */
 function cleanTranslationText(text: string): string {
   if (!text) return '';
-  
+
   // Trim whitespace
   let cleaned = text.trim();
-  
+
   // Replace problematic characters for spreadsheets
   cleaned = cleaned
     .replace(/\\n/g, ' ') // Replace escaped newlines with spaces
@@ -204,14 +204,14 @@ function cleanTranslationText(text: string): string {
     .replace(/"/g, '""')  // Escape quotes for CSV compatibility
     .replace(/=/g, "'=")  // Prevent formula injection
     .replace(/\+/g, "'+") // Prevent formula injection
-    .replace(/^[-@]/g, "'$&"); // Prevent formula injection for cells starting with - or @
-  
+    .replace(/^[-@]/g, "'$1"); // Prevent formula injection for cells starting with - or @
+
   // Remove control characters
   cleaned = cleaned.replace(/[\x00-\x1F\x7F]/g, '');
-  
+
   // Collapse multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ');
-  
+
   return cleaned;
 }
 
@@ -229,16 +229,16 @@ function applyExtractedTranslations(
   fields: any[]
 ) {
   console.log('Applying extracted translations to spreadsheet...');
-  
+
   // Get language codes
   const langCodes = Object.keys(normalizedTranslations);
   if (langCodes.length === 0) {
     console.log('No translations to apply');
     return;
   }
-  
+
   console.log(`Found translations for languages: ${langCodes.join(', ')}`);
-  
+
   // Create translation sheets if they don't exist
   const translationSheets = [
     'Category Translations',
@@ -246,23 +246,23 @@ function applyExtractedTranslations(
     'Detail Helper Text Translations',
     'Detail Option Translations'
   ];
-  
+
   translationSheets.forEach(sheetName => {
     createOrClearSheet(spreadsheet, sheetName);
   });
-  
+
   // Apply category translations
   applyPresetTranslations(spreadsheet, normalizedTranslations, presets, langCodes);
-  
+
   // Apply field label translations
   applyFieldLabelTranslations(spreadsheet, normalizedTranslations, fields, langCodes);
-  
+
   // Apply helper text translations
   applyHelperTextTranslations(spreadsheet, normalizedTranslations, fields, langCodes);
-  
+
   // Apply option translations
   applyOptionTranslations(spreadsheet, normalizedTranslations, fields, langCodes);
-  
+
   console.log('Translations applied successfully');
 }
 
@@ -285,38 +285,38 @@ function applyPresetTranslations(
     console.warn(`Sheet ${sheetName} not found`);
     return;
   }
-  
+
   console.log(`Applying translations to ${sheetName}...`);
-  
+
   // Set headers
   const headers = ['English', ...langCodes];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  
+
   // Prepare category translation rows
   const categoryRows = presets.map(preset => {
     const row = [preset.name];
-    
+
     // Add translations for each language
     langCodes.forEach(langCode => {
       const translations = normalizedTranslations[langCode];
-      const presetTranslations = translations.filter(t => 
+      const presetTranslations = translations.filter(t =>
         t.type === 'preset' && t.normalizedKey === preset.icon
       );
-      
+
       // Use the first matching translation or empty string
       const translation = presetTranslations.length > 0 ? presetTranslations[0].message : '';
       row.push(translation);
     });
-    
+
     return row;
   });
-  
+
   // Add category translation rows
   if (categoryRows.length > 0) {
     sheet.getRange(2, 1, categoryRows.length, headers.length).setValues(categoryRows);
   }
-  
+
   console.log(`Applied ${categoryRows.length} category translations`);
 }
 
@@ -339,38 +339,38 @@ function applyFieldLabelTranslations(
     console.warn(`Sheet ${sheetName} not found`);
     return;
   }
-  
+
   console.log(`Applying translations to ${sheetName}...`);
-  
+
   // Set headers
   const headers = ['English', ...langCodes];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  
+
   // Prepare field label translation rows
   const labelRows = fields.map(field => {
     const row = [field.label];
-    
+
     // Add translations for each language
     langCodes.forEach(langCode => {
       const translations = normalizedTranslations[langCode];
-      const fieldTranslations = translations.filter(t => 
+      const fieldTranslations = translations.filter(t =>
         t.type === 'field' && t.normalizedKey === field.tagKey
       );
-      
+
       // Use the first matching translation or empty string
       const translation = fieldTranslations.length > 0 ? fieldTranslations[0].message : '';
       row.push(translation);
     });
-    
+
     return row;
   });
-  
+
   // Add field label translation rows
   if (labelRows.length > 0) {
     sheet.getRange(2, 1, labelRows.length, headers.length).setValues(labelRows);
   }
-  
+
   console.log(`Applied ${labelRows.length} field label translations`);
 }
 
@@ -393,38 +393,38 @@ function applyHelperTextTranslations(
     console.warn(`Sheet ${sheetName} not found`);
     return;
   }
-  
+
   console.log(`Applying translations to ${sheetName}...`);
-  
+
   // Set headers
   const headers = ['English', ...langCodes];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  
+
   // Prepare helper text translation rows
   const helperRows = fields.filter(field => field.helperText).map(field => {
     const row = [field.helperText];
-    
+
     // Add translations for each language
     langCodes.forEach(langCode => {
       const translations = normalizedTranslations[langCode];
-      const helperTranslations = translations.filter(t => 
+      const helperTranslations = translations.filter(t =>
         t.type === 'helperText' && t.normalizedKey === field.tagKey
       );
-      
+
       // Use the first matching translation or empty string
       const translation = helperTranslations.length > 0 ? helperTranslations[0].message : '';
       row.push(translation);
     });
-    
+
     return row;
   });
-  
+
   // Add helper text translation rows
   if (helperRows.length > 0) {
     sheet.getRange(2, 1, helperRows.length, headers.length).setValues(helperRows);
   }
-  
+
   console.log(`Applied ${helperRows.length} helper text translations`);
 }
 
@@ -447,14 +447,14 @@ function applyOptionTranslations(
     console.warn(`Sheet ${sheetName} not found`);
     return;
   }
-  
+
   console.log(`Applying translations to ${sheetName}...`);
-  
+
   // Set headers
   const headers = ['English', ...langCodes];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-  
+
   // Collect all options from all fields
   const allOptions = [];
   fields.forEach(field => {
@@ -468,37 +468,37 @@ function applyOptionTranslations(
       });
     }
   });
-  
+
   // Prepare option translation rows
   const optionRows = allOptions.map(option => {
     const row = [option.label];
-    
+
     // Add translations for each language
     langCodes.forEach(langCode => {
       const translations = normalizedTranslations[langCode];
-      const optionTranslations = translations.filter(t => 
-        t.type === 'option' && 
-        t.normalizedKey === option.value && 
+      const optionTranslations = translations.filter(t =>
+        t.type === 'option' &&
+        t.normalizedKey === option.value &&
         t.parentKey === option.fieldTagKey
       );
-      
+
       // Use the first matching translation or empty string
       let translation = '';
       if (optionTranslations.length > 0) {
         translation = optionTranslations[0].message;
       }
-      
+
       row.push(translation);
     });
-    
+
     return row;
   });
-  
+
   // Add option translation rows
   if (optionRows.length > 0) {
     sheet.getRange(2, 1, optionRows.length, headers.length).setValues(optionRows);
   }
-  
+
   console.log(`Applied ${optionRows.length} option translations`);
 }
 

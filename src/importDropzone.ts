@@ -133,9 +133,61 @@ function createDropzoneHtml(): string {
     }
     .error-message {
       color: #ea4335;
+      margin-bottom: 15px;
     }
     .success-message {
       color: #34a853;
+    }
+    .details-text {
+      font-size: 12px;
+      color: #5f6368;
+      display: block;
+      margin-top: 5px;
+    }
+    .error-details {
+      margin-top: 10px;
+      font-size: 13px;
+      text-align: left;
+      background-color: #fce8e6;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    .error-details ul {
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    .error-stage {
+      font-style: italic;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .warnings-container {
+      margin-top: 10px;
+      font-size: 13px;
+      text-align: left;
+      background-color: #fff3e0;
+      border-radius: 4px;
+      padding: 10px;
+      color: #e65100;
+    }
+    .warnings-container ul {
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    .retry-button {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    .retry-button:hover {
+      background-color: #1a73e8;
     }
     .warning-message {
       background-color: #fff3e0;
@@ -289,21 +341,95 @@ function createDropzoneHtml(): string {
     function onSuccess(result) {
       updateProgress(100);
       dropzone.classList.add('success');
-      statusMessage.textContent = 'File imported successfully!';
+
+      // Display success message with details if available
+      let successMessage = 'File imported successfully!';
+      if (result && result.details) {
+        const details = result.details;
+        const detailsText = [];
+
+        if (details.presets) detailsText.push(`${details.presets} categories`);
+        if (details.fields) detailsText.push(`${details.fields} details`);
+        if (details.icons) detailsText.push(`${details.icons} icons`);
+        if (details.languages) {
+          const langCount = Array.isArray(details.languages) ?
+            details.languages.length :
+            (typeof details.languages === 'object' ? Object.keys(details.languages).length : 0);
+
+          if (langCount > 0) {
+            detailsText.push(`${langCount} languages`);
+          }
+        }
+
+        if (detailsText.length > 0) {
+          successMessage += '<br><span class="details-text">Imported: ' + detailsText.join(', ') + '</span>';
+        }
+      }
+
+      statusMessage.innerHTML = successMessage;
       statusMessage.classList.add('success-message');
+
+      // Show warnings if any
+      if (result && result.warnings && result.warnings.length > 0) {
+        const warningsContainer = document.createElement('div');
+        warningsContainer.className = 'warnings-container';
+        warningsContainer.innerHTML = '<strong>Warnings:</strong><ul>' +
+          result.warnings.map(w => `<li>${w.userMessage || w}</li>`).join('') +
+          '</ul>';
+        statusMessage.appendChild(warningsContainer);
+      }
 
       // Close the dialog after a delay
       setTimeout(() => {
         google.script.host.close();
-      }, 2000);
+      }, 3000);
     }
 
     // Handle import failure
     function onFailure(error) {
       dropzone.classList.add('error');
-      statusMessage.textContent = 'Error: ' + (error.message || 'Failed to import file');
-      statusMessage.classList.add('error-message');
       updateProgress(0);
+
+      // Create detailed error message
+      let errorMessage = 'Error: ' + (error.message || 'Failed to import file');
+      statusMessage.innerHTML = errorMessage;
+      statusMessage.classList.add('error-message');
+
+      // Add more details if available
+      if (error.details) {
+        const errorDetails = document.createElement('div');
+        errorDetails.className = 'error-details';
+
+        // If there are specific errors in the details
+        if (error.details.errors && error.details.errors.length > 0) {
+          const errorList = document.createElement('ul');
+          error.details.errors.forEach(err => {
+            const li = document.createElement('li');
+            li.textContent = err.userMessage || err;
+            errorList.appendChild(li);
+          });
+          errorDetails.appendChild(errorList);
+        }
+
+        // If there's a stage indication
+        if (error.details.stage) {
+          const stagePara = document.createElement('p');
+          stagePara.className = 'error-stage';
+          stagePara.textContent = `Error occurred during: ${error.details.stage}`;
+          errorDetails.appendChild(stagePara);
+        }
+
+        statusMessage.appendChild(errorDetails);
+      }
+
+      // Add a retry button
+      const retryButton = document.createElement('button');
+      retryButton.className = 'retry-button';
+      retryButton.textContent = 'Try Again';
+      retryButton.onclick = function() {
+        resetUI();
+      };
+      statusMessage.appendChild(retryButton);
     }
 
     // Show error message

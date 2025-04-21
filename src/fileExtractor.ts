@@ -642,14 +642,4 @@ function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCal
   };
 }
 
-/**
- * Cleans up temporary resources
- * @param tempFolder - Temporary folder to clean up
- */
-function cleanupTempResources(tempFolder: GoogleAppsScript.Drive.Folder): void {
-  try {
-    tempFolder.setTrashed(true);
-  } catch (error) {
-    console.warn('Error cleaning up temporary resources:', error);
-  }
-}
+// cleanupTempResources function moved to src/cleanup.ts
