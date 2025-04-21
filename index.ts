@@ -16,8 +16,6 @@ function onOpen() {
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
     .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
-    .addSeparator()
-    .addItem("Test Extraction and Validation", "testExtractAndValidate")
     .addToUi();
 }
 
