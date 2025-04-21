@@ -133,25 +133,9 @@ function createDropzoneHtml(): string {
     }
     .error-message {
       color: #ea4335;
-      text-align: left;
-      background-color: #fce8e6;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 15px;
-      max-height: 200px;
-      overflow-y: auto;
-      line-height: 1.4;
-      white-space: pre-line;
     }
     .success-message {
       color: #34a853;
-      text-align: left;
-      background-color: #e6f4ea;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 15px;
-      line-height: 1.4;
-      white-space: pre-line;
     }
     .warning-message {
       background-color: #fff3e0;
@@ -274,40 +258,17 @@ function createDropzoneHtml(): string {
           // Call the appropriate Google Apps Script function based on file extension
           const fileExtension = file.name.split('.').pop().toLowerCase();
 
-          // Set up a timeout to detect if the server-side processing is taking too long
-          const processingTimeout = setTimeout(() => {
-            statusMessage.textContent = 'Processing is taking longer than expected. Please wait...';
-            // After 2 minutes, show a more detailed message
-            setTimeout(() => {
-              statusMessage.textContent = 'Still processing. For large files this may take several minutes...';
-              updateProgress(60); // Update progress to show some movement
-            }, 120000); // 2 minutes
-          }, 30000); // 30 seconds
-
           if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
             google.script.run
-              .withSuccessHandler((result) => {
-                clearTimeout(processingTimeout);
-                onSuccess(result);
-              })
-              .withFailureHandler((error) => {
-                clearTimeout(processingTimeout);
-                onFailure(error);
-              })
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
               .processImportedCategoryFile(file.name, base64data);
           } else if (fileExtension === 'mapeosettings') {
             google.script.run
-              .withSuccessHandler((result) => {
-                clearTimeout(processingTimeout);
-                onSuccess(result);
-              })
-              .withFailureHandler((error) => {
-                clearTimeout(processingTimeout);
-                onFailure(error);
-              })
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onFailure)
               .processMapeoSettingsFile(file.name, base64data);
           } else {
-            clearTimeout(processingTimeout);
             onFailure(new Error('Unsupported file type'));
           }
 
@@ -328,78 +289,21 @@ function createDropzoneHtml(): string {
     function onSuccess(result) {
       updateProgress(100);
       dropzone.classList.add('success');
-
-      // Format success message with details if available
-      let successMessage = 'File imported successfully!';
-
-      if (result && result.details) {
-        const detailsArray = [];
-
-        if (result.details.presets) {
-          detailsArray.push(`${result.details.presets} categories`);
-        }
-        if (result.details.fields) {
-          detailsArray.push(`${result.details.fields} detail fields`);
-        }
-        if (result.details.icons) {
-          detailsArray.push(`${result.details.icons} icons`);
-        }
-        if (result.details.languages) {
-          const langCount = Array.isArray(result.details.languages) ? result.details.languages.length : 0;
-          detailsArray.push(`${langCount} languages`);
-        }
-
-        if (detailsArray.length > 0) {
-          successMessage += '\n\nImported:\n- ' + detailsArray.join('\n- ');
-        }
-      }
-
-      statusMessage.textContent = successMessage;
+      statusMessage.textContent = 'File imported successfully!';
       statusMessage.classList.add('success-message');
-
-      // Log success for debugging
-      console.log('Import successful:', result);
 
       // Close the dialog after a delay
       setTimeout(() => {
         google.script.host.close();
-      }, 3000); // Increased to 3 seconds to give users time to read the details
+      }, 2000);
     }
 
     // Handle import failure
     function onFailure(error) {
       dropzone.classList.add('error');
-
-      // Format the error message
-      let errorMessage = 'Error: ' + (error.message || 'Failed to import file');
-
-      // Add more helpful information based on the error
-      if (error.details) {
-        if (error.details.stage === 'extraction') {
-          errorMessage += '\nExtraction failed. Please check that your file is a valid configuration file.';
-        } else if (error.details.stage === 'processing') {
-          errorMessage += '\nProcessing failed. The file may be corrupted or in an unsupported format.';
-        }
-
-        // Add validation errors if available
-        if (error.details.errors && error.details.errors.length > 0) {
-          errorMessage += '\n\nValidation errors:\n- ' + error.details.errors.join('\n- ');
-        }
-      }
-
-      // Add common troubleshooting tips
-      errorMessage += '\n\nTroubleshooting tips:\n' +
-        '- Try uploading a smaller file\n' +
-        '- Ensure the file is a valid .comapeocat or .mapeosettings file\n' +
-        '- Try refreshing the page and uploading again';
-
-      // Display the error message
-      statusMessage.textContent = errorMessage;
+      statusMessage.textContent = 'Error: ' + (error.message || 'Failed to import file');
       statusMessage.classList.add('error-message');
       updateProgress(0);
-
-      // Log the error for debugging
-      console.error('Import failed:', error);
     }
 
     // Show error message
