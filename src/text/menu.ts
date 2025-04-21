@@ -130,3 +130,22 @@ let importCategoryMenuTexts: Record<string, MenuText> = {
     errorText: "An error occurred during import: "
   }
 }
+
+let testExtractMenuTexts: Record<string, MenuText> = {
+  es: {
+    action: "Probar extracción y validación",
+    actionText: "Esto descargará un archivo de prueba y ejecutará el proceso de extracción y validación para diagnosticar problemas. No se modificarán los datos de la hoja de cálculo. ¿Continuar?",
+    completed: "Prueba Completada",
+    completedText: "La prueba de extracción y validación se ha completado con éxito. Revisa los registros para obtener información detallada.",
+    error: "Error",
+    errorText: "Un error ocurrió durante la prueba: "
+  },
+  en: {
+    action: "Test extraction and validation",
+    actionText: "This will download a test file and run the extraction and validation process to diagnose issues. No spreadsheet data will be modified. Continue?",
+    completed: "Test Complete",
+    completedText: "The extraction and validation test has completed successfully. Check the logs for detailed information.",
+    error: "Error",
+    errorText: "An error occurred during testing: "
+  }
+}
