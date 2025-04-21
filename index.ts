@@ -17,6 +17,13 @@ function onOpen() {
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
     .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
     .addToUi();
+
+  // Add developer menu in development environment
+  if (PropertiesService.getScriptProperties().getProperty('ENVIRONMENT') === 'development') {
+    ui.createMenu('Developer')
+      .addItem('Test Format Detection', 'testFormatDetection')
+      .addToUi();
+  }
 }
 
 function translateCoMapeoCategory() {

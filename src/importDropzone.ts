@@ -344,14 +344,20 @@ function createDropzoneHtml(): string {
  */
 function processMapeoSettingsFile(fileName: string, base64Data: string): { success: boolean; message: string } {
   try {
+    console.log(`Starting import of Mapeo settings file: ${fileName}`);
+
     // Decode the base64 data
+    console.log('Decoding base64 data...');
     const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+    console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
     // Create a temporary folder in Drive to extract the file
+    console.log('Creating temporary folder...');
     const tempFolder = DriveApp.createFolder('Mapeo_Settings_Import_' + new Date().getTime());
 
     // Save the blob to the temp folder
     const file = tempFolder.createFile(blob);
+    console.log(`Saved file to temp folder: ${file.getName()}`);
 
     // Extract the tar file (mapeosettings is a tar file)
     // Note: Google Apps Script doesn't have built-in tar extraction
@@ -359,18 +365,26 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
 
     try {
       // Try to extract using a custom function or service
+      console.log('Attempting to extract file...');
       const extractedFiles = extractTarFile(blob, tempFolder);
+      console.log(`Extracted ${extractedFiles.length} files`);
 
       // Look for the configuration files
+      console.log('Extracting configuration data...');
       const configData = extractMapeoConfigurationData(extractedFiles, tempFolder);
+      console.log('Configuration data extracted successfully');
 
       // Apply the configuration data to the spreadsheet
+      console.log('Applying configuration to spreadsheet...');
       applyMapeoConfigurationToSpreadsheet(configData);
+      console.log('Configuration applied successfully');
 
       // Clean up the temporary folder
+      console.log('Cleaning up temporary resources...');
       tempFolder.setTrashed(true);
 
       // Return success
+      console.log('Import completed successfully');
       return {
         success: true,
         message: 'Mapeo settings file imported successfully'
@@ -379,18 +393,24 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
       console.error('Error extracting tar file:', extractError);
 
       // If extraction fails, try to parse it directly
+      console.log('Attempting to parse file as JSON...');
       const fileContent = blob.getDataAsString();
       let jsonData;
 
       try {
         jsonData = JSON.parse(fileContent);
+        console.log('Successfully parsed file as JSON');
 
         // Process the JSON data
+        console.log('Applying JSON configuration to spreadsheet...');
         applyMapeoJsonConfigToSpreadsheet(jsonData);
+        console.log('Configuration applied successfully');
 
         // Clean up
+        console.log('Cleaning up temporary resources...');
         tempFolder.setTrashed(true);
 
+        console.log('Import completed successfully');
         return {
           success: true,
           message: 'Mapeo settings file imported successfully'
@@ -429,47 +449,9 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScri
  * @returns Configuration data object
  */
 function extractMapeoConfigurationData(extractedFiles: GoogleAppsScript.Base.Blob[], tempFolder: GoogleAppsScript.Drive.Folder): any {
-  // Initialize configuration data object
-  const configData: any = {
-    metadata: null,
-    presets: [],
-    fields: [],
-    icons: []
-  };
-
-  // Process each extracted file
-  for (const file of extractedFiles) {
-    const fileName = file.getName();
-    const fileContent = file.getDataAsString();
-
-    try {
-      // Parse JSON content if applicable
-      if (fileName.endsWith('.json')) {
-        const jsonContent = JSON.parse(fileContent);
-
-        // Determine file type and add to appropriate section of configData
-        if (fileName === 'metadata.json' || fileName === 'meta.json') {
-          configData.metadata = jsonContent;
-        } else if (fileName === 'presets.json') {
-          configData.presets = jsonContent.presets || [];
-        } else if (fileName === 'fields.json') {
-          configData.fields = jsonContent.fields || [];
-        }
-      } else if (fileName.startsWith('icons/') || fileName.includes('/icons/')) {
-        // Save icon file to temp folder and get URL
-        const iconFile = tempFolder.createFile(file);
-        configData.icons.push({
-          name: fileName.split('/').pop().replace(/\.[^/.]+$/, ''),
-          svg: iconFile.getUrl()
-        });
-      }
-    } catch (error) {
-      console.warn('Error parsing file ' + fileName + ':', error);
-      // Continue with other files even if one fails
-    }
-  }
-
-  return configData;
+  // Use the extractConfigurationData function from importCategory.ts
+  // This will automatically detect and normalize the format
+  return extractConfigurationData(extractedFiles, tempFolder);
 }
 
 /**
@@ -477,61 +459,17 @@ function extractMapeoConfigurationData(extractedFiles: GoogleAppsScript.Base.Blo
  * @param jsonData - The parsed JSON data from the Mapeo settings file
  */
 function applyMapeoJsonConfigToSpreadsheet(jsonData: any): void {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  // Normalize the configuration data
+  const normalizedConfig = normalizeConfig(jsonData);
 
-  // Create or clear necessary sheets
-  const categoriesSheet = createOrClearSheet(spreadsheet, 'Categories');
-  const detailsSheet = createOrClearSheet(spreadsheet, 'Details');
-  const metadataSheet = createOrClearSheet(spreadsheet, 'Metadata');
-
-  // Process metadata if available
-  if (jsonData.metadata) {
-    applyMetadataToSheet(metadataSheet, jsonData.metadata);
-  }
-
-  // Process presets (categories) if available
-  if (jsonData.presets) {
-    const presets = [];
-
-    // Convert from Mapeo format to our internal format
-    for (const presetId in jsonData.presets) {
-      if (jsonData.presets.hasOwnProperty(presetId)) {
-        const preset = jsonData.presets[presetId];
-        presets.push({
-          id: presetId,
-          name: preset.name,
-          icon: preset.icon,
-          color: preset.color,
-          fields: preset.fields || []
-        });
-      }
-    }
-
-    applyCategoriesFromMapeo(categoriesSheet, presets, jsonData.icons || []);
-  }
-
-  // Process fields (details) if available
-  if (jsonData.fields) {
-    const fields = [];
-
-    // Convert from Mapeo format to our internal format
-    for (const fieldId in jsonData.fields) {
-      if (jsonData.fields.hasOwnProperty(fieldId)) {
-        const field = jsonData.fields[fieldId];
-        fields.push({
-          id: fieldId,
-          key: fieldId,
-          tagKey: fieldId,
-          label: field.label,
-          type: field.type,
-          helperText: field.placeholder || '',
-          options: field.options || []
-        });
-      }
-    }
-
-    applyFieldsFromMapeo(detailsSheet, fields);
-  }
+  // Apply the normalized configuration to the spreadsheet
+  applyConfigurationToSpreadsheet({
+    metadata: normalizedConfig.metadata,
+    presets: normalizedConfig.presets,
+    fields: normalizedConfig.fields,
+    icons: normalizedConfig.icons || [],
+    messages: normalizedConfig.messages || {}
+  });
 }
 
 /**
@@ -625,27 +563,17 @@ function applyFieldsFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields:
  * @param configData - Configuration data object
  */
 function applyMapeoConfigurationToSpreadsheet(configData: any): void {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  // Normalize the configuration data
+  const normalizedConfig = normalizeConfig(configData);
 
-  // Create or clear necessary sheets
-  const categoriesSheet = createOrClearSheet(spreadsheet, 'Categories');
-  const detailsSheet = createOrClearSheet(spreadsheet, 'Details');
-  const metadataSheet = createOrClearSheet(spreadsheet, 'Metadata');
-
-  // Apply metadata if available
-  if (configData.metadata) {
-    applyMetadataToSheet(metadataSheet, configData.metadata);
-  }
-
-  // Apply categories (presets) if available
-  if (configData.presets && configData.presets.length > 0) {
-    applyCategoriesFromMapeo(categoriesSheet, configData.presets, configData.icons);
-  }
-
-  // Apply details (fields) if available
-  if (configData.fields && configData.fields.length > 0) {
-    applyFieldsFromMapeo(detailsSheet, configData.fields);
-  }
+  // Apply the normalized configuration to the spreadsheet
+  applyConfigurationToSpreadsheet({
+    metadata: normalizedConfig.metadata,
+    presets: normalizedConfig.presets,
+    fields: normalizedConfig.fields,
+    icons: normalizedConfig.icons || [],
+    messages: normalizedConfig.messages || {}
+  });
 }
 
 function handleFileImport(fileName: string, base64Data: string): { success: boolean; message: string } {
