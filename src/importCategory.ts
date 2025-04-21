@@ -1002,6 +1002,33 @@ function applyFields(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, fiel
  * @param fields - Array of field objects
  */
 function applyTranslations(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, messages: any, presets: any[], fields: any[]) {
+  console.log('Applying translations to spreadsheet...');
+
+  try {
+    // Use the enhanced translation extractor
+    const normalizedTranslations = extractTranslations(messages);
+
+    // Apply the extracted translations to the spreadsheet
+    applyExtractedTranslations(spreadsheet, normalizedTranslations, presets, fields);
+
+    console.log('Translations applied successfully');
+  } catch (error) {
+    console.error('Error applying translations:', error);
+
+    // Fall back to the original implementation if the enhanced one fails
+    console.log('Falling back to original translation implementation');
+    applyTranslationsFallback(spreadsheet, messages, presets, fields);
+  }
+}
+
+/**
+ * Fallback implementation for applying translations to the translation sheets.
+ * @param spreadsheet - The active spreadsheet
+ * @param messages - Messages object with translations
+ * @param presets - Array of preset objects
+ * @param fields - Array of field objects
+ */
+function applyTranslationsFallback(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, messages: any, presets: any[], fields: any[]) {
   // Get language codes (excluding primary language)
   const langCodes = Object.keys(messages);
 

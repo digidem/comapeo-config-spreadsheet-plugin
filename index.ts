@@ -22,6 +22,7 @@ function onOpen() {
   if (PropertiesService.getScriptProperties().getProperty('ENVIRONMENT') === 'development') {
     ui.createMenu('Developer')
       .addItem('Test Format Detection', 'testFormatDetection')
+      .addItem('Test Translation Extraction', 'testTranslationExtraction')
       .addToUi();
   }
 }
