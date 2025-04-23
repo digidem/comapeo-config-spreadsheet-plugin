@@ -1278,36 +1278,68 @@ function slugify(input: any): string {
 }
 
 /**
+ * Options for applying configuration to spreadsheet
+ */
+interface ApplyConfigOptions {
+  onProgress?: (stage: string, percent: number) => void;
+}
+
+/**
  * Applies configuration data to the spreadsheet.
  * @param configData - Configuration data object
+ * @param options - Options for applying configuration
  */
-function applyConfigurationToSpreadsheet(configData: any) {
+function applyConfigurationToSpreadsheet(configData: any, options?: ApplyConfigOptions) {
+  // Helper function to report progress
+  const reportProgress = (stage: string, percent: number) => {
+    if (options?.onProgress) {
+      options.onProgress(stage, percent);
+    }
+  };
+
+  reportProgress('Initializing spreadsheet update', 0);
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   // Create or clear necessary sheets
+  reportProgress('Preparing sheets', 10);
   createOrClearSheet(spreadsheet, 'Categories');
   createOrClearSheet(spreadsheet, 'Details');
   createOrClearSheet(spreadsheet, 'Metadata');
 
   // Apply metadata
+  reportProgress('Updating metadata', 20);
   if (configData.metadata) {
     applyMetadata(spreadsheet, configData.metadata);
   }
 
   // Apply categories (presets)
+  reportProgress('Updating categories', 30);
   if (configData.presets && configData.presets.length > 0) {
     applyCategories(spreadsheet, configData.presets, configData.icons);
+    reportProgress(`Added ${configData.presets.length} categories`, 50);
+  } else {
+    reportProgress('No categories to add', 50);
   }
 
   // Apply details (fields)
+  reportProgress('Updating details', 60);
   if (configData.fields && configData.fields.length > 0) {
     applyFields(spreadsheet, configData.fields);
+    reportProgress(`Added ${configData.fields.length} fields`, 80);
+  } else {
+    reportProgress('No fields to add', 80);
   }
 
   // Apply translations
+  reportProgress('Updating translations', 85);
   if (configData.messages && Object.keys(configData.messages).length > 0) {
     applyTranslations(spreadsheet, configData.messages, configData.presets, configData.fields);
+    reportProgress(`Added translations for ${Object.keys(configData.messages).length} languages`, 95);
+  } else {
+    reportProgress('No translations to add', 95);
   }
+
+  reportProgress('Spreadsheet update complete', 100);
 }
 
 /**

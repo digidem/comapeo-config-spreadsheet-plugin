@@ -114,16 +114,48 @@ function createDropzoneHtml(): string {
       display: none;
     }
     .progress-bar {
-      height: 4px;
+      height: 8px;
       background-color: #e0e0e0;
-      border-radius: 2px;
+      border-radius: 4px;
       overflow: hidden;
+      position: relative;
     }
     .progress {
       height: 100%;
       background-color: #4285f4;
       width: 0%;
       transition: width 0.3s ease;
+      position: relative;
+    }
+
+    .progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%
+      );
+      background-size: 16px 16px;
+      animation: progress-animation 1s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes progress-animation {
+      0% {
+        background-position: 0 0;
+      }
+      100% {
+        background-position: 16px 0;
+      }
     }
     .status-message {
       margin-top: 10px;
@@ -174,20 +206,39 @@ function createDropzoneHtml(): string {
       margin: 5px 0;
       padding-left: 20px;
     }
-    .retry-button {
+    .retry-button, .view-button, .cancel-button {
       display: inline-block;
-      margin-top: 15px;
+      margin: 15px 5px 0;
       padding: 8px 16px;
-      background-color: #4285f4;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
-      transition: background-color 0.3s;
+      transition: all 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    }
+    .retry-button {
+      background-color: #4285f4;
+    }
+    .view-button {
+      background-color: #34a853;
+    }
+    .cancel-button {
+      background-color: #ea4335;
+    }
+    .retry-button:hover, .view-button:hover, .cancel-button:hover {
+      box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+      transform: translateY(-1px);
     }
     .retry-button:hover {
       background-color: #1a73e8;
+    }
+    .view-button:hover {
+      background-color: #2d9348;
+    }
+    .cancel-button:hover {
+      background-color: #d33426;
     }
     .warning-message {
       background-color: #fff3e0;
@@ -301,8 +352,8 @@ function createDropzoneHtml(): string {
       const reader = new FileReader();
 
       reader.onload = function(e) {
-        updateProgress(50);
-        statusMessage.textContent = 'Processing file...';
+        updateProgress(20);
+        statusMessage.innerHTML = 'Processing file...<br><span class="details-text">Preparing to extract file contents</span>';
 
         try {
           const base64data = e.target.result.split(',')[1];
@@ -310,21 +361,60 @@ function createDropzoneHtml(): string {
           // Call the appropriate Google Apps Script function based on file extension
           const fileExtension = file.name.split('.').pop().toLowerCase();
 
+          // Create a progress handler function
+          const progressHandler = function(progressData) {
+            try {
+              if (progressData && typeof progressData === 'object') {
+                // Update progress bar
+                if (progressData.percent !== undefined) {
+                  updateProgress(20 + Math.round(progressData.percent * 0.8)); // Scale to 20-100%
+                }
+
+                // Update status message
+                if (progressData.stage) {
+                  let statusHtml = `Processing: ${progressData.stage}`;
+
+                  // Add details if available
+                  if (progressData.detail) {
+                    statusHtml += `<br><span class="details-text">${progressData.detail}</span>`;
+                  }
+
+                  // Add counts if available
+                  if (progressData.counts) {
+                    const countsArray = [];
+                    for (const key in progressData.counts) {
+                      if (progressData.counts[key]) {
+                        countsArray.push(`${progressData.counts[key]} ${key}`);
+                      }
+                    }
+                    if (countsArray.length > 0) {
+                      statusHtml += `<br><span class="details-text">Found: ${countsArray.join(', ')}</span>`;
+                    }
+                  }
+
+                  statusMessage.innerHTML = statusHtml;
+                }
+              }
+            } catch (e) {
+              console.error('Error in progress handler:', e);
+            }
+          };
+
           if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
             google.script.run
               .withSuccessHandler(onSuccess)
               .withFailureHandler(onFailure)
-              .processImportedCategoryFile(file.name, base64data);
+              .withUserObject({ fileName: file.name })
+              .processImportedCategoryFileWithProgress(file.name, base64data, progressHandler);
           } else if (fileExtension === 'mapeosettings') {
             google.script.run
               .withSuccessHandler(onSuccess)
               .withFailureHandler(onFailure)
-              .processMapeoSettingsFile(file.name, base64data);
+              .withUserObject({ fileName: file.name })
+              .processMapeoSettingsFileWithProgress(file.name, base64data, progressHandler);
           } else {
             onFailure(new Error('Unsupported file type'));
           }
-
-          updateProgress(75);
         } catch (error) {
           onFailure(error);
         }
@@ -338,12 +428,16 @@ function createDropzoneHtml(): string {
     }
 
     // Handle successful import
-    function onSuccess(result) {
+    function onSuccess(result, userObject) {
       updateProgress(100);
       dropzone.classList.add('success');
 
       // Display success message with details if available
       let successMessage = 'File imported successfully!';
+      if (userObject && userObject.fileName) {
+        successMessage = `File "${userObject.fileName}" imported successfully!`;
+      }
+
       if (result && result.details) {
         const details = result.details;
         const detailsText = [];
@@ -364,6 +458,12 @@ function createDropzoneHtml(): string {
         if (detailsText.length > 0) {
           successMessage += '<br><span class="details-text">Imported: ' + detailsText.join(', ') + '</span>';
         }
+
+        // Add processing time if available
+        if (details.processingTime) {
+          const seconds = (details.processingTime / 1000).toFixed(2);
+          successMessage += `<br><span class="details-text">Processing time: ${seconds} seconds</span>`;
+        }
       }
 
       statusMessage.innerHTML = successMessage;
@@ -379,24 +479,45 @@ function createDropzoneHtml(): string {
         statusMessage.appendChild(warningsContainer);
       }
 
-      // Close the dialog after a delay
+      // Add a "View Spreadsheet" button
+      const viewButton = document.createElement('button');
+      viewButton.className = 'view-button';
+      viewButton.textContent = 'View Spreadsheet';
+      viewButton.onclick = function() {
+        google.script.host.close();
+      };
+      statusMessage.appendChild(viewButton);
+
+      // Close the dialog automatically after a longer delay
       setTimeout(() => {
         google.script.host.close();
-      }, 3000);
+      }, 5000);
     }
 
     // Handle import failure
-    function onFailure(error) {
+    function onFailure(error, userObject) {
       dropzone.classList.add('error');
       updateProgress(0);
 
       // Create detailed error message
-      let errorMessage = 'Error: ' + (error.message || 'Failed to import file');
+      let errorMessage = 'Error importing file';
+      if (userObject && userObject.fileName) {
+        errorMessage = `Error importing file "${userObject.fileName}"`;
+      }
+
+      if (error) {
+        if (typeof error === 'string') {
+          errorMessage += ': ' + error;
+        } else if (error.message) {
+          errorMessage += ': ' + error.message;
+        }
+      }
+
       statusMessage.innerHTML = errorMessage;
       statusMessage.classList.add('error-message');
 
       // Add more details if available
-      if (error.details) {
+      if (error && error.details) {
         const errorDetails = document.createElement('div');
         errorDetails.className = 'error-details';
 
@@ -430,6 +551,15 @@ function createDropzoneHtml(): string {
         resetUI();
       };
       statusMessage.appendChild(retryButton);
+
+      // Add a cancel button
+      const cancelButton = document.createElement('button');
+      cancelButton.className = 'cancel-button';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.onclick = function() {
+        google.script.host.close();
+      };
+      statusMessage.appendChild(cancelButton);
     }
 
     // Show error message
