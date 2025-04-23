@@ -592,15 +592,39 @@ function extractConfigurationData(unzippedFiles: GoogleAppsScript.Base.Blob[], t
             !Array.isArray(jsonFiles['fields.json'].fields)) {
           // Convert object to array
           combinedConfig.fields = Object.entries(jsonFiles['fields.json'].fields)
-            .map(([id, field]) => ({ id, ...field }));
+            .map(([id, field]) => ({
+              id,
+              tagKey: id,
+              ...field
+            }));
+          console.log(`Converted ${combinedConfig.fields.length} fields from object to array format`);
         } else {
           combinedConfig.fields = jsonFiles['fields.json'].fields;
+          console.log(`Found ${combinedConfig.fields.length} fields in array format`);
         }
       } else {
         combinedConfig.fields = [];
+        console.log('No fields found in fields.json');
+      }
+    } else if (jsonFiles['presets.json'] && jsonFiles['presets.json'].fields) {
+      // Some Mapeo configs have fields inside the presets.json file
+      if (typeof jsonFiles['presets.json'].fields === 'object' &&
+          !Array.isArray(jsonFiles['presets.json'].fields)) {
+        // Convert object to array
+        combinedConfig.fields = Object.entries(jsonFiles['presets.json'].fields)
+          .map(([id, field]) => ({
+            id,
+            tagKey: id,
+            ...field
+          }));
+        console.log(`Extracted ${combinedConfig.fields.length} fields from presets.json`);
+      } else {
+        combinedConfig.fields = jsonFiles['presets.json'].fields;
+        console.log(`Found ${combinedConfig.fields.length} fields in presets.json`);
       }
     } else {
       combinedConfig.fields = [];
+      console.log('No fields found in any configuration file');
     }
 
     // Process translations
@@ -635,15 +659,116 @@ function extractConfigurationData(unzippedFiles: GoogleAppsScript.Base.Blob[], t
 
   // Process icons
   combinedConfig.icons = [];
+  console.log(`Processing ${iconFiles.length} icon files...`);
+
+  // Create a folder for icons
+  let iconsFolder;
+  try {
+    iconsFolder = tempFolder.createFolder('extracted_icons');
+    console.log('Created icons folder:', iconsFolder.getName());
+  } catch (error) {
+    console.warn('Error creating icons folder:', error);
+    // Try to get existing folder
+    const folders = tempFolder.getFolders();
+    while (folders.hasNext()) {
+      const folder = folders.next();
+      if (folder.getName() === 'extracted_icons') {
+        iconsFolder = folder;
+        break;
+      }
+    }
+
+    if (!iconsFolder) {
+      console.error('Could not create or find icons folder');
+      iconsFolder = tempFolder; // Fallback to temp folder
+    }
+  }
+
+  // Create a map to track icon names and their corresponding files
+  const iconNameMap = new Map();
+
+  // Process each icon file
   iconFiles.forEach((file, index) => {
-    const fileName = file.getName();
-    const iconFile = tempFolder.createFile(file);
-    combinedConfig.icons.push({
-      name: fileName.split('/').pop().replace(/\.[^/.]+$/, ''),
-      svg: iconFile.getUrl()
-    });
-    console.log(`Processed icon file: ${fileName}`);
+    try {
+      const fileName = file.getName();
+      let iconName = fileName.split('/').pop().replace(/\.[^/.]+$/, '');
+
+      // Skip if the icon name is empty or invalid
+      if (!iconName || iconName === '.' || iconName === '..') {
+        console.warn(`Skipping icon with invalid name: ${fileName}`);
+        return;
+      }
+
+      // Clean up icon name - remove any path components and file extensions
+      iconName = iconName.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, '');
+
+      console.log(`Processing icon file ${index + 1}/${iconFiles.length}: ${fileName} -> ${iconName}`);
+
+      // Save the icon file to the folder
+      const iconFile = iconsFolder.createFile(file);
+      const iconUrl = iconFile.getUrl();
+
+      // Add the icon to the config
+      const iconObj = {
+        name: iconName,
+        svg: iconUrl,
+        id: iconName, // Add id for compatibility
+        fileName: fileName // Store original filename for debugging
+      };
+
+      combinedConfig.icons.push(iconObj);
+      iconNameMap.set(iconName, iconObj);
+
+      console.log(`Processed icon file: ${fileName} -> ${iconName} (${iconUrl.substring(0, 30)}...)`);
+    } catch (error) {
+      console.warn(`Error processing icon file at index ${index}:`, error);
+    }
   });
+
+  console.log(`Processed ${combinedConfig.icons.length} icons successfully`);
+
+  // If we have presets but no icons, try to generate default icons
+  if (combinedConfig.presets.length > 0 && combinedConfig.icons.length === 0) {
+    console.log('No icons found but presets exist. Generating default icons...');
+
+    // Create a default icon for each preset
+    combinedConfig.presets.forEach(preset => {
+      if (preset.icon && !iconNameMap.has(preset.icon)) {
+        try {
+          // Generate a simple SVG icon with the preset's color
+          const color = preset.color || '#0000FF';
+          const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" fill="${color}" />
+            <text x="12" y="16" font-family="Arial" font-size="12" text-anchor="middle" fill="white">
+              ${preset.name.substring(0, 1).toUpperCase()}
+            </text>
+          </svg>`;
+
+          // Save the SVG to the folder
+          const svgBlob = Utilities.newBlob(svgContent, 'image/svg+xml', `${preset.icon}.svg`);
+          const iconFile = iconsFolder.createFile(svgBlob);
+          const iconUrl = iconFile.getUrl();
+
+          // Add the icon to the config
+          const iconObj = {
+            name: preset.icon,
+            svg: iconUrl,
+            id: preset.icon,
+            generated: true
+          };
+
+          combinedConfig.icons.push(iconObj);
+          iconNameMap.set(preset.icon, iconObj);
+
+          console.log(`Generated default icon for preset: ${preset.name} (${preset.icon})`);
+        } catch (error) {
+          console.warn(`Error generating default icon for preset ${preset.name}:`, error);
+        }
+      }
+    });
+
+    console.log(`Generated ${combinedConfig.icons.length} default icons`);
+  }
 
   // Normalize the configuration to a consistent format
   const normalizedConfig = normalizeConfig(combinedConfig);
@@ -984,40 +1109,116 @@ function extractMetadata(configData: any): any {
  */
 function extractFields(configData: any): any[] {
   const fields: any[] = [];
+  console.log('Extracting fields from configuration data');
 
   // Try to extract fields from various possible locations
   if (Array.isArray(configData.fields)) {
     // Fields as array
+    console.log(`Found ${configData.fields.length} fields in array format`);
     configData.fields.forEach((field: any) => {
       if (field) {
-        fields.push({
+        const normalizedField = {
           id: field.id || field.key || field.tagKey || '',
           tagKey: field.tagKey || field.key || field.id || '',
           label: field.label || '',
           type: field.type || 'text',
           helperText: field.helperText || field.placeholder || '',
-          options: field.options
-        });
+          options: normalizeOptions(field.options || [])
+        };
+        fields.push(normalizedField);
+        console.log(`Extracted field: ${normalizedField.label} (${normalizedField.tagKey})`);
       }
     });
   } else if (configData.fields && typeof configData.fields === 'object') {
-    // Fields as object with keys
+    // Fields as object with keys (Mapeo format)
+    const fieldCount = Object.keys(configData.fields).length;
+    console.log(`Found ${fieldCount} fields in object format (Mapeo style)`);
+
     for (const fieldId in configData.fields) {
       if (configData.fields.hasOwnProperty(fieldId)) {
         const field = configData.fields[fieldId];
-        fields.push({
+        const normalizedField = {
           id: fieldId,
           tagKey: fieldId,
           label: field.label || fieldId,
-          type: field.type || 'text',
+          type: normalizeFieldType(field.type || 'text'),
           helperText: field.helperText || field.placeholder || '',
-          options: field.options
-        });
+          options: normalizeOptions(field.options || [])
+        };
+        fields.push(normalizedField);
+        console.log(`Extracted field: ${normalizedField.label} (${normalizedField.tagKey})`);
       }
     }
   }
 
+  console.log(`Total fields extracted: ${fields.length}`);
   return fields;
+}
+
+/**
+ * Normalizes field type between different formats
+ * @param type - Original field type
+ * @returns Normalized field type
+ */
+function normalizeFieldType(type: string): string {
+  // Convert Mapeo field types to CoMapeo field types
+  switch (type.toLowerCase()) {
+    case 'select':
+      return 'selectOne';
+    case 'select_one':
+      return 'selectOne';
+    case 'multiselect':
+    case 'select_multiple':
+      return 'selectMultiple';
+    case 'number':
+      return 'number';
+    case 'text':
+    default:
+      return 'text';
+  }
+}
+
+/**
+ * Normalizes options array between different formats
+ * @param options - Original options array or object
+ * @returns Normalized options array
+ */
+function normalizeOptions(options: any): any[] {
+  if (!options) return [];
+
+  // If options is already an array
+  if (Array.isArray(options)) {
+    return options.map(opt => {
+      if (typeof opt === 'string') {
+        // Simple string option
+        return { label: opt, value: opt };
+      } else if (typeof opt === 'object') {
+        // Object option
+        return {
+          label: opt.label || opt.value || '',
+          value: opt.value || opt.label || ''
+        };
+      }
+      return { label: '', value: '' };
+    }).filter(opt => opt.label && opt.value);
+  }
+
+  // If options is an object (Mapeo format)
+  if (typeof options === 'object') {
+    const result = [];
+    for (const key in options) {
+      if (options.hasOwnProperty(key)) {
+        const opt = options[key];
+        result.push({
+          label: opt.label || key,
+          value: key
+        });
+      }
+    }
+    return result;
+  }
+
+  return [];
 }
 
 /**
@@ -1157,37 +1358,81 @@ function applyMetadata(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, me
  * @param icons - Array of icon objects
  */
 function applyCategories(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, presets: any[], icons: any[]) {
-  const sheet = spreadsheet.getSheetByName('Categories');
+  console.log(`Applying ${presets.length} categories to Categories sheet with ${icons.length} icons`);
 
-  if (sheet) {
-    // Set headers (assuming English as primary language)
-    sheet.getRange(1, 1, 1, 3).setValues([['English', 'Icons', 'Details']]);
-    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+  // Create or get the Categories sheet
+  let sheet = spreadsheet.getSheetByName('Categories');
+  if (!sheet) {
+    console.log('Creating new Categories sheet');
+    sheet = spreadsheet.insertSheet('Categories');
+  } else {
+    console.log('Clearing existing Categories sheet');
+    sheet.clear();
+  }
 
-    // Prepare category rows
-    const categoryRows = presets.map(preset => {
-      // Find matching icon
-      const iconObj = icons.find(icon => icon.name === preset.icon);
-      const iconUrl = iconObj ? iconObj.svg : '';
+  // Set headers (assuming English as primary language)
+  sheet.getRange(1, 1, 1, 3).setValues([['English', 'Icons', 'Details']]);
+  sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
 
-      // Get fields as comma-separated string
-      const fields = preset.fields ? preset.fields.join(', ') : '';
+  // Create a map of icon name to icon URL for quick lookup
+  const iconMap = {};
+  icons.forEach(icon => {
+    if (icon.name && icon.svg) {
+      iconMap[icon.name] = icon.svg;
+      console.log(`Mapped icon: ${icon.name} -> ${icon.svg.substring(0, 30)}...`);
+    }
+  });
 
-      return [preset.name, iconUrl, fields];
-    });
+  // Prepare category rows
+  const categoryRows = presets.map(preset => {
+    // Find matching icon - try multiple approaches
+    let iconUrl = '';
 
-    // Add category rows
-    if (categoryRows.length > 0) {
-      sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
+    // First try direct match by name
+    if (preset.icon && iconMap[preset.icon]) {
+      iconUrl = iconMap[preset.icon];
+      console.log(`Found icon for ${preset.name} by direct match: ${preset.icon}`);
+    }
+    // Then try to find by icon ID
+    else {
+      const iconObj = icons.find(icon =>
+        icon.name === preset.icon ||
+        icon.name === preset.id ||
+        icon.id === preset.icon);
+
+      if (iconObj) {
+        iconUrl = iconObj.svg || iconObj.url || '';
+        console.log(`Found icon for ${preset.name} by object search: ${iconObj.name}`);
+      } else {
+        console.log(`No icon found for ${preset.name} (icon key: ${preset.icon})`);
+      }
     }
 
-    // Set background colors if available
-    presets.forEach((preset, index) => {
-      if (preset.color) {
-        sheet.getRange(index + 2, 1).setBackground(preset.color);
-      }
-    });
+    // Get fields as comma-separated string
+    const fields = preset.fields ? preset.fields.join(', ') : '';
+
+    console.log(`Adding category: ${preset.name}${iconUrl ? ' with icon' : ''}${fields ? ' with fields' : ''}`);
+    return [preset.name, iconUrl, fields];
+  });
+
+  // Add category rows
+  if (categoryRows.length > 0) {
+    sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
+    console.log(`Added ${categoryRows.length} categories to Categories sheet`);
+  } else {
+    console.warn('No categories to add to Categories sheet');
   }
+
+  // Set background colors if available
+  presets.forEach((preset, index) => {
+    if (preset.color) {
+      sheet.getRange(index + 2, 1).setBackground(preset.color);
+      console.log(`Set background color for ${preset.name}: ${preset.color}`);
+    }
+  });
+
+  // Auto-resize columns for better readability
+  sheet.autoResizeColumns(1, 3);
 }
 
 /**
@@ -1196,34 +1441,53 @@ function applyCategories(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, 
  * @param fields - Array of field objects
  */
 function applyFields(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, fields: any[]) {
-  const sheet = spreadsheet.getSheetByName('Details');
+  console.log(`Applying ${fields.length} fields to Details sheet`);
 
-  if (sheet) {
-    // Set headers
-    sheet.getRange(1, 1, 1, 4).setValues([['Label', 'Helper Text', 'Type', 'Options']]);
-    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+  // Create or get the Details sheet
+  let sheet = spreadsheet.getSheetByName('Details');
+  if (!sheet) {
+    console.log('Creating new Details sheet');
+    sheet = spreadsheet.insertSheet('Details');
+  } else {
+    console.log('Clearing existing Details sheet');
+    sheet.clear();
+  }
 
-    // Prepare field rows
-    const fieldRows = fields.map(field => {
-      // Convert field type to spreadsheet format
-      let typeStr = 'text';
-      if (field.type === 'selectOne') typeStr = 'select';
-      if (field.type === 'selectMultiple') typeStr = 'multiple';
-      if (field.type === 'number') typeStr = 'number';
+  // Set headers
+  sheet.getRange(1, 1, 1, 6).setValues([['Label', 'Helper Text', 'Type', 'Options', 'Required', 'Universal']]);
+  sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
 
-      // Convert options to comma-separated string
-      let optionsStr = '';
-      if (field.options && field.options.length > 0) {
-        optionsStr = field.options.map((opt: any) => opt.label).join(', ');
-      }
+  // Prepare field rows
+  const fieldRows = fields.map(field => {
+    // Convert field type to spreadsheet format
+    let typeStr = 'text';
+    if (field.type === 'selectOne' || field.type === 'select') typeStr = 'select';
+    if (field.type === 'selectMultiple' || field.type === 'multiple') typeStr = 'multiple';
+    if (field.type === 'number') typeStr = 'number';
 
-      return [field.label, field.helperText || '', typeStr, optionsStr];
-    });
-
-    // Add field rows
-    if (fieldRows.length > 0) {
-      sheet.getRange(2, 1, fieldRows.length, 4).setValues(fieldRows);
+    // Convert options to comma-separated string
+    let optionsStr = '';
+    if (field.options && field.options.length > 0) {
+      optionsStr = field.options.map((opt: any) => opt.label || opt.value).join(', ');
     }
+
+    // Set required and universal flags (default to FALSE)
+    const required = field.required === true ? 'TRUE' : 'FALSE';
+    const universal = field.universal === true ? 'TRUE' : 'FALSE';
+
+    console.log(`Adding field: ${field.label} (${typeStr})${optionsStr ? ' with options' : ''}`);
+    return [field.label, field.helperText || '', typeStr, optionsStr, required, universal];
+  });
+
+  // Add field rows
+  if (fieldRows.length > 0) {
+    sheet.getRange(2, 1, fieldRows.length, 6).setValues(fieldRows);
+    console.log(`Added ${fieldRows.length} fields to Details sheet`);
+
+    // Auto-resize columns for better readability
+    sheet.autoResizeColumns(1, 6);
+  } else {
+    console.warn('No fields to add to Details sheet');
   }
 }
 
