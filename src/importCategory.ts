@@ -545,9 +545,22 @@ function extractConfigurationData(unzippedFiles: GoogleAppsScript.Base.Blob[], t
       .forEach(f => combinedConfig.presets.push(jsonFiles[f]));
 
     // Process fields
-    Object.keys(jsonFiles)
-      .filter(f => f.startsWith('fields/'))
-      .forEach(f => combinedConfig.fields.push(jsonFiles[f]));
+    const fieldFiles = Object.keys(jsonFiles).filter(f => f.startsWith('fields/'));
+    console.log(`Found ${fieldFiles.length} field files in fields/ directory`);
+    fieldFiles.forEach(f => {
+      const field = jsonFiles[f];
+      // Ensure field has required properties
+      if (field) {
+        // Extract field ID from filename if not present in the field object
+        if (!field.id && !field.tagKey) {
+          const fieldId = f.replace('fields/', '').replace('.json', '');
+          field.id = fieldId;
+          field.tagKey = fieldId;
+        }
+        combinedConfig.fields.push(field);
+        console.log(`Added field from ${f}: ${field.label || field.id || 'unnamed field'}`);
+      }
+    });
 
     // Process messages
     Object.keys(jsonFiles)
@@ -592,14 +605,27 @@ function extractConfigurationData(unzippedFiles: GoogleAppsScript.Base.Blob[], t
             !Array.isArray(jsonFiles['fields.json'].fields)) {
           // Convert object to array
           combinedConfig.fields = Object.entries(jsonFiles['fields.json'].fields)
-            .map(([id, field]) => ({
-              id,
-              tagKey: id,
-              ...field
-            }));
+            .map(([id, field]) => {
+              const normalizedField = {
+                id,
+                tagKey: id,
+                ...field
+              };
+              console.log(`Extracted field from fields.json: ${normalizedField.label || id}`);
+              return normalizedField;
+            });
           console.log(`Converted ${combinedConfig.fields.length} fields from object to array format`);
         } else {
-          combinedConfig.fields = jsonFiles['fields.json'].fields;
+          // Process array format
+          combinedConfig.fields = jsonFiles['fields.json'].fields.map(field => {
+            // Ensure field has required properties
+            if (!field.id && !field.tagKey && field.label) {
+              field.id = slugify(field.label);
+              field.tagKey = field.id;
+            }
+            console.log(`Extracted field from fields.json array: ${field.label || field.id || 'unnamed field'}`);
+            return field;
+          });
           console.log(`Found ${combinedConfig.fields.length} fields in array format`);
         }
       } else {
@@ -612,20 +638,60 @@ function extractConfigurationData(unzippedFiles: GoogleAppsScript.Base.Blob[], t
           !Array.isArray(jsonFiles['presets.json'].fields)) {
         // Convert object to array
         combinedConfig.fields = Object.entries(jsonFiles['presets.json'].fields)
-          .map(([id, field]) => ({
-            id,
-            tagKey: id,
-            ...field
-          }));
+          .map(([id, field]) => {
+            const normalizedField = {
+              id,
+              tagKey: id,
+              ...field
+            };
+            console.log(`Extracted field from presets.json: ${normalizedField.label || id}`);
+            return normalizedField;
+          });
         console.log(`Extracted ${combinedConfig.fields.length} fields from presets.json`);
       } else {
-        combinedConfig.fields = jsonFiles['presets.json'].fields;
+        // Process array format
+        combinedConfig.fields = jsonFiles['presets.json'].fields.map(field => {
+          // Ensure field has required properties
+          if (!field.id && !field.tagKey && field.label) {
+            field.id = slugify(field.label);
+            field.tagKey = field.id;
+          }
+          console.log(`Extracted field from presets.json array: ${field.label || field.id || 'unnamed field'}`);
+          return field;
+        });
         console.log(`Found ${combinedConfig.fields.length} fields in presets.json`);
       }
     } else {
       combinedConfig.fields = [];
       console.log('No fields found in any configuration file');
     }
+
+    // Validate fields have required properties
+    combinedConfig.fields = combinedConfig.fields.filter(field => {
+      if (!field) {
+        console.warn('Skipping null or undefined field');
+        return false;
+      }
+
+      // Ensure field has a label
+      if (!field.label) {
+        console.warn(`Field missing label: ${field.id || field.tagKey || 'unknown'}`);
+        field.label = field.id || field.tagKey || 'Unnamed Field';
+      }
+
+      // Ensure field has an ID and tagKey
+      if (!field.id && !field.tagKey) {
+        console.warn(`Field missing ID and tagKey: ${field.label}`);
+        field.id = slugify(field.label);
+        field.tagKey = field.id;
+      } else if (!field.id) {
+        field.id = field.tagKey;
+      } else if (!field.tagKey) {
+        field.tagKey = field.id;
+      }
+
+      return true;
+    });
 
     // Process translations
     if (jsonFiles['translations.json']) {
@@ -1117,13 +1183,24 @@ function extractFields(configData: any): any[] {
     console.log(`Found ${configData.fields.length} fields in array format`);
     configData.fields.forEach((field: any) => {
       if (field) {
+        // Generate ID and tagKey from label if not present
+        let fieldId = field.id || field.key || field.tagKey || '';
+        let fieldTagKey = field.tagKey || field.key || field.id || '';
+
+        if (!fieldId && !fieldTagKey && field.label) {
+          fieldId = slugify(field.label);
+          fieldTagKey = fieldId;
+        }
+
         const normalizedField = {
-          id: field.id || field.key || field.tagKey || '',
-          tagKey: field.tagKey || field.key || field.id || '',
-          label: field.label || '',
-          type: field.type || 'text',
+          id: fieldId,
+          tagKey: fieldTagKey,
+          label: field.label || fieldId || 'Unnamed Field',
+          type: normalizeFieldType(field.type || 'text'),
           helperText: field.helperText || field.placeholder || '',
-          options: normalizeOptions(field.options || [])
+          options: normalizeOptions(field.options || []),
+          required: field.required === true,
+          universal: field.universal === true
         };
         fields.push(normalizedField);
         console.log(`Extracted field: ${normalizedField.label} (${normalizedField.tagKey})`);
@@ -1143,7 +1220,9 @@ function extractFields(configData: any): any[] {
           label: field.label || fieldId,
           type: normalizeFieldType(field.type || 'text'),
           helperText: field.helperText || field.placeholder || '',
-          options: normalizeOptions(field.options || [])
+          options: normalizeOptions(field.options || []),
+          required: field.required === true,
+          universal: field.universal === true
         };
         fields.push(normalizedField);
         console.log(`Extracted field: ${normalizedField.label} (${normalizedField.tagKey})`);
@@ -1151,8 +1230,41 @@ function extractFields(configData: any): any[] {
     }
   }
 
-  console.log(`Total fields extracted: ${fields.length}`);
-  return fields;
+  // Validate and filter fields
+  const validatedFields = fields.filter(field => {
+    if (!field.label) {
+      console.warn(`Field missing label, using ID: ${field.id}`);
+      field.label = field.id || field.tagKey || 'Unnamed Field';
+    }
+
+    if (!field.id && !field.tagKey) {
+      console.warn(`Field missing ID and tagKey: ${field.label}`);
+      field.id = slugify(field.label);
+      field.tagKey = field.id;
+      return true;
+    }
+
+    return true;
+  });
+
+  console.log(`Total fields extracted: ${validatedFields.length}`);
+  return validatedFields;
+}
+
+/**
+ * Converts a string to a slug format (lowercase, no special chars, hyphens instead of spaces)
+ * @param str - String to convert to slug
+ * @returns Slugified string
+ */
+function slugify(str: string): string {
+  if (!str) return '';
+
+  return str
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-')     // Replace spaces with hyphens
+    .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
+    .trim();                  // Trim whitespace
 }
 
 /**
@@ -1161,14 +1273,17 @@ function extractFields(configData: any): any[] {
  * @returns Normalized field type
  */
 function normalizeFieldType(type: string): string {
+  if (!type) return 'text';
+
   // Convert Mapeo field types to CoMapeo field types
   switch (type.toLowerCase()) {
     case 'select':
-      return 'selectOne';
     case 'select_one':
+    case 'selectone':
       return 'selectOne';
     case 'multiselect':
     case 'select_multiple':
+    case 'selectmultiple':
       return 'selectMultiple';
     case 'number':
       return 'number';
@@ -1324,9 +1439,28 @@ function applyConfigurationToSpreadsheet(configData: any, options?: ApplyConfigO
   // Apply details (fields)
   reportProgress('Updating details', 60);
   if (configData.fields && configData.fields.length > 0) {
+    console.log(`Applying ${configData.fields.length} fields to Details tab`);
+
+    // Log the first few fields for debugging
+    const sampleFields = configData.fields.slice(0, 3);
+    sampleFields.forEach((field, index) => {
+      console.log(`Sample field ${index + 1}:`, JSON.stringify(field));
+    });
+
     applyFields(spreadsheet, configData.fields);
+
+    // Verify fields were applied
+    const detailsSheet = spreadsheet.getSheetByName('Details');
+    if (detailsSheet) {
+      const lastRow = detailsSheet.getLastRow();
+      console.log(`Details tab now has ${lastRow - 1} fields (header row excluded)`);
+    } else {
+      console.warn('Details tab not found after applying fields');
+    }
+
     reportProgress(`Added ${configData.fields.length} fields`, 80);
   } else {
+    console.warn('No fields to add to Details tab');
     reportProgress('No fields to add', 80);
   }
 

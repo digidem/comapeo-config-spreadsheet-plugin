@@ -25,6 +25,7 @@ function onOpen() {
       .addItem('Test Translation Extraction', 'testTranslationExtraction')
       .addItem('Test Category Import', 'testImportCategory')
       .addItem('Test Details and Icons', 'testDetailsAndIcons')
+      .addItem('Test Field Extraction', 'testFieldExtraction')
       .addToUi();
   }
 }
