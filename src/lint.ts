@@ -70,11 +70,11 @@ function checkForDuplicates(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnInd
   // Highlight duplicates
   duplicates.forEach((rows, value) => {
     if (rows.length > 1) {
-      console.log("Found duplicate value \"" + value + "\" in rows: " + rows.join(', '));
+      console.log("Found duplicate value \"" + capitalizeFirstLetter(value) + "\" in rows: " + rows.join(', '));
       for (let i = 0; i < rows.length; i++) {
         const cell = sheet.getRange(rows[i], columnIndex)
         setCellBackground(cell, "#FFC7CE");
-        setCellTooltip(cell, "Found duplicate value \"" + value + "\" in rows: " + rows.join(', '))
+        setCellTooltip(cell, duplicateCellText[locale](capitalizeFirstLetter(value), rows.join(', ')))
       }
     }
   });
@@ -246,24 +246,26 @@ function lintDetailsSheet(): void {
           cell.setValue(DEFAULT_DETAIL_TYPE)
           // Light yellow to signal empty field (set to single choise)
           setCellBackground(cell!, "#FFF2CC");
-          setCellTooltip(cell!, "type cell empty. setting it to default: " + DEFAULT_DETAIL_TYPE)
+          setCellTooltip(cell!, emptyCellText[locale] + DEFAULT_DETAIL_TYPE)
         } catch (error) {
           console.error("Error highlighting missing type at row " + row + ", col " + col + ":", error);
         }
         return;
       }else{
           setCellBackground(cell!, "#FFFFFF")
+          cell.clearNote()
       }
 
       if (!VALID_DETAIL_TYPE.includes(value.toLowerCase())) {
         try {
           setCellBackground(cell!, "#FFC7CE")
-          setCellTooltip(cell!, "invalid or missing type for detail. valid ones: text, number, multiple, single")
+          setCellTooltip(cell!, invalidOrMissingTypeText[locale])
         } catch (error) {
           console.error("Error highlighting invalid type at row " + row + ", col " + col + ":", error);
         }
       }else{
           setCellBackground(cell!, "#FFFFFF")
+          cell.clearNote()
       }
     },
     // Rule 4: Capitalize and format the comma-separated option list

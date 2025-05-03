@@ -98,3 +98,5 @@ interface DialogInstructions {
   footer: string;
 }
 
+type DuplicateCellText = (duplicateValue: string, rows: string) => string;
+
