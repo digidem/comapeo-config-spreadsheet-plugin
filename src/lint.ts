@@ -6,11 +6,13 @@ const DEFAULT_DETAIL_TYPE = "single"
 
 // Helper functions
 function capitalizeFirstLetter(str: string): string {
+  if (!str || typeof str !== 'string') return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function validateAndCapitalizeCommaList(value: string): string {
-  return value.split(',').map(item => capitalizeFirstLetter(item.trim())).join(', ');
+  if (!value || typeof value !== 'string') return '';
+  return value.split(',').map(item => capitalizeFirstLetter(item.trim())).filter(item => item).join(', ');
 }
 
 function setCellBackground(cell: GoogleAppsScript.Spreadsheet.Range, color: string): void {
@@ -79,34 +81,64 @@ function checkForDuplicates(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnInd
 }
 
 // Generic linting function
-function lintSheet(sheetName: string, columnValidations: ((value: string, row: number, col: number) => void)[]): void {
+function lintSheet(sheetName: string, columnValidations: ((value: string, row: number, col: number) => void)[], requiredColumns: number[] = []): void {
   console.time(`Linting ${sheetName}`);
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() <= 1) {
-    console.log(`${sheetName} sheet not found or empty`);
+  if (!sheet) {
+    console.log(`${sheetName} sheet not found`);
     console.timeEnd(`Linting ${sheetName}`);
     return;
   }
 
-  console.time(`Getting data for ${sheetName}`);
-  // Get all data from the sheet, excluding the header row
-  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, columnValidations.length).getValues();
-  console.timeEnd(`Getting data for ${sheetName}`);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    console.log(`${sheetName} sheet is empty or contains only header`);
+    console.timeEnd(`Linting ${sheetName}`);
+    return;
+  }
 
-  console.time(`Validating cells for ${sheetName}`);
-  // Iterate through each cell and apply the corresponding validation function
-  data.forEach((row, rowIndex) => {
-    row.forEach((cellValue, colIndex) => {
-      if (typeof cellValue === 'string') {
-        columnValidations[colIndex](cellValue, rowIndex + 2, colIndex + 1);
-      }
+  try {
+    // First clean any whitespace-only cells
+    console.time(`Cleaning whitespace cells for ${sheetName}`);
+    cleanWhitespaceOnlyCells(sheet, 2, 1, lastRow - 1, columnValidations.length);
+    console.timeEnd(`Cleaning whitespace cells for ${sheetName}`);
+
+    // Check for duplicates in the first column (usually the name/identifier column)
+    console.time(`Checking for duplicates in ${sheetName}`);
+    checkForDuplicates(sheet, 1);
+    console.timeEnd(`Checking for duplicates in ${sheetName}`);
+
+    console.time(`Getting data for ${sheetName}`);
+    // Get all data from the sheet, excluding the header row
+    const data = sheet.getRange(2, 1, lastRow - 1, columnValidations.length).getValues();
+    console.timeEnd(`Getting data for ${sheetName}`);
+
+    console.time(`Validating cells for ${sheetName}`);
+    // Iterate through each cell and apply the corresponding validation function
+    data.forEach((row, rowIndex) => {
+      // Check for required fields
+      requiredColumns.forEach(colIndex => {
+        if (isEmptyOrWhitespace(row[colIndex])) {
+          sheet.getRange(rowIndex + 2, colIndex + 1).setBackground('#FFF2CC'); // Light yellow for required fields
+        }
+      });
+
+      // Apply validations
+      row.forEach((cellValue, colIndex) => {
+        if (columnValidations[colIndex]) {
+          columnValidations[colIndex](String(cellValue || ''), rowIndex + 2, colIndex + 1);
+        }
+      });
     });
-  });
-  console.timeEnd(`Validating cells for ${sheetName}`);
+    console.timeEnd(`Validating cells for ${sheetName}`);
 
-  console.log(`${sheetName} sheet linting completed`);
-  console.timeEnd(`Linting ${sheetName}`);
+    console.log(`${sheetName} sheet linting completed`);
+  } catch (error) {
+    console.error(`Error linting ${sheetName} sheet:`, error);
+  } finally {
+    console.timeEnd(`Linting ${sheetName}`);
+  }
 }
 
 // Specific sheet linting functions
@@ -114,13 +146,21 @@ function lintCategoriesSheet(): void {
   const categoriesValidations = [
     // Rule 1: Capitalize the first letter of the category name
     (value, row, col) => {
+      if (isEmptyOrWhitespace(value)) return;
+
       const capitalizedValue = capitalizeFirstLetter(value);
       if (capitalizedValue !== value) {
-        SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories")!.getRange(row, col).setValue(capitalizedValue);
+        try {
+          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories")?.getRange(row, col).setValue(capitalizedValue);
+        } catch (error) {
+          console.error("Error capitalizing value in Categories sheet at row " + row + ", col " + col + ":", error);
+        }
       }
     },
     // Rule 2: Validate URL format and highlight invalid URLs
     (value, row, col) => {
+      if (isEmptyOrWhitespace(value)) return;
+
       function getIdFromUrl(url: string): string | null {
         const match = url.match(/[-\w]{25,}/);
         return match ? match[0] : null;
@@ -128,39 +168,71 @@ function lintCategoriesSheet(): void {
       const isValidGoogleDriveUrl = (url: string): boolean => {
         return url.startsWith('https://drive.google.com/') && getIdFromUrl(url) !== null;
       };
-      console.log(`Is valid Google Drive URL: ${isValidGoogleDriveUrl(value)}`);
-      if (value && !isValidGoogleDriveUrl(value)) {
-        console.log(`Invalid URL: ${value}`);
-        SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories")!.getRange(row, col).setFontColor("red");
+
+      try {
+        if (!isValidGoogleDriveUrl(value)) {
+          console.log("Invalid URL: " + value);
+          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories")?.getRange(row, col).setFontColor("red");
+        }
+      } catch (error) {
+        console.error("Error validating URL in Categories sheet at row " + row + ", col " + col + ":", error);
       }
-      console.log(`Rule 2 executed for value: ${value}, Row: ${row}, Col: ${col}`);
     },
-    // Rule 3: Validate tags (column C) without changing them
-    // (value, row, col) => {
-      // console.time('Rule 3');
-      // Validation logic for tags can be added here if needed
-      // For now, we're not modifying the tags
-      // console.timeEnd('Rule 3');
-    // }
+    // Rule 3: Validate comma-separated fields list
+    (value, row, col) => {
+      if (isEmptyOrWhitespace(value)) return;
+
+      try {
+        // Validate that each field in the comma-separated list exists in the Details sheet
+        const detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details");
+        if (detailsSheet) {
+          const detailsData = detailsSheet.getRange(2, 1, detailsSheet.getLastRow() - 1, 1).getValues();
+          const detailNames = detailsData.map(row => slugify(String(row[0]))).filter(name => name);
+
+          const fields = value.split(',').map(field => slugify(field.trim()));
+          const invalidFields = fields.filter(field => field && !detailNames.includes(field));
+
+          if (invalidFields.length > 0) {
+            console.log("Invalid fields in row " + row + ": " + invalidFields.join(', '));
+            SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories")?.getRange(row, col).setBackground("#FFC7CE");
+          }
+        }
+      } catch (error) {
+        console.error("Error validating fields in Categories sheet at row " + row + ", col " + col + ":", error);
+      }
+    }
   ];
 
-  lintSheet("Categories", categoriesValidations);
+  // Category name is required
+  lintSheet("Categories", categoriesValidations, [0]);
 }
 
 function lintDetailsSheet(): void {
   const detailsValidations = [
     // Rule 1: Capitalize the first letter of the detail name
     (value, row, col) => {
+      if (isEmptyOrWhitespace(value)) return;
+
       const capitalizedValue = capitalizeFirstLetter(value);
       if (capitalizedValue !== value) {
-        SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!.getRange(row, col).setValue(capitalizedValue);
+        try {
+          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")?.getRange(row, col).setValue(capitalizedValue);
+        } catch (error) {
+          console.error("Error capitalizing detail name at row " + row + ", col " + col + ":", error);
+        }
       }
     },
     // Rule 2: Capitalize the first letter of the helper text
     (value, row, col) => {
+      if (isEmptyOrWhitespace(value)) return;
+
       const capitalizedValue = capitalizeFirstLetter(value);
       if (capitalizedValue !== value) {
-        SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!.getRange(row, col).setValue(capitalizedValue);
+        try {
+          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")?.getRange(row, col).setValue(capitalizedValue);
+        } catch (error) {
+          console.error("Error capitalizing helper text at row " + row + ", col " + col + ":", error);
+        }
       }
     },
 
@@ -196,12 +268,21 @@ function lintDetailsSheet(): void {
     },
     // Rule 4: Capitalize and format the comma-separated option list
     (value, row, col) => {
-      const capitalizedList = validateAndCapitalizeCommaList(value);
-      SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!.getRange(row, col).setValue(capitalizedList);
+      if (isEmptyOrWhitespace(value)) return;
+
+      try {
+        const capitalizedList = validateAndCapitalizeCommaList(value);
+        if (capitalizedList !== value) {
+          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")?.getRange(row, col).setValue(capitalizedList);
+        }
+      } catch (error) {
+        console.error("Error formatting options list at row " + row + ", col " + col + ":", error);
+      }
     }
   ];
 
-  lintSheet("Details", detailsValidations);
+  // Detail name and type are required fields
+  lintSheet("Details", detailsValidations, [0, 2]);
 }
 
 function lintTranslationSheets(): void {
@@ -213,28 +294,74 @@ function lintTranslationSheets(): void {
       return;
     }
 
-    // Get all data from the sheet
-    const data = sheet.getDataRange().getValues();
-    // Capitalize the first letter of each cell if it's a string
-    const updatedData = data.map(row =>
-      row.map(cell =>
-        typeof cell === 'string' ? capitalizeFirstLetter(cell) : cell
-      )
-    );
+    try {
+      console.log("Linting translation sheet: " + sheetName);
 
-    // Update the sheet with the capitalized data
-    sheet.getDataRange().setValues(updatedData);
+      // First clean any whitespace-only cells
+      cleanWhitespaceOnlyCells(sheet, 1, 1, sheet.getLastRow(), sheet.getLastColumn());
+
+      // Get all data from the sheet
+      const data = sheet.getDataRange().getValues();
+      // Capitalize the first letter of each cell if it's a string and not empty
+      const updatedData = data.map(row =>
+        row.map(cell =>
+          typeof cell === 'string' && cell.trim() !== '' ? capitalizeFirstLetter(cell) : cell
+        )
+      );
+
+      // Update the sheet with the capitalized data
+      sheet.getDataRange().setValues(updatedData);
+      console.log("Finished linting translation sheet: " + sheetName);
+    } catch (error) {
+      console.error("Error linting translation sheet " + sheetName + ":", error);
+    }
   });
 }
 
-// Main linting function
-function lintAllSheets(): void {
-  console.log("Linting Categories sheet...");
-  lintCategoriesSheet();
-  console.log("Linting Details sheet...");
-  lintDetailsSheet();
-  console.log("Linting Translation sheets...");
-  lintTranslationSheets();
-  console.log("Finished linting all sheets.");
-  console.log("All sheets linted successfully");
+/**
+ * Main linting function that validates all sheets in the spreadsheet.
+ *
+ * @param showAlerts - Whether to show UI alerts (default: true). Set to false when called from other functions.
+ */
+function lintAllSheets(showAlerts: boolean = true): void {
+  try {
+    console.log("Starting linting process...");
+
+    console.log("Linting Categories sheet...");
+    lintCategoriesSheet();
+
+    console.log("Linting Details sheet...");
+    lintDetailsSheet();
+
+    console.log("Linting Translation sheets...");
+    lintTranslationSheets();
+
+    console.log("Finished linting all sheets.");
+
+    // Add a summary of issues found, but only if showAlerts is true
+    if (showAlerts) {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        "Linting Complete",
+        "All sheets have been linted. Please check for:\n" +
+        "- Yellow highlighted cells: Required fields that are missing\n" +
+        "- Red highlighted cells: Invalid values\n" +
+        "- Red text: Invalid URLs\n" +
+        "- Pink highlighted cells: Duplicate values or invalid references",
+        ui.ButtonSet.OK
+      );
+    }
+  } catch (error) {
+    console.error("Error during linting process:", error);
+
+    // Only show error alert if showAlerts is true
+    if (showAlerts) {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        "Linting Error",
+        "An error occurred during the linting process: " + error.message + "\n\nSome sheets may not have been fully processed.",
+        ui.ButtonSet.OK
+      );
+    }
+  }
 }

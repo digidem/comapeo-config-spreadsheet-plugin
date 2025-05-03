@@ -1,23 +1,28 @@
+let activeUserLocale = Session.getActiveUserLocale().split("_")[0];
+const supportedLocales = ["en", "es"]
+const defaultLocale = "en"
+let locale = supportedLocales.includes(activeUserLocale) ? activeUserLocale : defaultLocale
+
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu("CoMapeo Tools")
-    .addItem("Translate CoMapeo Category", "translateCoMapeoCategory")
-    .addItem("Generate Category Icons", "generateIcons")
-    .addItem("Generate Project Key", "generateProjectKey")
+  ui.createMenu(menuTexts[locale].menu)
+    .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
+    .addItem(menuTexts[locale].addCustomLanguages, "addCustomLanguages")
+    .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addSeparator()
-    .addItem("Generate CoMapeo Category", "generateCoMapeoCategory")
+    .addItem(menuTexts[locale].generateCoMapeoCategory, "generateCoMapeoCategory")
     .addSeparator()
-    .addItem("Lint Sheets", "lintAllSheets")
-    .addItem("Reset Spreadsheet", "cleanAllSheets")
-    .addItem("Help", "openHelpPage")
+    .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
+    .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
+    .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
     .addToUi();
 }
 
 function translateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    "Translate CoMapeo Category",
-    "This will translate all empty cells in the other translation language columns. Continue?",
+    translateMenuTexts[locale].action,
+    translateMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -25,25 +30,37 @@ function translateCoMapeoCategory() {
     try {
       autoTranslateSheets();
       ui.alert(
-        "Translation Complete",
-        "All sheets have been translated successfully.",
+        translateMenuTexts[locale].completed,
+        translateMenuTexts[locale].completedText,
         ui.ButtonSet.OK,
       );
     } catch (error) {
       ui.alert(
-        "Error",
-        `An error occurred during translation: ${error.message}`,
+         translateMenuTexts[locale].error,
+        translateMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
   }
 }
 
+function addCustomLanguages() {
+  try {
+    showAddLanguagesDialog();
+  } catch (error) {
+    SpreadsheetApp.getUi().alert(
+      "Error",
+      `An error occurred while adding languages: ${error.message}`,
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
+}
+
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    "Generate Icons",
-    "This will generate icons based on the current spreadsheet data. It may take a few minutes to process. Continue?",
+    iconMenuTexts[locale].action,
+    iconMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -52,29 +69,8 @@ function generateIcons() {
       generateIconsConfig();
     } catch (error) {
       ui.alert(
-        "Error",
-        `An error occurred while generating the configuration: ${error.message}`,
-        ui.ButtonSet.OK,
-      );
-    }
-  }
-}
-
-function generateProjectKey() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    "Generate Project Key",
-    "This will generate a project key for your CoMapeo Category. Continue?",
-    ui.ButtonSet.YES_NO,
-  );
-
-  if (result === ui.Button.YES) {
-    try {
-      generateProjectKeyConfig();
-    } catch (error) {
-      ui.alert(
-        "Error",
-        `An error occurred while generating the configuration: ${error.message}`,
+        iconMenuTexts[locale].error,
+        iconMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
@@ -84,8 +80,8 @@ function generateProjectKey() {
 function generateCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    "Generate CoMapeo Category",
-    "This will generate a CoMapeo category based on the current spreadsheet data. It may take a few minutes to process. Continue?",
+    categoryMenuTexts[locale].action,
+    categoryMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
@@ -94,8 +90,8 @@ function generateCoMapeoCategory() {
       generateCoMapeoConfig();
     } catch (error) {
       ui.alert(
-        "Error",
-        `An error occurred while generating the configuration: ${error.message}`,
+        categoryMenuTexts[locale].error,
+        categoryMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }
@@ -105,8 +101,8 @@ function generateCoMapeoCategory() {
 function lintCoMapeoCategory() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    "Lint CoMapeo Category",
-    "This will lint all sheets in the spreadsheet. Continue?",
+    lintMenuTexts[locale].action,
+    lintMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO
   );
 
@@ -114,14 +110,14 @@ function lintCoMapeoCategory() {
     try {
       lintAllSheets();
       ui.alert(
-        "Linting Complete",
-        "All sheets have been linted successfully.",
+        lintMenuTexts[locale].completed,
+        lintMenuTexts[locale].completedText,
         ui.ButtonSet.OK
       );
     } catch (error) {
       ui.alert(
-        "Error",
-        `An error occurred during linting: ${error.message}`,
+        lintMenuTexts[locale].error,
+        lintMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK
       );
     }
@@ -131,8 +127,8 @@ function lintCoMapeoCategory() {
 function cleanAllSheets() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    "Reset Spreadsheet",
-    "Attention! This will remove all translations, metadata, and icons from the spreadsheet. This action cannot be undone. Continue?",
+    cleanAllMenuTexts[locale].action,
+    cleanAllMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO
   );
 
@@ -140,14 +136,14 @@ function cleanAllSheets() {
     try {
       removeTranslationAndMetadataSheets();
       ui.alert(
-        "Reset Complete",
-        "All sheets have been reset successfully.",
+        cleanAllMenuTexts[locale].completed,
+        cleanAllMenuTexts[locale].completedText,
         ui.ButtonSet.OK
       );
     } catch (error) {
       ui.alert(
-        "Error",
-        `An error occurred during reset: ${error.message}`,
+        cleanAllMenuTexts[locale].error,
+        cleanAllMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK
       );
     }
