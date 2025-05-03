@@ -1,3 +1,9 @@
+// Import slugify function from utils
+/// <reference path="./utils.ts" />
+
+const VALID_DETAIL_TYPE = ["text", "number", "single", "multiple"]
+const DEFAULT_DETAIL_TYPE = "single"
+
 // Helper functions
 function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -7,11 +13,71 @@ function validateAndCapitalizeCommaList(value: string): string {
   return value.split(',').map(item => capitalizeFirstLetter(item.trim())).join(', ');
 }
 
-function setInvalidCellBackground(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number, col: number, color: string): void {
-  sheet.getRange(row, col).setBackground(color);
+function setCellBackground(cell: GoogleAppsScript.Spreadsheet.Range, color: string): void {
+  cell.setBackground(color);
 }
 
-// Generic linting function
+function setCellTooltip(cell: GoogleAppsScript.Spreadsheet.Range, text: string){
+  cell.setNote(text)
+}
+
+function isEmptyOrWhitespace(value: any): boolean {
+  return value === undefined || value === null ||
+         (typeof value === 'string' && value.trim() === '');
+}
+
+function cleanWhitespaceOnlyCells(sheet: GoogleAppsScript.Spreadsheet.Sheet, startRow: number, startCol: number, numRows: number, numCols: number): void {
+  const range = sheet.getRange(startRow, startCol, numRows, numCols);
+  const values = range.getValues();
+  let changesMade = false;
+
+  for (let i = 0; i < values.length; i++) {
+    for (let j = 0; j < values[i].length; j++) {
+      const value = values[i][j];
+      if (typeof value === 'string' && value.trim() === '' && value !== '') {
+        values[i][j] = '';
+        changesMade = true;
+      }
+    }
+  }
+
+  if (changesMade) {
+    range.setValues(values);
+    console.log(`Cleaned whitespace-only cells in ${sheet.getName()}`);
+  }
+}
+
+function checkForDuplicates(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnIndex: number, startRow: number = 2): void {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= startRow) return;
+
+  const range = sheet.getRange(startRow, columnIndex, lastRow - startRow + 1, 1);
+  const values = range.getValues().map(row => row[0].toString().trim().toLowerCase());
+  const duplicates = new Map<string, number[]>();
+
+  values.forEach((value, index) => {
+    if (value === '') return;
+
+    if (!duplicates.has(value)) {
+      duplicates.set(value, [index + startRow]);
+    } else {
+      duplicates.get(value)?.push(index + startRow);
+    }
+  });
+
+  // Highlight duplicates
+  duplicates.forEach((rows, value) => {
+    if (rows.length > 1) {
+      console.log("Found duplicate value \"" + value + "\" in rows: " + rows.join(', '));
+      for (let i = 0; i < rows.length; i++) {
+        const cell = sheet.getRange(rows[i], columnIndex)
+        setCellBackground(cell, "#FFC7CE");
+        setCellTooltip(cell, "Found duplicate value \"" + value + "\" in rows: " + rows.join(', '))
+      }
+    }
+  });
+}
+
 // Generic linting function
 function lintSheet(sheetName: string, columnValidations: ((value: string, row: number, col: number) => void)[]): void {
   console.time(`Linting ${sheetName}`);
@@ -97,10 +163,35 @@ function lintDetailsSheet(): void {
         SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!.getRange(row, col).setValue(capitalizedValue);
       }
     },
-    // Rule 3: Validate the type column (t, n, or m)
-    (value, row, col) => {
-      if (value && !['t', 'n', 'm'].includes(value.toLowerCase().charAt(0))) {
-        setInvalidCellBackground(SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!, row, col, "red");
+
+    // Rule 3: Validate the type column (text, number, multiple or single)
+    (value: string, row, col) => {
+      const detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")
+      const cell = detailsSheet.getRange(row, col)
+      // empty, set value to default (single), set color to yellow, and tooltip
+      if (isEmptyOrWhitespace(value)) {
+        try {
+          cell.setValue(DEFAULT_DETAIL_TYPE)
+          // Light yellow to signal empty field (set to single choise)
+          setCellBackground(cell!, "#FFF2CC");
+          setCellTooltip(cell!, "type cell empty. setting it to default: " + DEFAULT_DETAIL_TYPE)
+        } catch (error) {
+          console.error("Error highlighting missing type at row " + row + ", col " + col + ":", error);
+        }
+        return;
+      }else{
+          setCellBackground(cell!, "#FFFFFF")
+      }
+
+      if (!VALID_DETAIL_TYPE.includes(value.toLowerCase())) {
+        try {
+          setCellBackground(cell!, "#FFC7CE")
+          setCellTooltip(cell!, "invalid or missing type for detail. valid ones: text, number, multiple, single")
+        } catch (error) {
+          console.error("Error highlighting invalid type at row " + row + ", col " + col + ":", error);
+        }
+      }else{
+          setCellBackground(cell!, "#FFFFFF")
       }
     },
     // Rule 4: Capitalize and format the comma-separated option list
