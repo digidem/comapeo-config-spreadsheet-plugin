@@ -1,3 +1,12 @@
+const MAIN_LANGUAGE_COLUMN = "A";
+const CATEGORIES_SHEET = "Categories";
+const DETAILS_SHEET = "Details";
+const CATEGORY_TRANSLATIONS_SHEET = "Category Translations";
+const DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET = "Detail Helper Text Translations";
+const DETAIL_OPTION_TRANSLATIONS_SHEET = "Detail Option Translations";
+const DETAILS_HELPER_TEXT_COLUMN = "B";
+const DETAILS_OPTIONS_COLUMN = "D";
+
 function translateSheet(
   sheetName: string,
   targetLanguage: TranslationLanguage,
@@ -8,22 +17,48 @@ function translateSheet(
   }
   const lastRow = sheet.getLastRow();
   const languagesList = languages();
+  const mainLanguage = Object.keys(languages(true))[0];
+  console.log('Main language', mainLanguage);
+  for (const [code, name] of Object.entries(languagesList)) {
+    console.log(`Language code: ${code}, name: ${name}`);
+  }
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
-    const englishText = sheet.getRange(i, 1).getValue() as string;
-    if (englishText) {
+    const originalText = sheet.getRange(i, 1).getValue() as string;
+    if (originalText) {
       const targetCell = sheet.getRange(i, targetColumn);
       if (!targetCell.getValue()) {
         const translation = LanguageApp.translate(
-          englishText,
-          "en",
+          originalText,
+          mainLanguage,
           targetLanguage,
         );
         targetCell.setValue(translation);
       }
     }
   }
+}
+
+function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET);
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(CATEGORY_TRANSLATIONS_SHEET);
+    const mainLanguage = Object.entries(languages(true))[0];
+    const otherLanguages = Object.entries(languages());
+    const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+
+    const categoriesSheet = spreadsheet.getSheetByName(CATEGORIES_SHEET);
+    if (categoriesSheet) {
+      const lastRow = categoriesSheet.getLastRow();
+      const formula = `=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}2:${MAIN_LANGUAGE_COLUMN}${lastRow}`;
+      sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+    }
+  }
+  return sheet;
 }
 
 function autoTranslateSheets(): void {
@@ -42,31 +77,64 @@ function autoTranslateSheets(): void {
   for (const sheetName of translationSheets) {
     let sheet = spreadsheet.getSheetByName(sheetName);
     if (!sheet) {
-      sheet = spreadsheet.insertSheet(sheetName);
-      const headers = ["English", ...Object.values(languages())];
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
-
-      let sourceSheet, sourceColumn;
-      if (sheetName.startsWith("Category")) {
-        sourceSheet = "Categories";
-        sourceColumn = "A";
-      } else if (sheetName === "Detail Helper Text Translations") {
-        sourceSheet = "Details";
-        sourceColumn = "B";
-      } else if (sheetName === "Detail Option Translations") {
-        sourceSheet = "Details";
-        sourceColumn = "D";
+      if (sheetName === CATEGORY_TRANSLATIONS_SHEET) {
+        sheet = createCategoryTranslationsSheet();
       } else {
-        sourceSheet = "Details";
-        sourceColumn = "A";
-      }
+        sheet = spreadsheet.insertSheet(sheetName);
+        const mainLanguage = Object.entries(languages(true))[0];
+        const otherLanguages = Object.entries(languages());
+        const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
 
-      const lastRow = spreadsheet.getSheetByName(sourceSheet)!.getLastRow();
-      const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
-      sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+        let sourceSheet: string;
+        let sourceColumn: string;
+        if (sheetName === DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_HELPER_TEXT_COLUMN;
+        } else if (sheetName === DETAIL_OPTION_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_OPTIONS_COLUMN;
+        } else {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = MAIN_LANGUAGE_COLUMN;
+        }
+
+        const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
+        if (!sourceSheetObj) {
+          throw new Error(`Source sheet ${sourceSheet} not found`);
+        }
+        const lastRow = sourceSheetObj.getLastRow();
+        const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+        sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      }
     }
-    Object.keys(languages()).forEach(lang => {
+    for (const lang of Object.keys(languages())) {
       translateSheet(sheetName, lang as TranslationLanguage);
-    });
+    }
+  }
+}
+
+function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
+  console.log("Adding new languages...", newLanguages);
+  const sheet = createCategoryTranslationsSheet();
+
+  // Get current headers
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // Find first empty column after D
+  let startCol = 4; // Start from column D
+  while (startCol <= headers.length && headers[startCol - 1] !== "") {
+    startCol++;
+  }
+
+  // Add new language columns
+  for (const lang of newLanguages) {
+    const headerText = `${lang.name} - ${lang.iso}`;
+    // Skip if language already exists
+    if (headers.includes(headerText)) continue;
+
+    // Add new header
+    sheet.getRange(1, startCol).setValue(headerText).setFontWeight("bold");
+    startCol++;
   }
 }
