@@ -69,12 +69,16 @@ function checkForDuplicates(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnInd
 
   // Highlight duplicates
   duplicates.forEach((rows, value) => {
-    if (rows.length > 1) {
-      console.log("Found duplicate value \"" + capitalizeFirstLetter(value) + "\" in rows: " + rows.join(', '));
-      for (let i = 0; i < rows.length; i++) {
-        const cell = sheet.getRange(rows[i], columnIndex)
+    for (let i = 0; i < rows.length; i++) {
+      const cell = sheet.getRange(rows[i], columnIndex)
+      if (rows.length > 1) {
+        console.log("Found duplicate value \"" + capitalizeFirstLetter(value) + "\" in rows: " + rows.join(', '));
         setCellBackground(cell, "#FFC7CE");
         setCellTooltip(cell, duplicateCellText[locale](capitalizeFirstLetter(value), rows.join(', ')))
+      }else{
+        setCellBackground(cell, "#FFFFFF")
+        cell.clearNote()
+
       }
     }
   });
