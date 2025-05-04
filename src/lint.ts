@@ -28,6 +28,7 @@ function isEmptyOrWhitespace(value: any): boolean {
          (typeof value === 'string' && value.trim() === '');
 }
 
+// reference: it takes 192240ms, without 120ms
 function clearNotesAndColorsOfEmptyCell(sheetName:string): void {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   const maxRows = sheet.getMaxRows()
@@ -98,8 +99,11 @@ function checkForDuplicates(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnInd
         setCellBackground(cell, "#FFC7CE");
         setCellTooltip(cell, duplicateCellText[locale](capitalizeFirstLetter(value), rows.join(', ')))
       }else{
-        setCellBackground(cell, "#FFFFFF")
-        cell.clearNote()
+        // only on details sheet
+        if(sheet.getName() === "Details"){
+          setCellBackground(cell, "#FFFFFF")
+          cell.clearNote()
+        }
 
       }
     }
@@ -311,7 +315,7 @@ function lintDetailsSheet(): void {
 
   // First, clear colors and notes of empty cells (from previous runs)
   console.time(`Cleaning background and notes of empty cells for Details`)
-  clearNotesAndColorsOfEmptyCell("Details")
+  // clearNotesAndColorsOfEmptyCell("Details")
   console.timeEnd(`Cleaning background and notes of empty cells for Details`)
   // Detail name and type are required fields
   lintSheet("Details", detailsValidations, [0, 2]);
