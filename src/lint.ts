@@ -28,6 +28,28 @@ function isEmptyOrWhitespace(value: any): boolean {
          (typeof value === 'string' && value.trim() === '');
 }
 
+function clearNotesAndColorsOfEmptyCell(sheetName:string): void {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const maxRows = sheet.getMaxRows()
+  const maxCols = sheet.getMaxColumns()
+  const range = sheet.getRange(1,1,maxRows,maxCols)
+  const values = range.getValues()
+  const notes = range.getNotes()
+  const backgrounds = range.getBackgrounds()
+  for(let r = 0; r < maxRows; r++){
+    for(let c = 0; c < maxCols; c++){
+      if(values[r][c] === "" && (notes[r][c] || backgrounds[r][c] === "#ffffff")){
+        var cell = sheet.getRange(r + 1, c + 1);
+        cell.setNote(null);
+        cell.setBackground("#ffffff");
+      }
+      if(values[r][c] === "" && notes[r][c] && backgrounds[r][c] === "#ffffff"){
+        break
+      }
+    }
+  }
+}
+
 function cleanWhitespaceOnlyCells(sheet: GoogleAppsScript.Spreadsheet.Sheet, startRow: number, startCol: number, numRows: number, numCols: number): void {
   const range = sheet.getRange(startRow, startCol, numRows, numCols);
   const values = range.getValues();
@@ -287,8 +309,13 @@ function lintDetailsSheet(): void {
     }
   ];
 
+  // First, clear colors and notes of empty cells (from previous runs)
+  console.time(`Cleaning background and notes of empty cells for Details`)
+  clearNotesAndColorsOfEmptyCell("Details")
+  console.timeEnd(`Cleaning background and notes of empty cells for Details`)
   // Detail name and type are required fields
   lintSheet("Details", detailsValidations, [0, 2]);
+
 }
 
 function lintTranslationSheets(): void {
