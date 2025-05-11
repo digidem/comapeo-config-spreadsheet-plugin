@@ -285,8 +285,7 @@ function lintDetailsSheet(): void {
           setCellBackground(cell!, "#FFFFFF")
           cell.clearNote()
       }
-
-      if (!VALID_DETAIL_TYPE.includes(value.toLowerCase())) {
+      if (!VALID_DETAIL_TYPE.includes(value.toLowerCase()) && !['t', 'm', 'n', 's'].includes(value.trim().toLowerCase())) {
         try {
           setCellBackground(cell!, "#FFC7CE")
           setCellTooltip(cell!, invalidOrMissingTypeText[locale])
