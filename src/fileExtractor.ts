@@ -6,21 +6,23 @@
  * Required files and directories that should be present in a valid configuration
  */
 const REQUIRED_FILES = [
-  'metadata.json',
-  'presets.json',
-  'translations.json'
+  "metadata.json", // or package.json
+  "presets.json", // or presets/ directory
+  "translations.json", // can be created if missing
 ];
 
 /**
  * Optional files that may be present in a valid configuration
  */
 const OPTIONAL_FILES = [
-  'icons', // directory
-  'icons.json',
-  'icons.png',
-  'icons.svg',
-  'style.css',
-  'VERSION'
+  "icons", // directory
+  "fields", // directory
+  "icons.json",
+  "icons.png",
+  "icons.svg",
+  "style.css",
+  "VERSION",
+  "defaults.json",
 ];
 
 /**
@@ -49,7 +51,11 @@ interface ExtractionOptions {
  * @param options - Optional extraction options
  * @returns Result of extraction and validation
  */
-function extractAndValidateFile(fileName: string, fileBlob: GoogleAppsScript.Base.Blob, options?: ExtractionOptions): ExtractionResult {
+function extractAndValidateFile(
+  fileName: string,
+  fileBlob: GoogleAppsScript.Base.Blob,
+  options?: ExtractionOptions,
+): ExtractionResult {
   // Helper function to report progress
   const reportProgress = (stage: string, percent: number) => {
     if (options?.onProgress) {
@@ -58,50 +64,54 @@ function extractAndValidateFile(fileName: string, fileBlob: GoogleAppsScript.Bas
   };
 
   try {
-    reportProgress('Creating temporary folder', 5);
+    reportProgress("Creating temporary folder", 5);
     // Create a temporary folder for extraction
-    const tempFolderName = 'Config_Import_Temp_' + new Date().getTime();
+    const tempFolderName = "Config_Import_Temp_" + new Date().getTime();
     const tempFolder = DriveApp.createFolder(tempFolderName);
 
     // Determine file type and extract accordingly
-    const fileExtension = fileName.split('.').pop()?.toLowerCase();
-    reportProgress('Determining file type', 10);
+    const fileExtension = fileName.split(".").pop()?.toLowerCase();
+    reportProgress("Determining file type", 10);
 
     let extractedFiles: GoogleAppsScript.Base.Blob[] = [];
 
-    if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
-      reportProgress('Extracting ZIP file', 15);
+    if (fileExtension === "comapeocat" || fileExtension === "zip") {
+      reportProgress("Extracting ZIP file", 15);
       // Extract zip file
       extractedFiles = extractZipFile(fileBlob, tempFolder, (percent) => {
-        reportProgress('Extracting ZIP file', 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
+        reportProgress("Extracting ZIP file", 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
       });
-    } else if (fileExtension === 'mapeosettings' || fileExtension === 'tar') {
-      reportProgress('Extracting TAR file', 15);
+    } else if (fileExtension === "mapeosettings" || fileExtension === "tar") {
+      reportProgress("Extracting TAR file", 15);
       // Extract tar file
       extractedFiles = extractTarFile(fileBlob, tempFolder, (percent) => {
-        reportProgress('Extracting TAR file', 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
+        reportProgress("Extracting TAR file", 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
       });
     } else {
       // Clean up and return error
       tempFolder.setTrashed(true);
       return {
         success: false,
-        message: 'Unsupported file format. Please upload a .comapeocat, .zip, .mapeosettings, or .tar file.'
+        message:
+          "Unsupported file format. Please upload a .comapeocat, .zip, .mapeosettings, or .tar file.",
       };
     }
 
     // Validate the extracted files
-    reportProgress('Validating extracted files', 70);
-    const validationResult = validateExtractedFiles(extractedFiles, (percent) => {
-      reportProgress('Validating files', 70 + Math.round(percent * 0.2)); // Map 0-100 to 70-90
-    });
-    reportProgress('Validation complete', 90);
+    reportProgress("Validating extracted files", 70);
+    const validationResult = validateExtractedFiles(
+      extractedFiles,
+      (percent) => {
+        reportProgress("Validating files", 70 + Math.round(percent * 0.2)); // Map 0-100 to 70-90
+      },
+    );
+    reportProgress("Validation complete", 90);
 
     // Log validation results
-    console.log('Validation result:', {
+    console.log("Validation result:", {
       success: validationResult.success,
-      errors: validationResult.errors || 'none',
-      warnings: validationResult.warnings || 'none'
+      errors: validationResult.errors || "none",
+      warnings: validationResult.warnings || "none",
     });
 
     if (!validationResult.success) {
@@ -109,26 +119,28 @@ function extractAndValidateFile(fileName: string, fileBlob: GoogleAppsScript.Bas
       tempFolder.setTrashed(true);
       return {
         success: false,
-        message: 'Invalid configuration file structure',
+        message: "Invalid configuration file structure",
         validationErrors: validationResult.errors,
-        validationWarnings: validationResult.warnings
+        validationWarnings: validationResult.warnings,
       };
     }
 
-    reportProgress('Extraction and validation complete', 100);
+    reportProgress("Extraction and validation complete", 100);
     // Return success with extracted files and any warnings
     return {
       success: true,
-      message: 'File extracted and validated successfully',
+      message: "File extracted and validated successfully",
       files: extractedFiles,
       tempFolder: tempFolder,
-      validationWarnings: validationResult.warnings
+      validationWarnings: validationResult.warnings,
     };
   } catch (error) {
-    console.error('Error extracting file:', error);
+    console.error("Error extracting file:", error);
     return {
       success: false,
-      message: 'Error extracting file: ' + (error instanceof Error ? error.message : String(error))
+      message:
+        "Error extracting file: " +
+        (error instanceof Error ? error.message : String(error)),
     };
   }
 }
@@ -140,7 +152,11 @@ function extractAndValidateFile(fileName: string, fileBlob: GoogleAppsScript.Bas
  * @param progressCallback - Optional callback for progress updates
  * @returns Array of extracted file blobs
  */
-function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: GoogleAppsScript.Drive.Folder, progressCallback?: (percent: number) => void): GoogleAppsScript.Base.Blob[] {
+function extractZipFile(
+  fileBlob: GoogleAppsScript.Base.Blob,
+  tempFolder: GoogleAppsScript.Drive.Folder,
+  progressCallback?: (percent: number) => void,
+): GoogleAppsScript.Base.Blob[] {
   try {
     // Helper function to report progress
     const reportProgress = (percent: number) => {
@@ -151,13 +167,13 @@ function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
 
     reportProgress(5);
     // Ensure we have the correct content type for zip files
-    const zipBlob = fileBlob.setContentType('application/zip');
+    const zipBlob = fileBlob.setContentType("application/zip");
 
     // Log file details for debugging
-    console.log('Extracting zip file:', {
+    console.log("Extracting zip file:", {
       name: zipBlob.getName(),
       size: zipBlob.getBytes().length,
-      contentType: zipBlob.getContentType()
+      contentType: zipBlob.getContentType(),
     });
     reportProgress(10);
 
@@ -165,34 +181,41 @@ function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
     let unzippedFiles: GoogleAppsScript.Base.Blob[];
     try {
       reportProgress(15);
-      console.log('Starting unzip operation...');
+      console.log("Starting unzip operation...");
       unzippedFiles = Utilities.unzip(zipBlob);
       reportProgress(40);
-      console.log('Unzip operation completed successfully');
+      console.log("Unzip operation completed successfully");
     } catch (unzipError) {
-      console.error('Error using Utilities.unzip:', unzipError);
+      console.error("Error using Utilities.unzip:", unzipError);
       reportProgress(20);
 
       // Try an alternative approach - save to Drive and then extract
-      console.log('Trying alternative extraction method...');
+      console.log("Trying alternative extraction method...");
       const tempFile = tempFolder.createFile(zipBlob);
-      console.log('Saved zip file to Drive:', tempFile.getName(), tempFile.getSize());
+      console.log(
+        "Saved zip file to Drive:",
+        tempFile.getName(),
+        tempFile.getSize(),
+      );
       reportProgress(30);
 
       // Try to use the Drive API to extract the zip
       try {
         // Create a simulated set of files based on the expected structure
-        console.log('Creating simulated file structure for .comapeocat file');
+        console.log("Creating simulated file structure for .comapeocat file");
         unzippedFiles = createSimulatedFileStructure(tempFolder);
         reportProgress(40);
       } catch (driveError) {
-        console.error('Error extracting via Drive:', driveError);
+        console.error("Error extracting via Drive:", driveError);
         throw unzipError; // Throw the original error
       }
     }
 
     // Log the extracted files
-    console.log('Extracted files:', unzippedFiles.map(f => f.getName()));
+    console.log(
+      "Extracted files:",
+      unzippedFiles.map((f) => f.getName()),
+    );
     reportProgress(50);
 
     // Save files to temp folder for reference
@@ -210,16 +233,16 @@ function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
         reportProgress(fileProgress);
 
         // Skip directories in the zip
-        if (!fileName.endsWith('/')) {
+        if (!fileName.endsWith("/")) {
           // Create parent directories if needed
-          if (fileName.includes('/')) {
-            const dirPath = fileName.substring(0, fileName.lastIndexOf('/'));
+          if (fileName.includes("/")) {
+            const dirPath = fileName.substring(0, fileName.lastIndexOf("/"));
             createNestedFolders(tempFolder, dirPath);
           }
 
           // Save the file
           const savedFile = tempFolder.createFile(file);
-          console.log('Saved file:', savedFile.getName());
+          console.log("Saved file:", savedFile.getName());
           savedFiles.push(file);
         } else {
           // Create directories
@@ -228,18 +251,21 @@ function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
           savedFiles.push(file);
         }
       } catch (fileError) {
-        console.warn('Error saving extracted file:', file.getName(), fileError);
+        console.warn("Error saving extracted file:", file.getName(), fileError);
         // Continue with other files even if one fails
       }
     });
 
     reportProgress(95);
-    console.log('All files processed successfully');
+    console.log("All files processed successfully");
     reportProgress(100);
     return unzippedFiles;
   } catch (error) {
-    console.error('Error extracting zip file:', error);
-    throw new Error('Failed to extract zip file: ' + (error instanceof Error ? error.message : String(error)));
+    console.error("Error extracting zip file:", error);
+    throw new Error(
+      "Failed to extract zip file: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
   }
 }
 
@@ -249,72 +275,82 @@ function extractZipFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
  * @param tempFolder - The folder to create files in
  * @returns Array of simulated file blobs
  */
-function createSimulatedFileStructure(tempFolder: GoogleAppsScript.Drive.Folder): GoogleAppsScript.Base.Blob[] {
+function createSimulatedFileStructure(
+  tempFolder: GoogleAppsScript.Drive.Folder,
+): GoogleAppsScript.Base.Blob[] {
   const simulatedFiles: GoogleAppsScript.Base.Blob[] = [];
 
   // Create required files
   const metadataJson = {
-    name: 'Imported Configuration',
-    version: '1.0.0'
+    name: "Imported Configuration",
+    version: "1.0.0",
   };
   const metadataBlob = Utilities.newBlob(
     JSON.stringify(metadataJson, null, 2),
-    'application/json',
-    'metadata.json'
+    "application/json",
+    "metadata.json",
   );
   tempFolder.createFile(metadataBlob);
   simulatedFiles.push(metadataBlob);
 
   const presetsJson = {
-    presets: {}
+    presets: {},
   };
   const presetsBlob = Utilities.newBlob(
     JSON.stringify(presetsJson, null, 2),
-    'application/json',
-    'presets.json'
+    "application/json",
+    "presets.json",
   );
   tempFolder.createFile(presetsBlob);
   simulatedFiles.push(presetsBlob);
 
   const translationsJson = {
-    en: {}
+    en: {},
   };
   const translationsBlob = Utilities.newBlob(
     JSON.stringify(translationsJson, null, 2),
-    'application/json',
-    'translations.json'
+    "application/json",
+    "translations.json",
   );
   tempFolder.createFile(translationsBlob);
   simulatedFiles.push(translationsBlob);
 
   // Create icons directory
-  const iconsFolder = tempFolder.createFolder('icons');
-  const iconsDirBlob = Utilities.newBlob('', 'application/x-directory', 'icons/');
+  tempFolder.createFolder("icons");
+  const iconsDirBlob = Utilities.newBlob(
+    "",
+    "application/x-directory",
+    "icons/",
+  );
   simulatedFiles.push(iconsDirBlob);
 
   // Create optional files
   const iconsJson = {};
   const iconsBlob = Utilities.newBlob(
     JSON.stringify(iconsJson, null, 2),
-    'application/json',
-    'icons.json'
+    "application/json",
+    "icons.json",
   );
   tempFolder.createFile(iconsBlob);
   simulatedFiles.push(iconsBlob);
 
-  const svgBlob = Utilities.newBlob('<svg></svg>', 'image/svg+xml', 'icons.svg');
+  const svgBlob = Utilities.newBlob(
+    "<svg></svg>",
+    "image/svg+xml",
+    "icons.svg",
+  );
   tempFolder.createFile(svgBlob);
   simulatedFiles.push(svgBlob);
 
-  const pngBlob = Utilities.newBlob('', 'image/png', 'icons.png');
+  const pngBlob = Utilities.newBlob("", "image/png", "icons.png");
   tempFolder.createFile(pngBlob);
   simulatedFiles.push(pngBlob);
 
-  const styleBlob = Utilities.newBlob('', 'text/css', 'style.css');
+  const styleBlob = Utilities.newBlob("", "text/css", "style.css");
   tempFolder.createFile(styleBlob);
   simulatedFiles.push(styleBlob);
 
-  const versionBlob = Utilities.newBlob('1.0.0', 'text/plain', 'VERSION');
+  const versionBlob = Utilities.newBlob("1.0.0", "text/plain", "VERSION");
   tempFolder.createFile(versionBlob);
   simulatedFiles.push(versionBlob);
 
@@ -326,9 +362,24 @@ function createSimulatedFileStructure(tempFolder: GoogleAppsScript.Drive.Folder)
  * @param fileBlob - The tar file blob
  * @param tempFolder - Folder to save extracted files
  * @param progressCallback - Optional callback for progress updates
+ * @param debugMode - Optional debug mode for additional logging
  * @returns Array of extracted file blobs
  */
-function extractTarFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: GoogleAppsScript.Drive.Folder, progressCallback?: (percent: number) => void): GoogleAppsScript.Base.Blob[] {
+function extractTarFile(
+  fileBlob: GoogleAppsScript.Base.Blob,
+  tempFolder: GoogleAppsScript.Drive.Folder,
+  progressCallback?: (percent: number) => void,
+  debugMode?: boolean,
+): GoogleAppsScript.Base.Blob[] {
+  // Log file details at the start
+  console.log("TAR extraction started:", {
+    fileName: fileBlob.getName(),
+    fileSize: fileBlob.getBytes().length,
+    contentType: fileBlob.getContentType(),
+    tempFolderName: tempFolder.getName(),
+    debugMode: !!debugMode,
+  });
+
   try {
     // Helper function to report progress
     const reportProgress = (percent: number) => {
@@ -338,18 +389,18 @@ function extractTarFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
     };
 
     reportProgress(5);
-    console.log('Starting TAR file extraction...');
+    console.log("Starting TAR file extraction...");
 
     // Since Google Apps Script doesn't have built-in tar extraction,
     // we'll try to parse it as JSON first (some .mapeosettings files are just JSON)
     try {
       reportProgress(10);
-      console.log('Attempting to parse as JSON...');
+      console.log("Attempting to parse as JSON...");
       const fileContent = fileBlob.getDataAsString();
       reportProgress(20);
       const jsonData = JSON.parse(fileContent);
       reportProgress(30);
-      console.log('Successfully parsed as JSON');
+      console.log("Successfully parsed as JSON");
 
       // If we got here, it's valid JSON
       // Create a blob for each top-level property
@@ -361,96 +412,112 @@ function extractTarFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
 
       // Create metadata.json
       if (jsonData.metadata) {
-        console.log('Creating metadata.json...');
+        console.log("Creating metadata.json...");
         const metadataBlob = Utilities.newBlob(
           JSON.stringify(jsonData.metadata, null, 2),
-          'application/json',
-          'metadata.json'
+          "application/json",
+          "metadata.json",
         );
         tempFolder.createFile(metadataBlob);
         extractedFiles.push(metadataBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create presets.json
       if (jsonData.presets) {
-        console.log('Creating presets.json...');
+        console.log("Creating presets.json...");
         const presetsBlob = Utilities.newBlob(
           JSON.stringify({ presets: jsonData.presets }, null, 2),
-          'application/json',
-          'presets.json'
+          "application/json",
+          "presets.json",
         );
         tempFolder.createFile(presetsBlob);
         extractedFiles.push(presetsBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create icons.json
       if (jsonData.icons) {
-        console.log('Creating icons.json...');
+        console.log("Creating icons.json...");
         const iconsBlob = Utilities.newBlob(
           JSON.stringify(jsonData.icons, null, 2),
-          'application/json',
-          'icons.json'
+          "application/json",
+          "icons.json",
         );
         tempFolder.createFile(iconsBlob);
         extractedFiles.push(iconsBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create translations.json
       if (jsonData.translations) {
-        console.log('Creating translations.json...');
+        console.log("Creating translations.json...");
         const translationsBlob = Utilities.newBlob(
           JSON.stringify(jsonData.translations, null, 2),
-          'application/json',
-          'translations.json'
+          "application/json",
+          "translations.json",
         );
         tempFolder.createFile(translationsBlob);
         extractedFiles.push(translationsBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create VERSION file
       if (jsonData.version) {
-        console.log('Creating VERSION file...');
+        console.log("Creating VERSION file...");
         const versionBlob = Utilities.newBlob(
           jsonData.version.toString(),
-          'text/plain',
-          'VERSION'
+          "text/plain",
+          "VERSION",
         );
         tempFolder.createFile(versionBlob);
         extractedFiles.push(versionBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create style.css
       if (jsonData.style) {
-        console.log('Creating style.css...');
+        console.log("Creating style.css...");
         const styleBlob = Utilities.newBlob(
           jsonData.style,
-          'text/css',
-          'style.css'
+          "text/css",
+          "style.css",
         );
         tempFolder.createFile(styleBlob);
         extractedFiles.push(styleBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       // Create icons directory and files
       if (jsonData.iconFiles) {
-        console.log('Creating icons directory and files...');
-        const iconsFolder = tempFolder.createFolder('icons');
+        console.log("Creating icons directory and files...");
+        tempFolder.createFolder("icons");
 
         // Create placeholder icons.svg and icons.png
-        const svgBlob = Utilities.newBlob('<svg></svg>', 'image/svg+xml', 'icons.svg');
-        const pngBlob = Utilities.newBlob('', 'image/png', 'icons.png');
+        const svgBlob = Utilities.newBlob(
+          "<svg></svg>",
+          "image/svg+xml",
+          "icons.svg",
+        );
+        const pngBlob = Utilities.newBlob("", "image/png", "icons.png");
 
         tempFolder.createFile(svgBlob);
         tempFolder.createFile(pngBlob);
@@ -458,32 +525,257 @@ function extractTarFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
         extractedFiles.push(pngBlob);
 
         // Add a placeholder blob for the icons directory
-        const iconsDirBlob = Utilities.newBlob('', 'application/x-directory', 'icons/');
+        const iconsDirBlob = Utilities.newBlob(
+          "",
+          "application/x-directory",
+          "icons/",
+        );
         extractedFiles.push(iconsDirBlob);
         processedProperties++;
-        reportProgress(30 + Math.round((processedProperties / totalProperties) * 40));
+        reportProgress(
+          30 + Math.round((processedProperties / totalProperties) * 40),
+        );
       }
 
       reportProgress(90);
-      console.log('JSON extraction completed successfully');
+      console.log("JSON extraction completed successfully");
       reportProgress(100);
       return extractedFiles;
     } catch (jsonError) {
       // Not a JSON file, must be an actual tar file
-      console.warn('Not a JSON file, attempting to extract as tar:', jsonError);
-      reportProgress(50);
+      console.warn("Not a JSON file, attempting to extract as tar:", jsonError);
+      reportProgress(30);
 
-      // Unfortunately, Google Apps Script doesn't have built-in tar extraction
-      // We would need to implement a tar extractor in JavaScript or use an external service
-      console.log('TAR extraction not implemented, showing error to user');
+      // Implement basic tar extraction
+      console.log("Implementing tar extraction...");
+
+      // TAR file format constants
+      const HEADER_SIZE = 512;
+      const BLOCK_SIZE = 512;
+      const NAME_OFFSET = 0;
+      const NAME_LENGTH = 100;
+      const SIZE_OFFSET = 124;
+      const SIZE_LENGTH = 12;
+      const TYPE_FLAG_OFFSET = 156;
+      const MAGIC_OFFSET = 257;
+      const MAGIC_LENGTH = 6;
+
+      // Get the raw bytes of the tar file
+      const bytes = fileBlob.getBytes();
+      console.log(`TAR file size: ${bytes.length} bytes`);
+      reportProgress(35);
+
+      // Array to store extracted files
+      const extractedFiles: GoogleAppsScript.Base.Blob[] = [];
+
+      // Process the tar file
+      let position = 0;
+      let fileCount = 0;
+      const processedFiles = new Set<string>();
+
+      while (position + HEADER_SIZE <= bytes.length) {
+        // Read header block
+        const headerBlock = bytes.slice(position, position + HEADER_SIZE);
+
+        // Check for end of archive (empty block)
+        let isEmpty = true;
+        for (let i = 0; i < HEADER_SIZE; i++) {
+          if (headerBlock[i] !== 0) {
+            isEmpty = false;
+            break;
+          }
+        }
+
+        if (isEmpty) {
+          console.log("Reached end of archive (empty block)");
+          break;
+        }
+
+        // Check magic number "ustar"
+        const magicBytes = headerBlock.slice(
+          MAGIC_OFFSET,
+          MAGIC_OFFSET + MAGIC_LENGTH,
+        );
+        const magic = String.fromCharCode.apply(null, magicBytes);
+
+        if (magic.indexOf("ustar") !== 0) {
+          console.warn(
+            `Invalid magic number at position ${position}, skipping block`,
+          );
+          position += BLOCK_SIZE;
+          continue;
+        }
+
+        // Extract file name (null-terminated C string)
+        const nameBytes = headerBlock.slice(
+          NAME_OFFSET,
+          NAME_OFFSET + NAME_LENGTH,
+        );
+        let fileName = "";
+        for (let i = 0; i < nameBytes.length; i++) {
+          if (nameBytes[i] === 0) break;
+          fileName += String.fromCharCode(nameBytes[i]);
+        }
+
+        // Skip if we've already processed this file (avoid duplicates)
+        if (processedFiles.has(fileName)) {
+          console.log(`Skipping duplicate file: ${fileName}`);
+          position += BLOCK_SIZE;
+          continue;
+        }
+
+        // Extract file size (octal string)
+        const sizeBytes = headerBlock.slice(
+          SIZE_OFFSET,
+          SIZE_OFFSET + SIZE_LENGTH,
+        );
+        let sizeStr = "";
+        for (let i = 0; i < sizeBytes.length; i++) {
+          if (sizeBytes[i] === 0) break;
+          sizeStr += String.fromCharCode(sizeBytes[i]);
+        }
+
+        // Parse size as octal
+        const fileSize = parseInt(sizeStr.trim(), 8);
+
+        // Get type flag (0 or '0' = regular file, 5 = directory)
+        const typeFlag = headerBlock[TYPE_FLAG_OFFSET];
+        const isDirectory = typeFlag === 53; // ASCII '5'
+
+        console.log(
+          `Found ${isDirectory ? "directory" : "file"}: ${fileName}, size: ${fileSize}`,
+        );
+
+        if (isDirectory) {
+          // Create directory
+          console.log(`Creating directory: ${fileName}`);
+          createNestedFolders(tempFolder, fileName);
+
+          // Add a placeholder blob for the directory
+          const dirBlob = Utilities.newBlob(
+            "",
+            "application/x-directory",
+            fileName,
+          );
+          extractedFiles.push(dirBlob);
+        } else {
+          // Calculate data blocks
+          const dataBlocks = Math.ceil(fileSize / BLOCK_SIZE);
+          const dataSize = dataBlocks * BLOCK_SIZE;
+
+          // Extract file data
+          const fileData = bytes.slice(
+            position + HEADER_SIZE,
+            position + HEADER_SIZE + fileSize,
+          );
+
+          // Determine content type based on file extension
+          let contentType = "application/octet-stream";
+          if (fileName.endsWith(".json")) {
+            contentType = "application/json";
+          } else if (fileName.endsWith(".svg")) {
+            contentType = "image/svg+xml";
+          } else if (fileName.endsWith(".png")) {
+            contentType = "image/png";
+          } else if (fileName.endsWith(".css")) {
+            contentType = "text/css";
+          }
+
+          // Create file blob
+          const fileBlob = Utilities.newBlob(fileData, contentType, fileName);
+
+          // Save file to temp folder
+          if (fileName.includes("/")) {
+            // Create parent directories if needed
+            const dirPath = fileName.substring(0, fileName.lastIndexOf("/"));
+            const parentFolder = createNestedFolders(tempFolder, dirPath);
+            const baseName = fileName.substring(fileName.lastIndexOf("/") + 1);
+            parentFolder.createFile(fileBlob.setName(baseName));
+          } else {
+            tempFolder.createFile(fileBlob);
+          }
+
+          extractedFiles.push(fileBlob);
+
+          // Move to next header (skip data blocks)
+          position += HEADER_SIZE + dataSize;
+        }
+
+        // Mark file as processed
+        processedFiles.add(fileName);
+        fileCount++;
+
+        // Update progress
+        reportProgress(35 + Math.min(55, Math.round((fileCount / 50) * 55))); // Assume max 50 files, map to 35-90%
+      }
+
+      console.log(`Extracted ${fileCount} files from tar archive`);
+
+      // If we didn't extract any files, something went wrong
+      if (fileCount === 0) {
+        throw new Error(
+          "No files extracted from tar archive. The file may be corrupted or in an unsupported format.",
+        );
+      }
+
+      reportProgress(95);
+
+      // Create any missing required files
+      const fileNames = extractedFiles.map((file) => file.getName());
+
+      // Check if we need to create a translations.json file
+      if (!fileNames.includes("translations.json")) {
+        console.log("Creating empty translations.json file");
+        const translationsBlob = Utilities.newBlob(
+          JSON.stringify({ en: {} }, null, 2),
+          "application/json",
+          "translations.json",
+        );
+        tempFolder.createFile(translationsBlob);
+        extractedFiles.push(translationsBlob);
+      }
+
+      // Check if we need to create a presets.json file from individual preset files
+      if (
+        !fileNames.includes("presets.json") &&
+        fileNames.some((name) => name.startsWith("presets/"))
+      ) {
+        console.log("Creating presets.json from individual preset files");
+
+        // Combine individual preset files into a single presets.json
+        const presets = {};
+        extractedFiles.forEach((file) => {
+          const fileName = file.getName();
+          if (fileName.startsWith("presets/") && fileName.endsWith(".json")) {
+            try {
+              const presetName = fileName.substring(8, fileName.length - 5); // Remove 'presets/' and '.json'
+              const presetContent = JSON.parse(file.getDataAsString());
+              presets[presetName] = presetContent;
+            } catch (e) {
+              console.warn(`Error parsing preset file ${fileName}:`, e);
+            }
+          }
+        });
+
+        const presetsBlob = Utilities.newBlob(
+          JSON.stringify({ presets }, null, 2),
+          "application/json",
+          "presets.json",
+        );
+        tempFolder.createFile(presetsBlob);
+        extractedFiles.push(presetsBlob);
+      }
+
       reportProgress(100);
-
-      // For now, we'll throw an error that will be caught and handled
-      throw new Error('TAR extraction not implemented. Please convert your .mapeosettings file to a .zip file.');
+      console.log("TAR extraction completed successfully");
+      return extractedFiles;
     }
   } catch (error) {
-    console.error('Error extracting tar file:', error);
-    throw new Error('Failed to extract tar file: ' + (error instanceof Error ? error.message : String(error)));
+    console.error("Error extracting tar file:", error);
+    throw new Error(
+      "Failed to extract tar file: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
   }
 }
 
@@ -493,8 +785,11 @@ function extractTarFile(fileBlob: GoogleAppsScript.Base.Blob, tempFolder: Google
  * @param path - Path to create
  * @returns The created folder
  */
-function createNestedFolders(parentFolder: GoogleAppsScript.Drive.Folder, path: string): GoogleAppsScript.Drive.Folder {
-  const parts = path.split('/');
+function createNestedFolders(
+  parentFolder: GoogleAppsScript.Drive.Folder,
+  path: string,
+): GoogleAppsScript.Drive.Folder {
+  const parts = path.split("/");
   let currentFolder = parentFolder;
 
   for (const part of parts) {
@@ -518,7 +813,10 @@ function createNestedFolders(parentFolder: GoogleAppsScript.Drive.Folder, path: 
  * @param progressCallback - Optional callback for progress updates
  * @returns Validation result
  */
-function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCallback?: (percent: number) => void): { success: boolean; errors?: string[]; warnings?: string[] } {
+function validateExtractedFiles(
+  files: GoogleAppsScript.Base.Blob[],
+  progressCallback?: (percent: number) => void,
+): { success: boolean; errors?: string[]; warnings?: string[] } {
   // Helper function to report progress
   const reportProgress = (percent: number) => {
     if (progressCallback) {
@@ -529,8 +827,9 @@ function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCal
   const errors: string[] = [];
   const warnings: string[] = [];
   const foundFiles = new Set<string>();
+  const foundDirs = new Set<string>();
 
-  console.log('Validating extracted files:', files.length);
+  console.log("Validating extracted files:", files.length);
   reportProgress(10);
 
   // Check for each file in the extracted content
@@ -543,39 +842,96 @@ function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCal
     reportProgress(fileProgress);
 
     // Handle directories (they end with '/' in zip files)
-    if (fileName.endsWith('/')) {
-      const dirName = fileName.slice(0, -1).split('/')[0]; // Get top-level directory name
-      foundFiles.add(dirName);
-      console.log('Found directory:', dirName);
+    if (fileName.endsWith("/")) {
+      const dirName = fileName.slice(0, -1);
+      foundDirs.add(dirName);
+
+      // Also add the top-level directory to foundFiles
+      const topLevelDir = dirName.split("/")[0];
+      foundFiles.add(topLevelDir);
+      console.log("Found directory:", dirName, "(top-level:", topLevelDir, ")");
     } else {
       // Handle regular files
-      if (fileName.includes('/')) {
-        // For nested files, add both the directory and the file
-        const dirName = fileName.split('/')[0];
-        foundFiles.add(dirName);
-        console.log('Found nested file in directory:', dirName);
+      foundFiles.add(fileName);
+
+      if (fileName.includes("/")) {
+        // For nested files, add the directory structure
+        const parts = fileName.split("/");
+        let currentPath = "";
+
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (currentPath) {
+            currentPath += "/" + parts[i];
+          } else {
+            currentPath = parts[i];
+          }
+
+          foundDirs.add(currentPath);
+
+          // Add top-level directory to foundFiles
+          if (i === 0) {
+            foundFiles.add(parts[0]);
+          }
+        }
+
+        console.log(
+          "Found nested file:",
+          fileName,
+          "in directories:",
+          Array.from(foundDirs),
+        );
       } else {
         // For top-level files
-        foundFiles.add(fileName);
-        console.log('Found top-level file:', fileName);
+        console.log("Found top-level file:", fileName);
       }
     }
   });
 
-  console.log('Found files/directories:', Array.from(foundFiles));
+  console.log("Found files:", Array.from(foundFiles));
+  console.log("Found directories:", Array.from(foundDirs));
   reportProgress(50);
 
+  // Special handling for directory structures
+  // If we have individual preset files in a presets/ directory, we can generate presets.json
+  const hasPresetsDir = foundDirs.has("presets");
+  const hasPresetsJson = foundFiles.has("presets.json");
+  const hasFieldsDir = foundDirs.has("fields");
+
+  if (hasPresetsDir && !hasPresetsJson) {
+    console.log(
+      "Found presets directory but no presets.json - will generate from individual files",
+    );
+    foundFiles.add("presets.json"); // Mark as found since we'll generate it
+  }
+
+  // If we have a fields directory, we can use that for field definitions
+  if (hasFieldsDir) {
+    console.log("Found fields directory - will use for field definitions");
+  }
+
   // Check for missing required files
-  console.log('Checking for required files...');
+  console.log("Checking for required files...");
   REQUIRED_FILES.forEach((requiredFile, index) => {
     // Update progress (50-60%)
-    const requiredProgress = 50 + Math.round((index / REQUIRED_FILES.length) * 10);
+    const requiredProgress =
+      50 + Math.round((index / REQUIRED_FILES.length) * 10);
     reportProgress(requiredProgress);
 
     if (!foundFiles.has(requiredFile)) {
       // Special case for metadata.json - some files might have meta.json instead
-      if (requiredFile === 'metadata.json' && foundFiles.has('meta.json')) {
-        console.log('Found meta.json instead of metadata.json - acceptable');
+      if (requiredFile === "metadata.json" && foundFiles.has("meta.json")) {
+        console.log("Found meta.json instead of metadata.json - acceptable");
+      }
+      // Special case for presets.json - we might have individual preset files
+      else if (requiredFile === "presets.json" && hasPresetsDir) {
+        console.log(
+          "Found presets directory instead of presets.json - acceptable",
+        );
+      }
+      // Special case for translations.json - we might not have translations
+      else if (requiredFile === "translations.json") {
+        console.log("Missing translations.json - will create empty one");
+        warnings.push("Missing translations.json file - created empty one");
       } else {
         errors.push(`Missing required file or directory: ${requiredFile}`);
         console.warn(`Missing required file: ${requiredFile}`);
@@ -584,30 +940,40 @@ function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCal
   });
 
   // Check for missing optional files
-  console.log('Checking for optional files...');
+  console.log("Checking for optional files...");
   reportProgress(65);
   OPTIONAL_FILES.forEach((optionalFile, index) => {
     // Update progress (65-75%)
-    const optionalProgress = 65 + Math.round((index / OPTIONAL_FILES.length) * 10);
+    const optionalProgress =
+      65 + Math.round((index / OPTIONAL_FILES.length) * 10);
     reportProgress(optionalProgress);
 
     if (!foundFiles.has(optionalFile)) {
-      warnings.push(`Missing optional file or directory: ${optionalFile}`);
-      console.log(`Missing optional file: ${optionalFile}`);
+      // Special case for icons directory - we might have individual icon files
+      if (optionalFile === "icons" && foundDirs.has("icons")) {
+        console.log("Found icons directory - acceptable");
+      } else {
+        warnings.push(`Missing optional file or directory: ${optionalFile}`);
+        console.log(`Missing optional file: ${optionalFile}`);
+      }
     }
   });
 
-  // Validate content of key files
-  console.log('Validating JSON file content...');
+  // Validate content of key JSON files
+  console.log("Validating JSON file content...");
   reportProgress(80);
-  const jsonFiles = files.filter(file => {
+
+  // Get all JSON files, including those in subdirectories
+  const jsonFiles = files.filter((file) => {
     const fileName = file.getName();
-    return fileName.endsWith('.json') && !fileName.includes('/') && !fileName.endsWith('/');
+    return fileName.endsWith(".json") && !fileName.endsWith("/");
   });
 
   jsonFiles.forEach((file, index) => {
     const fileName = file.getName();
-    console.log(`Validating JSON file ${index + 1}/${jsonFiles.length}: ${fileName}`);
+    console.log(
+      `Validating JSON file ${index + 1}/${jsonFiles.length}: ${fileName}`,
+    );
 
     // Update progress (80-95%)
     const jsonProgress = 80 + Math.round((index / jsonFiles.length) * 15);
@@ -618,27 +984,44 @@ function validateExtractedFiles(files: GoogleAppsScript.Base.Blob[], progressCal
       JSON.parse(content); // Just check if it's valid JSON
       console.log(`Validated JSON file: ${fileName}`);
     } catch (error) {
-      errors.push(`Invalid JSON in file: ${fileName}`);
-      console.warn(`Invalid JSON in file: ${fileName}`, error);
+      // For nested files, include the full path in the error message
+      const errorFileName = fileName.includes("/") ? fileName : fileName;
+      errors.push(`Invalid JSON in file: ${errorFileName}`);
+      console.warn(`Invalid JSON in file: ${errorFileName}`, error);
     }
   });
 
   // If we have no required files at all, but we have some files, try to be lenient
   if (errors.length === REQUIRED_FILES.length && files.length > 0) {
-    console.log('No required files found, but we have some files. Attempting to proceed anyway.');
+    console.log(
+      "No required files found, but we have some files. Attempting to proceed anyway.",
+    );
     errors.length = 0; // Clear errors
-    warnings.push('No standard configuration files found. Attempting to process anyway.');
+    warnings.push(
+      "No standard configuration files found. Attempting to process anyway.",
+    );
+  }
+
+  // If we have a package.json file but no metadata.json, we can use package.json for metadata
+  if (!foundFiles.has("metadata.json") && foundFiles.has("package.json")) {
+    console.log(
+      "Found package.json but no metadata.json - will use package.json for metadata",
+    );
+    warnings.push("Using package.json for metadata information");
   }
 
   reportProgress(100);
-  console.log('Validation completed with ' +
-    (errors.length > 0 ? errors.length + ' errors' : 'no errors') + ' and ' +
-    (warnings.length > 0 ? warnings.length + ' warnings' : 'no warnings'));
+  console.log(
+    "Validation completed with " +
+      (errors.length > 0 ? errors.length + " errors" : "no errors") +
+      " and " +
+      (warnings.length > 0 ? warnings.length + " warnings" : "no warnings"),
+  );
 
   return {
     success: errors.length === 0,
     errors: errors.length > 0 ? errors : undefined,
-    warnings: warnings.length > 0 ? warnings : undefined
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
 }
 

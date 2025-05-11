@@ -7,40 +7,40 @@
  * Error types for categorizing different errors
  */
 enum ErrorType {
-  VALIDATION = 'validation',
-  EXTRACTION = 'extraction',
-  PARSING = 'parsing',
-  MAPPING = 'mapping',
-  SPREADSHEET = 'spreadsheet',
-  NETWORK = 'network',
-  PERMISSION = 'permission',
-  UNKNOWN = 'unknown'
+  VALIDATION = "validation",
+  EXTRACTION = "extraction",
+  PARSING = "parsing",
+  MAPPING = "mapping",
+  SPREADSHEET = "spreadsheet",
+  NETWORK = "network",
+  PERMISSION = "permission",
+  UNKNOWN = "unknown",
 }
 
 /**
  * Error severity levels
  */
 enum ErrorSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
+  INFO = "info",
+  WARNING = "warning",
+  ERROR = "error",
+  CRITICAL = "critical",
 }
 
 /**
  * Import process stages
  */
 enum ImportStage {
-  FILE_SELECTION = 'file_selection',
-  FILE_READING = 'file_reading',
-  EXTRACTION = 'extraction',
-  VALIDATION = 'validation',
-  PARSING = 'parsing',
-  FORMAT_DETECTION = 'format_detection',
-  MAPPING = 'mapping',
-  SPREADSHEET_UPDATE = 'spreadsheet_update',
-  CLEANUP = 'cleanup',
-  COMPLETE = 'complete'
+  FILE_SELECTION = "file_selection",
+  FILE_READING = "file_reading",
+  EXTRACTION = "extraction",
+  VALIDATION = "validation",
+  PARSING = "parsing",
+  FORMAT_DETECTION = "format_detection",
+  MAPPING = "mapping",
+  SPREADSHEET_UPDATE = "spreadsheet_update",
+  CLEANUP = "cleanup",
+  COMPLETE = "complete",
 }
 
 /**
@@ -89,7 +89,7 @@ let currentTransaction: ImportTransaction = {
   startTime: null,
   currentStage: null,
   errors: [],
-  warnings: []
+  warnings: [],
 };
 
 /**
@@ -99,7 +99,9 @@ let currentTransaction: ImportTransaction = {
 function startImportTransaction(): ImportTransaction {
   // If there's already an active transaction, log a warning
   if (currentTransaction.active) {
-    console.warn('Starting a new transaction while another is active. The previous transaction will be abandoned.');
+    console.warn(
+      "Starting a new transaction while another is active. The previous transaction will be abandoned.",
+    );
   }
 
   // Create a backup of the current spreadsheet state
@@ -112,10 +114,13 @@ function startImportTransaction(): ImportTransaction {
     backupData,
     currentStage: ImportStage.FILE_SELECTION,
     errors: [],
-    warnings: []
+    warnings: [],
   };
 
-  console.log('Started new import transaction at', currentTransaction.startTime);
+  console.log(
+    "Started new import transaction at",
+    currentTransaction.startTime,
+  );
   return currentTransaction;
 }
 
@@ -125,11 +130,13 @@ function startImportTransaction(): ImportTransaction {
  */
 function updateImportStage(stage: ImportStage): void {
   if (!currentTransaction.active) {
-    console.warn('Attempting to update stage on inactive transaction');
+    console.warn("Attempting to update stage on inactive transaction");
     return;
   }
 
-  console.log(`Import stage changed: ${currentTransaction.currentStage} -> ${stage}`);
+  console.log(
+    `Import stage changed: ${currentTransaction.currentStage} -> ${stage}`,
+  );
   currentTransaction.currentStage = stage;
 }
 
@@ -139,11 +146,11 @@ function updateImportStage(stage: ImportStage): void {
  */
 function addImportError(error: ImportError): void {
   if (!currentTransaction.active) {
-    console.warn('Attempting to add error to inactive transaction');
+    console.warn("Attempting to add error to inactive transaction");
     return;
   }
 
-  console.error('Import error:', error);
+  console.error("Import error:", error);
   currentTransaction.errors.push(error);
 
   // If it's a critical error, commit the transaction as failed
@@ -158,11 +165,11 @@ function addImportError(error: ImportError): void {
  */
 function addImportWarning(warning: ImportError): void {
   if (!currentTransaction.active) {
-    console.warn('Attempting to add warning to inactive transaction');
+    console.warn("Attempting to add warning to inactive transaction");
     return;
   }
 
-  console.warn('Import warning:', warning);
+  console.warn("Import warning:", warning);
   currentTransaction.warnings.push(warning);
 }
 
@@ -173,17 +180,17 @@ function addImportWarning(warning: ImportError): void {
  */
 function commitImportTransaction(success: boolean): ImportResult {
   if (!currentTransaction.active) {
-    console.warn('Attempting to commit inactive transaction');
+    console.warn("Attempting to commit inactive transaction");
     return {
       success: false,
       stage: ImportStage.UNKNOWN,
-      message: 'No active import transaction to commit'
+      message: "No active import transaction to commit",
     };
   }
 
   // If not successful, roll back changes
   if (!success) {
-    console.log('Rolling back import transaction due to failure');
+    console.log("Rolling back import transaction due to failure");
     rollbackImportTransaction();
   }
 
@@ -191,25 +198,34 @@ function commitImportTransaction(success: boolean): ImportResult {
   const result: ImportResult = {
     success,
     stage: currentTransaction.currentStage,
-    message: success ? 'Import completed successfully' : 'Import failed',
-    errors: currentTransaction.errors.length > 0 ? currentTransaction.errors : undefined,
-    warnings: currentTransaction.warnings.length > 0 ? currentTransaction.warnings : undefined
+    message: success ? "Import completed successfully" : "Import failed",
+    errors:
+      currentTransaction.errors.length > 0
+        ? currentTransaction.errors
+        : undefined,
+    warnings:
+      currentTransaction.warnings.length > 0
+        ? currentTransaction.warnings
+        : undefined,
   };
 
   // Add details about errors and warnings
-  if (currentTransaction.errors.length > 0 || currentTransaction.warnings.length > 0) {
+  if (
+    currentTransaction.errors.length > 0 ||
+    currentTransaction.warnings.length > 0
+  ) {
     result.details = {
       errorCount: currentTransaction.errors.length,
       warningCount: currentTransaction.warnings.length,
-      errorTypes: [...new Set(currentTransaction.errors.map(e => e.type))],
-      errorStages: [...new Set(currentTransaction.errors.map(e => e.stage))]
+      errorTypes: [...new Set(currentTransaction.errors.map((e) => e.type))],
+      errorStages: [...new Set(currentTransaction.errors.map((e) => e.stage))],
     };
   }
 
   // Reset the transaction
   currentTransaction.active = false;
 
-  console.log('Committed import transaction:', result);
+  console.log("Committed import transaction:", result);
   return result;
 }
 
@@ -218,11 +234,11 @@ function commitImportTransaction(success: boolean): ImportResult {
  */
 function rollbackImportTransaction(): void {
   if (!currentTransaction.active) {
-    console.warn('Attempting to roll back inactive transaction');
+    console.warn("Attempting to roll back inactive transaction");
     return;
   }
 
-  console.log('Rolling back import transaction');
+  console.log("Rolling back import transaction");
 
   // Restore the spreadsheet state from backup
   if (currentTransaction.backupData) {
@@ -235,36 +251,36 @@ function rollbackImportTransaction(): void {
  * @returns The backup data
  */
 function backupSpreadsheetState(): any {
-  console.log('Creating spreadsheet backup');
-  
+  console.log("Creating spreadsheet backup");
+
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const sheets = spreadsheet.getSheets();
     const backup = {};
-    
+
     // For each sheet, store its data
-    sheets.forEach(sheet => {
+    sheets.forEach((sheet) => {
       const sheetName = sheet.getName();
-      
+
       // Skip sheets that are too large or not relevant
-      if (sheetName.startsWith('_') || sheetName === 'Sheet1') {
+      if (sheetName.startsWith("_") || sheetName === "Sheet1") {
         return;
       }
-      
+
       // Get the data range
       const dataRange = sheet.getDataRange();
       if (dataRange.getNumRows() > 0 && dataRange.getNumColumns() > 0) {
         backup[sheetName] = {
           values: dataRange.getValues(),
           formulas: dataRange.getFormulas(),
-          backgrounds: dataRange.getBackgrounds()
+          backgrounds: dataRange.getBackgrounds(),
         };
       }
     });
-    
+
     return backup;
   } catch (error) {
-    console.error('Error creating spreadsheet backup:', error);
+    console.error("Error creating spreadsheet backup:", error);
     return null;
   }
 }
@@ -274,20 +290,20 @@ function backupSpreadsheetState(): any {
  * @param backup - The backup data
  */
 function restoreSpreadsheetState(backup: any): void {
-  console.log('Restoring spreadsheet from backup');
-  
+  console.log("Restoring spreadsheet from backup");
+
   if (!backup) {
-    console.warn('No backup data provided for restoration');
+    console.warn("No backup data provided for restoration");
     return;
   }
-  
+
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     // For each sheet in the backup, restore its data
     for (const sheetName in backup) {
       let sheet = spreadsheet.getSheetByName(sheetName);
-      
+
       // If the sheet doesn't exist, create it
       if (!sheet) {
         sheet = spreadsheet.insertSheet(sheetName);
@@ -295,38 +311,42 @@ function restoreSpreadsheetState(backup: any): void {
         // Clear the existing sheet
         sheet.clear();
       }
-      
+
       const sheetData = backup[sheetName];
-      
+
       // Restore the data
       if (sheetData.values && sheetData.values.length > 0) {
         const numRows = sheetData.values.length;
         const numCols = sheetData.values[0].length;
-        
+
         // Set values
         sheet.getRange(1, 1, numRows, numCols).setValues(sheetData.values);
-        
+
         // Set formulas (overwriting values where formulas exist)
         if (sheetData.formulas) {
           for (let row = 0; row < numRows; row++) {
             for (let col = 0; col < numCols; col++) {
               if (sheetData.formulas[row][col]) {
-                sheet.getRange(row + 1, col + 1).setFormula(sheetData.formulas[row][col]);
+                sheet
+                  .getRange(row + 1, col + 1)
+                  .setFormula(sheetData.formulas[row][col]);
               }
             }
           }
         }
-        
+
         // Set backgrounds
         if (sheetData.backgrounds) {
-          sheet.getRange(1, 1, numRows, numCols).setBackgrounds(sheetData.backgrounds);
+          sheet
+            .getRange(1, 1, numRows, numCols)
+            .setBackgrounds(sheetData.backgrounds);
         }
       }
     }
-    
-    console.log('Spreadsheet restoration complete');
+
+    console.log("Spreadsheet restoration complete");
   } catch (error) {
-    console.error('Error restoring spreadsheet:', error);
+    console.error("Error restoring spreadsheet:", error);
   }
 }
 
@@ -336,13 +356,13 @@ function restoreSpreadsheetState(backup: any): void {
  * @returns User-friendly error message
  */
 function createUserErrorMessage(error: ImportError): string {
-  let message = error.userMessage || 'An error occurred during import.';
-  
+  let message = error.userMessage || "An error occurred during import.";
+
   // Add suggested action if available
   if (error.suggestedAction) {
-    message += ' ' + error.suggestedAction;
+    message += " " + error.suggestedAction;
   }
-  
+
   return message;
 }
 
@@ -353,15 +373,15 @@ function createUserErrorMessage(error: ImportError): string {
  */
 function createTechnicalErrorMessage(error: ImportError): string {
   let message = `[${error.severity.toUpperCase()}] [${error.type}] [${error.stage}]: ${error.message}`;
-  
+
   // Add technical details if available
   if (error.technicalMessage) {
-    message += '\nDetails: ' + error.technicalMessage;
+    message += "\nDetails: " + error.technicalMessage;
   }
-  
+
   // Add timestamp
-  message += '\nTimestamp: ' + error.timestamp.toISOString();
-  
+  message += "\nTimestamp: " + error.timestamp.toISOString();
+
   return message;
 }
 
@@ -371,31 +391,35 @@ function createTechnicalErrorMessage(error: ImportError): string {
  * @param errors - Array of errors to display
  * @param warnings - Array of warnings to display
  */
-function showErrorDialog(title: string, errors: ImportError[], warnings?: ImportError[]): void {
+function showErrorDialog(
+  title: string,
+  errors: ImportError[],
+  warnings?: ImportError[],
+): void {
   const ui = SpreadsheetApp.getUi();
-  
-  let message = '';
-  
+
+  let message = "";
+
   // Add errors
   if (errors && errors.length > 0) {
-    message += 'The following errors occurred:\n\n';
-    errors.forEach(error => {
-      message += '• ' + createUserErrorMessage(error) + '\n';
+    message += "The following errors occurred:\n\n";
+    errors.forEach((error) => {
+      message += "• " + createUserErrorMessage(error) + "\n";
     });
   }
-  
+
   // Add warnings
   if (warnings && warnings.length > 0) {
-    if (message) message += '\n';
-    message += 'Warnings:\n\n';
-    warnings.forEach(warning => {
-      message += '• ' + createUserErrorMessage(warning) + '\n';
+    if (message) message += "\n";
+    message += "Warnings:\n\n";
+    warnings.forEach((warning) => {
+      message += "• " + createUserErrorMessage(warning) + "\n";
     });
   }
-  
+
   // Add help text
-  message += '\nPlease try again or contact support if the problem persists.';
-  
+  message += "\nPlease try again or contact support if the problem persists.";
+
   ui.alert(title, message, ui.ButtonSet.OK);
 }
 
@@ -405,19 +429,23 @@ function showErrorDialog(title: string, errors: ImportError[], warnings?: Import
  * @param message - Success message
  * @param warnings - Array of warnings to display
  */
-function showSuccessDialog(title: string, message: string, warnings?: ImportError[]): void {
+function showSuccessDialog(
+  title: string,
+  message: string,
+  warnings?: ImportError[],
+): void {
   const ui = SpreadsheetApp.getUi();
-  
+
   let fullMessage = message;
-  
+
   // Add warnings
   if (warnings && warnings.length > 0) {
-    fullMessage += '\n\nWarnings:\n\n';
-    warnings.forEach(warning => {
-      fullMessage += '• ' + createUserErrorMessage(warning) + '\n';
+    fullMessage += "\n\nWarnings:\n\n";
+    warnings.forEach((warning) => {
+      fullMessage += "• " + createUserErrorMessage(warning) + "\n";
     });
   }
-  
+
   ui.alert(title, fullMessage, ui.ButtonSet.OK);
 }
 
@@ -442,7 +470,7 @@ function createImportError(
     recoverable?: boolean;
     technicalMessage?: string;
     suggestedAction?: string;
-  }
+  },
 ): ImportError {
   return {
     type,
@@ -451,10 +479,11 @@ function createImportError(
     message,
     userMessage,
     timestamp: new Date(),
-    recoverable: options?.recoverable !== undefined ? options.recoverable : false,
+    recoverable:
+      options?.recoverable !== undefined ? options.recoverable : false,
     details: options?.details,
     technicalMessage: options?.technicalMessage,
-    suggestedAction: options?.suggestedAction
+    suggestedAction: options?.suggestedAction,
   };
 }
 
@@ -474,5 +503,5 @@ export {
   rollbackImportTransaction,
   createImportError,
   showErrorDialog,
-  showSuccessDialog
+  showSuccessDialog,
 };

@@ -1,20 +1,20 @@
 /**
- * Test function for field extraction and application to the Details tab
- * This function tests the extraction and application of fields from a configuration file
+ * Test function for importing category files
+ * This function tests the extraction, parsing, and application of category files
  */
 
 /**
- * Test the field extraction and application functionality
+ * Test the category import functionality
  * @param url - URL of the test file to download (optional)
  */
-function testFieldExtraction(url?: string) {
+function testImportCategory(url?: string) {
   const ui = SpreadsheetApp.getUi();
 
   try {
     // Show a progress dialog
     const htmlOutput = HtmlService.createHtmlOutput(
       '<div style="text-align: center; padding: 20px;">' +
-        "<h3>Testing Field Extraction</h3>" +
+        "<h3>Testing Category Import</h3>" +
         '<div id="progress-container" style="width: 100%; background-color: #f1f1f1; border-radius: 5px; margin: 20px 0;">' +
         '<div id="progress-bar" style="width: 0%; height: 30px; background-color: #4CAF50; border-radius: 5px; text-align: center; line-height: 30px; color: white;">0%</div>' +
         "</div>" +
@@ -40,10 +40,7 @@ function testFieldExtraction(url?: string) {
       .setWidth(600)
       .setHeight(400);
 
-    const dialog = ui.showModelessDialog(
-      htmlOutput,
-      "Testing Field Extraction",
-    );
+    const dialog = ui.showModelessDialog(htmlOutput, "Testing Category Import");
 
     // Helper function to update progress
     const updateProgress = (
@@ -71,7 +68,7 @@ function testFieldExtraction(url?: string) {
 
     // Start the test
     updateProgress(5, "Starting test...");
-    log("Starting field extraction test", "info");
+    log("Starting category import test", "info");
 
     // Use a default URL if none provided
     if (!url) {
@@ -100,7 +97,7 @@ function testFieldExtraction(url?: string) {
     // Create a temporary folder
     updateProgress(20, "Creating temporary folder...");
     const tempFolder = DriveApp.createFolder(
-      "Field_Extraction_Test_" + new Date().getTime(),
+      "Category_Import_Test_" + new Date().getTime(),
     );
     log(`Created temporary folder: ${tempFolder.getName()}`, "info");
 
@@ -113,6 +110,14 @@ function testFieldExtraction(url?: string) {
 
       if (!extractionResult.success) {
         log(`Extraction failed: ${extractionResult.message}`, "error");
+        if (
+          extractionResult.validationErrors &&
+          extractionResult.validationErrors.length > 0
+        ) {
+          extractionResult.validationErrors.forEach((error) => {
+            log(`Validation error: ${error}`, "error");
+          });
+        }
         throw new Error("Extraction failed");
       }
 
@@ -120,6 +125,16 @@ function testFieldExtraction(url?: string) {
         `Extraction successful: ${extractionResult.files.length} files extracted`,
         "success",
       );
+
+      // Log warnings if any
+      if (
+        extractionResult.validationWarnings &&
+        extractionResult.validationWarnings.length > 0
+      ) {
+        extractionResult.validationWarnings.forEach((warning) => {
+          log(`Validation warning: ${warning}`, "warning");
+        });
+      }
     } catch (error) {
       log(`Error during extraction: ${error}`, "error");
       throw new Error(`Failed to extract file: ${error}`);
@@ -133,26 +148,26 @@ function testFieldExtraction(url?: string) {
       configData = extractConfigurationData(
         extractionResult.files,
         extractionResult.tempFolder,
+        {
+          onProgress: (stage, percent) => {
+            const overallPercent = 50 + Math.round(percent * 0.2); // Map 0-100 to 50-70
+            updateProgress(
+              overallPercent,
+              `Extracting: ${stage} (${percent}%)...`,
+            );
+          },
+        },
       );
 
       log("Configuration data extracted:", "success");
       log(
-        `- Fields: ${configData.fields ? configData.fields.length : 0}`,
+        `- Metadata: ${configData.metadata ? "Present" : "Not present"}`,
         "info",
       );
-
-      if (configData.fields && configData.fields.length > 0) {
-        // Log the first few fields for debugging
-        const sampleFields = configData.fields.slice(0, 3);
-        sampleFields.forEach((field, index) => {
-          log(
-            `Sample field ${index + 1}: ${field.label || field.id || "unnamed"} (${field.type || "unknown type"})`,
-            "info",
-          );
-        });
-      } else {
-        log("No fields found in configuration data", "warning");
-      }
+      log(`- Presets: ${configData.presets.length}`, "info");
+      log(`- Fields: ${configData.fields.length}`, "info");
+      log(`- Icons: ${configData.icons.length}`, "info");
+      log(`- Languages: ${Object.keys(configData.messages).length}`, "info");
     } catch (error) {
       log(`Error extracting configuration data: ${error}`, "error");
       throw new Error(`Failed to extract configuration data: ${error}`);
@@ -163,6 +178,14 @@ function testFieldExtraction(url?: string) {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const backupSheets = {};
 
+    // Backup Categories sheet
+    const categoriesSheet = spreadsheet.getSheetByName("Categories");
+    if (categoriesSheet) {
+      log("Backing up Categories sheet...", "info");
+      const categoriesData = categoriesSheet.getDataRange().getValues();
+      backupSheets["Categories"] = categoriesData;
+    }
+
     // Backup Details sheet
     const detailsSheet = spreadsheet.getSheetByName("Details");
     if (detailsSheet) {
@@ -171,55 +194,73 @@ function testFieldExtraction(url?: string) {
       backupSheets["Details"] = detailsData;
     }
 
-    // Apply fields to spreadsheet
-    updateProgress(80, "Applying fields to spreadsheet...");
+    // Apply configuration to spreadsheet
+    updateProgress(80, "Applying configuration to spreadsheet...");
     try {
-      // Create or clear the Details sheet
-      let sheet = spreadsheet.getSheetByName("Details");
-      if (!sheet) {
-        log("Creating new Details sheet", "info");
-        sheet = spreadsheet.insertSheet("Details");
-      } else {
-        log("Clearing existing Details sheet", "info");
-        sheet.clear();
-      }
+      applyConfigurationToSpreadsheet(configData);
+      log("Configuration applied to spreadsheet successfully", "success");
 
-      // Apply fields
-      if (configData.fields && configData.fields.length > 0) {
-        log(
-          `Applying ${configData.fields.length} fields to Details sheet`,
-          "info",
-        );
-        applyFields(spreadsheet, configData.fields);
+      // Verify Categories sheet
+      const newCategoriesSheet = spreadsheet.getSheetByName("Categories");
+      if (newCategoriesSheet) {
+        const categoriesCount = Math.max(
+          0,
+          newCategoriesSheet.getLastRow() - 1,
+        ); // Subtract header row
+        log(`Categories sheet has ${categoriesCount} categories`, "info");
 
-        // Verify fields were applied
-        const newDetailsSheet = spreadsheet.getSheetByName("Details");
-        if (newDetailsSheet) {
-          const lastRow = newDetailsSheet.getLastRow();
-          log(
-            `Details sheet now has ${lastRow - 1} fields (header row excluded)`,
-            "success",
+        // Check if icons are present
+        let iconsCount = 0;
+        if (categoriesCount > 0) {
+          const iconRange = newCategoriesSheet.getRange(
+            2,
+            2,
+            categoriesCount,
+            1,
           );
-
-          if (lastRow <= 1) {
-            log("No fields were added to the Details sheet!", "error");
-          } else if (lastRow - 1 !== configData.fields.length) {
-            log(
-              `Warning: Expected ${configData.fields.length} fields but found ${lastRow - 1}`,
-              "warning",
-            );
-          }
-        } else {
-          log("Details sheet not found after applying fields", "error");
+          const iconValues = iconRange.getValues();
+          iconsCount = iconValues.filter(
+            (row) => row[0] && row[0].toString().trim() !== "",
+          ).length;
+          log(
+            `Categories sheet has ${iconsCount} icons`,
+            iconsCount > 0 ? "success" : "warning",
+          );
         }
       } else {
-        log("No fields to apply", "warning");
+        log("Categories sheet not found after import", "error");
+      }
+
+      // Verify Details sheet
+      const newDetailsSheet = spreadsheet.getSheetByName("Details");
+      if (newDetailsSheet) {
+        const detailsCount = Math.max(0, newDetailsSheet.getLastRow() - 1); // Subtract header row
+        log(
+          `Details sheet has ${detailsCount} fields`,
+          detailsCount > 0 ? "success" : "warning",
+        );
+      } else {
+        log("Details sheet not found after import", "error");
       }
     } catch (error) {
-      log(`Error applying fields to spreadsheet: ${error}`, "error");
+      log(`Error applying configuration to spreadsheet: ${error}`, "error");
 
       // Restore backup
       log("Restoring backup...", "info");
+
+      // Restore Categories sheet
+      if (backupSheets["Categories"] && categoriesSheet) {
+        categoriesSheet.clear();
+        categoriesSheet
+          .getRange(
+            1,
+            1,
+            backupSheets["Categories"].length,
+            backupSheets["Categories"][0].length,
+          )
+          .setValues(backupSheets["Categories"]);
+        log("Restored Categories sheet", "success");
+      }
 
       // Restore Details sheet
       if (backupSheets["Details"] && detailsSheet) {
@@ -235,7 +276,7 @@ function testFieldExtraction(url?: string) {
         log("Restored Details sheet", "success");
       }
 
-      throw new Error(`Failed to apply fields to spreadsheet: ${error}`);
+      throw new Error(`Failed to apply configuration to spreadsheet: ${error}`);
     }
 
     // Clean up
@@ -247,37 +288,19 @@ function testFieldExtraction(url?: string) {
       log(`Error cleaning up temporary folder: ${error}`, "warning");
     }
 
-    // Restore backup
-    updateProgress(98, "Restoring backup...");
-    log("Restoring backup...", "info");
-
-    // Restore Details sheet
-    if (backupSheets["Details"] && detailsSheet) {
-      detailsSheet.clear();
-      detailsSheet
-        .getRange(
-          1,
-          1,
-          backupSheets["Details"].length,
-          backupSheets["Details"][0].length,
-        )
-        .setValues(backupSheets["Details"]);
-      log("Restored Details sheet", "success");
-    }
-
     // Complete
     updateProgress(100, "Test completed successfully");
-    log("Field extraction test completed successfully", "success");
+    log("Category import test completed successfully", "success");
 
     return {
       success: true,
-      message: "Field extraction test completed successfully",
+      message: "Category import test completed successfully",
     };
   } catch (error) {
-    console.error("Error in field extraction test:", error);
+    console.error("Error in category import test:", error);
     return {
       success: false,
-      message: `Error in field extraction test: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Error in category import test: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

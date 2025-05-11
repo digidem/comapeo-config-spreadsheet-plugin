@@ -18,7 +18,7 @@ function translateSheet(
   const lastRow = sheet.getLastRow();
   const languagesList = languages();
   const mainLanguage = Object.keys(languages(true))[0];
-  console.log('Main language', mainLanguage);
+  console.log("Main language", mainLanguage);
   for (const [code, name] of Object.entries(languagesList)) {
     console.log(`Language code: ${code}, name: ${name}`);
   }
@@ -48,8 +48,14 @@ function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
     sheet = spreadsheet.insertSheet(CATEGORY_TRANSLATIONS_SHEET);
     const mainLanguage = Object.entries(languages(true))[0];
     const otherLanguages = Object.entries(languages());
-    const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    const headers = [
+      mainLanguage[1],
+      ...otherLanguages.map(([_, name]) => name),
+    ];
+    sheet
+      .getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight("bold");
 
     const categoriesSheet = spreadsheet.getSheetByName(CATEGORIES_SHEET);
     if (categoriesSheet) {
@@ -64,11 +70,17 @@ function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
 function autoTranslateSheets(): void {
   const allSheets = sheets();
   const translationSheets = sheets(true);
-  const categoriesAndDetailsSheets = allSheets.filter(sheet => !translationSheets.includes(sheet));
+  const categoriesAndDetailsSheets = allSheets.filter(
+    (sheet) => !translationSheets.includes(sheet),
+  );
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[0]);
-  const detailsSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[1]);
+  const categoriesSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[0],
+  );
+  const detailsSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[1],
+  );
 
   if (!categoriesSheet || !detailsSheet) {
     throw new Error("Categories or Details sheet not found");
@@ -83,8 +95,14 @@ function autoTranslateSheets(): void {
         sheet = spreadsheet.insertSheet(sheetName);
         const mainLanguage = Object.entries(languages(true))[0];
         const otherLanguages = Object.entries(languages());
-        const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
-        sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+        const headers = [
+          mainLanguage[1],
+          ...otherLanguages.map(([_, name]) => name),
+        ];
+        sheet
+          .getRange(1, 1, 1, headers.length)
+          .setValues([headers])
+          .setFontWeight("bold");
 
         let sourceSheet: string;
         let sourceColumn: string;

@@ -1,16 +1,24 @@
 let activeUserLocale = Session.getActiveUserLocale().split("_")[0];
-const supportedLocales = ["en", "es"]
-const defaultLocale = "en"
-let locale = supportedLocales.includes(activeUserLocale) ? activeUserLocale : defaultLocale
+const supportedLocales = ["en", "es"];
+const defaultLocale = "en";
+let locale = supportedLocales.includes(activeUserLocale)
+  ? activeUserLocale
+  : defaultLocale;
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu(menuTexts[locale].menu)
-    .addItem(menuTexts[locale].translateCoMapeoCategory, "translateCoMapeoCategory")
+    .addItem(
+      menuTexts[locale].translateCoMapeoCategory,
+      "translateCoMapeoCategory",
+    )
     .addItem(menuTexts[locale].addCustomLanguages, "addCustomLanguages")
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addSeparator()
-    .addItem(menuTexts[locale].generateCoMapeoCategory, "generateCoMapeoCategory")
+    .addItem(
+      menuTexts[locale].generateCoMapeoCategory,
+      "generateCoMapeoCategory",
+    )
     .addItem(menuTexts[locale].importCategoryFile, "importCategoryFile")
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
@@ -19,13 +27,16 @@ function onOpen() {
     .addToUi();
 
   // Add developer menu in development environment
-  if (PropertiesService.getScriptProperties().getProperty('ENVIRONMENT') === 'development') {
-    ui.createMenu('Developer')
-      .addItem('Test Format Detection', 'testFormatDetection')
-      .addItem('Test Translation Extraction', 'testTranslationExtraction')
-      .addItem('Test Category Import', 'testImportCategory')
-      .addItem('Test Details and Icons', 'testDetailsAndIcons')
-      .addItem('Test Field Extraction', 'testFieldExtraction')
+  if (
+    PropertiesService.getScriptProperties().getProperty("ENVIRONMENT") ===
+    "development"
+  ) {
+    ui.createMenu("Developer")
+      .addItem("Test Format Detection", "testFormatDetection")
+      .addItem("Test Translation Extraction", "testTranslationExtraction")
+      .addItem("Test Category Import", "testImportCategory")
+      .addItem("Test Details and Icons", "testDetailsAndIcons")
+      .addItem("Test Field Extraction", "testFieldExtraction")
       .addToUi();
   }
 }
@@ -48,7 +59,7 @@ function translateCoMapeoCategory() {
       );
     } catch (error) {
       ui.alert(
-         translateMenuTexts[locale].error,
+        translateMenuTexts[locale].error,
         translateMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
@@ -63,7 +74,7 @@ function addCustomLanguages() {
     SpreadsheetApp.getUi().alert(
       "Error",
       `An error occurred while adding languages: ${error.message}`,
-      SpreadsheetApp.getUi().ButtonSet.OK
+      SpreadsheetApp.getUi().ButtonSet.OK,
     );
   }
 }
@@ -115,7 +126,7 @@ function lintCoMapeoCategory() {
   const result = ui.alert(
     lintMenuTexts[locale].action,
     lintMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO
+    ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
@@ -124,13 +135,13 @@ function lintCoMapeoCategory() {
       ui.alert(
         lintMenuTexts[locale].completed,
         lintMenuTexts[locale].completedText,
-        ui.ButtonSet.OK
+        ui.ButtonSet.OK,
       );
     } catch (error) {
       ui.alert(
         lintMenuTexts[locale].error,
         lintMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK
+        ui.ButtonSet.OK,
       );
     }
   }
@@ -141,7 +152,7 @@ function cleanAllSheets() {
   const result = ui.alert(
     cleanAllMenuTexts[locale].action,
     cleanAllMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO
+    ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
@@ -150,20 +161,20 @@ function cleanAllSheets() {
       ui.alert(
         cleanAllMenuTexts[locale].completed,
         cleanAllMenuTexts[locale].completedText,
-        ui.ButtonSet.OK
+        ui.ButtonSet.OK,
       );
     } catch (error) {
       ui.alert(
         cleanAllMenuTexts[locale].error,
         cleanAllMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK
+        ui.ButtonSet.OK,
       );
     }
   }
 }
 
 function openHelpPage() {
-  showHelpDialog()
+  showHelpDialog();
 }
 
 function importCategoryFile() {
@@ -171,7 +182,7 @@ function importCategoryFile() {
   const result = ui.alert(
     importCategoryMenuTexts[locale].action,
     importCategoryMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO
+    ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
@@ -182,7 +193,7 @@ function importCategoryFile() {
       ui.alert(
         importCategoryMenuTexts[locale].error,
         importCategoryMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK
+        ui.ButtonSet.OK,
       );
     }
   }

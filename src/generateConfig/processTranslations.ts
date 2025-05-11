@@ -1,73 +1,101 @@
 function processTranslations(data, fields, presets) {
-  console.log('Starting processTranslations...');
+  console.log("Starting processTranslations...");
 
   // Get base languages
   const baseLanguages = Object.keys(languages());
 
   // Get additional languages from Category Translations sheet
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Category Translations');
-  const headerRow = sheet?.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const additionalLanguages = headerRow.slice(3) // Start from column D
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
+    "Category Translations",
+  );
+  const headerRow = sheet
+    ?.getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0];
+  const additionalLanguages = headerRow
+    .slice(3) // Start from column D
     .filter(Boolean)
-    .map(header => {
+    .map((header) => {
       const match = header.toString().match(/.*\s*-\s*(\w+)/);
       return match ? match[1].trim() : null;
     })
     .filter(Boolean);
 
   const targetLanguages = [...baseLanguages, ...additionalLanguages];
-  console.log('Available languages:', targetLanguages);
+  console.log("Available languages:", targetLanguages);
 
   const messages: CoMapeoTranslations = Object.fromEntries(
-    targetLanguages.map(lang => [lang, {}])
+    targetLanguages.map((lang) => [lang, {}]),
   );
 
   const translationSheets = sheets(true);
-  console.log('Processing translation sheets:', translationSheets);
+  console.log("Processing translation sheets:", translationSheets);
   for (const sheetName of translationSheets) {
     console.log(`\nProcessing sheet: ${sheetName}`);
     const translations = data[sheetName].slice(1);
     console.log(`Found ${translations.length} translations`);
-    for (let translationIndex = 0; translationIndex < translations.length; translationIndex++) {
+    for (
+      let translationIndex = 0;
+      translationIndex < translations.length;
+      translationIndex++
+    ) {
       const translationRow = translations[translationIndex];
-      const translation = translationRow.map(t => t.toString().trim());
-      console.log(`\nProcessing translation ${translationIndex + 1}/${translations.length}:`, translation);
+      const translation = translationRow.map((t) => t.toString().trim());
+      console.log(
+        `\nProcessing translation ${translationIndex + 1}/${translations.length}:`,
+        translation,
+      );
       for (let langIndex = 0; langIndex < targetLanguages.length; langIndex++) {
         const lang = targetLanguages[langIndex] as TranslationLanguage;
-        const messageType = sheetName.startsWith('Category') ? 'presets' : 'fields';
-        const item = messageType === 'fields' ? fields[translationIndex] : presets[translationIndex];
-        const key = messageType === 'presets' ? (item as CoMapeoPreset).icon : (item as CoMapeoField).tagKey;
+        const messageType = sheetName.startsWith("Category")
+          ? "presets"
+          : "fields";
+        const item =
+          messageType === "fields"
+            ? fields[translationIndex]
+            : presets[translationIndex];
+        const key =
+          messageType === "presets"
+            ? (item as CoMapeoPreset).icon
+            : (item as CoMapeoField).tagKey;
 
-        console.log(`Processing ${messageType} for language: ${lang}, key: ${key}`);
+        console.log(
+          `Processing ${messageType} for language: ${lang}, key: ${key}`,
+        );
 
         switch (sheetName) {
-          case 'Category Translations':
+          case "Category Translations":
             messages[lang][`${messageType}.${key}.name`] = {
               message: translation[langIndex + 1],
-              description: `Name for preset '${key}'`
+              description: `Name for preset '${key}'`,
             };
             console.log(`Added category translation for ${key}`);
             break;
-          case 'Detail Label Translations':
+          case "Detail Label Translations":
             messages[lang][`${messageType}.${key}.label`] = {
               message: translation[langIndex + 1],
-              description: `Label for field '${key}'`
+              description: `Label for field '${key}'`,
             };
             console.log(`Added label translation for ${key}`);
             break;
-          case 'Detail Helper Text Translations':
+          case "Detail Helper Text Translations":
             messages[lang][`${messageType}.${key}.helperText`] = {
               message: translation[langIndex + 1],
-              description: `Helper text for field '${key}'`
+              description: `Helper text for field '${key}'`,
             };
             console.log(`Added helper text translation for ${key}`);
             break;
-          case 'Detail Option Translations': {
-            const fieldType = getFieldType((item as CoMapeoField).type || '');
+          case "Detail Option Translations": {
+            const fieldType = getFieldType((item as CoMapeoField).type || "");
             console.log(`Processing options for field type: ${fieldType}`);
 
-            if (fieldType !== 'number' && fieldType !== 'text' && translation[1].trim()) {
-              const options = translation[1].split(',').map(opt => opt.trim());
+            if (
+              fieldType !== "number" &&
+              fieldType !== "text" &&
+              translation[1].trim()
+            ) {
+              const options = translation[1]
+                .split(",")
+                .map((opt) => opt.trim());
               console.log(`Found ${options.length} options to process`);
 
               for (const [optionIndex, option] of options.entries()) {
@@ -95,10 +123,13 @@ function processTranslations(data, fields, presets) {
     }
   }
 
-  console.log('\nTranslation processing complete');
-  console.log('Messages per language:', Object.keys(messages).map(lang =>
-    `${lang}: ${Object.keys(messages[lang]).length} messages`
-  ));
+  console.log("\nTranslation processing complete");
+  console.log(
+    "Messages per language:",
+    Object.keys(messages).map(
+      (lang) => `${lang}: ${Object.keys(messages[lang]).length} messages`,
+    ),
+  );
 
   return messages;
 }

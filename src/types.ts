@@ -98,4 +98,3 @@ interface DialogInstructions {
   instructions: string[];
   footer: string;
 }
-

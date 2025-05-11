@@ -1,4 +1,10 @@
-function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string, buttonFunction?: string): string {
+function generateDialog(
+  title: string,
+  message: string,
+  buttonText?: string,
+  buttonUrl?: string,
+  buttonFunction?: string,
+): string {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -116,8 +122,10 @@ function generateDialog(title: string, message: string, buttonText?: string, but
       <h1>${title}</h1>
       <div class="container">
         ${message}
-        ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ''}
-        ${buttonFunction ? `
+        ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ""}
+        ${
+          buttonFunction
+            ? `
           <button onclick="handleClick()" class="action-btn">
             <span class="btn-text">${buttonText}</span>
             <span class="spinner"></span>
@@ -134,7 +142,9 @@ function generateDialog(title: string, message: string, buttonText?: string, but
               }
             }
           </script>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
     </body>
     </html>
@@ -142,35 +152,49 @@ function generateDialog(title: string, message: string, buttonText?: string, but
 }
 
 function showIconsGeneratedDialog(folderUrl: string) {
-  const title = iconDialogTexts[locale].title ;
-  const message = iconDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n")
+  const title = iconDialogTexts[locale].title;
+  const message = iconDialogTexts[locale].message
+    .map((msg) => `<p>${msg}</p>`)
+    .join("\n");
   const buttonText = iconDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), title);
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
+    title,
+  );
 }
 
-function showProcessingModalDialog(dialogText: DialogText){
-  const message = ` <p>${dialogText.message}</p> `
-  const html = generateDialog(dialogText.title, message)
-    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600), dialogText.title)
-
+function showProcessingModalDialog(dialogText: DialogText) {
+  const message = ` <p>${dialogText.message}</p> `;
+  const html = generateDialog(dialogText.title, message);
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
+    dialogText.title,
+  );
 }
 
 function showConfigurationGeneratedDialog(folderUrl: string) {
-  const title =generatedConfigDialogTexts[locale].title ;
-  const message =  generatedConfigDialogTexts[locale].message
-  .map(msg => `<p>${msg}</p>`).join("\n")
+  const title = generatedConfigDialogTexts[locale].title;
+  const message = generatedConfigDialogTexts[locale].message
+    .map((msg) => `<p>${msg}</p>`)
+    .join("\n");
   const buttonText = generatedConfigDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980),
+    title,
+  );
 }
 
 function showHelpDialog() {
-  const title = helpDialogTexts[locale].title
-  const msgHeader = helpDialogTexts[locale].message.map(msg => `<p>${msg}</p>`).join("\n");
+  const title = helpDialogTexts[locale].title;
+  const msgHeader = helpDialogTexts[locale].message
+    .map((msg) => `<p>${msg}</p>`)
+    .join("\n");
   const instructions = helpDialogTexts[locale].instructions
-  .map(instruction => `<li>${instruction}</li>`).join("\n");
-  const footer = `<p>${helpDialogTexts[locale].footer}</p>`
+    .map((instruction) => `<li>${instruction}</li>`)
+    .join("\n");
+  const footer = `<p>${helpDialogTexts[locale].footer}</p>`;
 
   const message = `
   ${msgHeader}
@@ -178,20 +202,30 @@ function showHelpDialog() {
   ${instructions}
   </ol>
   ${footer}
-`
+`;
   const buttonText = helpDialogTexts[locale].buttonText;
-  const buttonUrl = "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
+  const buttonUrl =
+    "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
   const html = generateDialog(title, message, buttonText, buttonUrl);
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980), title);
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980),
+    title,
+  );
 }
 
 function showAddLanguagesDialog() {
   const title = addLanguageDialogText[locale].title;
-  const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
-  const languages = JSON.parse(UrlFetchApp.fetch(languagesUrl).getContentText());
+  const languagesUrl =
+    "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
+  const languages = JSON.parse(
+    UrlFetchApp.fetch(languagesUrl).getContentText(),
+  );
   const languageOptions = Object.entries(languages)
-    .map(([code, lang]) => `<option value="${code}">${(lang as {englishName: string}).englishName} (${code})</option>`)
-    .join('');
+    .map(
+      ([code, lang]) =>
+        `<option value="${code}">${(lang as { englishName: string }).englishName} (${code})</option>`,
+    )
+    .join("");
 
   const message = `
     <p>${addLanguageDialogText[locale].message[0]}</p>
@@ -262,11 +296,15 @@ function showAddLanguagesDialog() {
     </style>
   `;
   const buttonText = addLanguageDialogText[locale].buttonText;
-  const html = generateDialog(title, message, buttonText, null, 'getSelectedLanguages');
+  const html = generateDialog(
+    title,
+    message,
+    buttonText,
+    null,
+    "getSelectedLanguages",
+  );
   SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html)
-      .setWidth(600)
-      .setHeight(800),
-    title
+    HtmlService.createHtmlOutput(html).setWidth(600).setHeight(800),
+    title,
   );
 }

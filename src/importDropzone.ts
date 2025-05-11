@@ -2,8 +2,20 @@
 declare const locale: string;
 
 // External function declarations
-declare function createOrClearSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName: string): GoogleAppsScript.Spreadsheet.Sheet;
-declare function processImportedCategoryFile(fileName: string, base64Data: string): { success: boolean; message: string; details?: any };
+declare function createOrClearSheet(
+  spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+  sheetName: string,
+): GoogleAppsScript.Spreadsheet.Sheet;
+declare function processImportedCategoryFile(
+  fileName: string,
+  base64Data: string,
+): { success: boolean; message: string; details?: any };
+declare function extractConfigurationData(
+  extractedFiles: GoogleAppsScript.Base.Blob[],
+  tempFolder: GoogleAppsScript.Drive.Folder,
+): any;
+declare function normalizeConfig(jsonData: any): any;
+declare function applyConfigurationToSpreadsheet(config: any): void;
 
 /**
  * Interface for dropzone configuration options
@@ -21,9 +33,12 @@ function showImportDropzoneDialog(): void {
   const htmlOutput = HtmlService.createHtmlOutput(createDropzoneHtml())
     .setWidth(600)
     .setHeight(400)
-    .setTitle('Import Configuration File');
+    .setTitle("Import Configuration File");
 
-  SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Import Configuration File');
+  SpreadsheetApp.getUi().showModalDialog(
+    htmlOutput,
+    "Import Configuration File",
+  );
 }
 
 /**
@@ -31,9 +46,9 @@ function showImportDropzoneDialog(): void {
  */
 function createDropzoneHtml(): string {
   const dropzoneOptions: DropzoneOptions = {
-    acceptedFileTypes: ['.comapeocat', '.mapeosettings'],
+    acceptedFileTypes: [".comapeocat", ".mapeosettings"],
     maxFileSize: 10 * 1024 * 1024, // 10MB
-    multiple: false
+    multiple: false,
   };
 
   return `<!DOCTYPE html>
@@ -273,6 +288,7 @@ function createDropzoneHtml(): string {
   </div>
 
   <script>
+    // @ts-nocheck - This is client-side JavaScript code that will be embedded in HTML
     // Store dropzone options
     const dropzoneOptions = ${JSON.stringify(dropzoneOptions)};
 
@@ -356,10 +372,10 @@ function createDropzoneHtml(): string {
         statusMessage.innerHTML = 'Processing file...<br><span class="details-text">Preparing to extract file contents</span>';
 
         try {
-          const base64data = e.target.result.split(',')[1];
+          const base64data = e.target.result.toString().split(',')[1];
 
           // Call the appropriate Google Apps Script function based on file extension
-          const fileExtension = file.name.split('.').pop().toLowerCase();
+          const fileExtension = file.name.toString().split('.').pop().toLowerCase();
 
           // Create a progress handler function
           const progressHandler = function(progressData) {
@@ -372,11 +388,11 @@ function createDropzoneHtml(): string {
 
                 // Update status message
                 if (progressData.stage) {
-                  let statusHtml = `Processing: ${progressData.stage}`;
+                  let statusHtml = 'Processing: ' + progressData.stage;
 
                   // Add details if available
                   if (progressData.detail) {
-                    statusHtml += `<br><span class="details-text">${progressData.detail}</span>`;
+                    statusHtml += '<br><span class="details-text">' + progressData.detail + '</span>';
                   }
 
                   // Add counts if available
@@ -384,11 +400,11 @@ function createDropzoneHtml(): string {
                     const countsArray = [];
                     for (const key in progressData.counts) {
                       if (progressData.counts[key]) {
-                        countsArray.push(`${progressData.counts[key]} ${key}`);
+                        countsArray.push(progressData.counts[key] + ' ' + key);
                       }
                     }
                     if (countsArray.length > 0) {
-                      statusHtml += `<br><span class="details-text">Found: ${countsArray.join(', ')}</span>`;
+                      statusHtml += '<br><span class="details-text">Found: ' + countsArray.join(', ') + '</span>';
                     }
                   }
 
@@ -400,6 +416,7 @@ function createDropzoneHtml(): string {
             }
           };
 
+          // @ts-ignore - file is defined in the JavaScript context
           if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
             google.script.run
               .withSuccessHandler(onSuccess)
@@ -435,23 +452,23 @@ function createDropzoneHtml(): string {
       // Display success message with details if available
       let successMessage = 'File imported successfully!';
       if (userObject && userObject.fileName) {
-        successMessage = `File "${userObject.fileName}" imported successfully!`;
+        successMessage = 'File "' + userObject.fileName + '" imported successfully!';
       }
 
       if (result && result.details) {
         const details = result.details;
         const detailsText = [];
 
-        if (details.presets) detailsText.push(`${details.presets} categories`);
-        if (details.fields) detailsText.push(`${details.fields} details`);
-        if (details.icons) detailsText.push(`${details.icons} icons`);
+        if (details.presets) detailsText.push(details.presets + ' categories');
+        if (details.fields) detailsText.push(details.fields + ' details');
+        if (details.icons) detailsText.push(details.icons + ' icons');
         if (details.languages) {
           const langCount = Array.isArray(details.languages) ?
             details.languages.length :
             (typeof details.languages === 'object' ? Object.keys(details.languages).length : 0);
 
           if (langCount > 0) {
-            detailsText.push(`${langCount} languages`);
+            detailsText.push(langCount + ' languages');
           }
         }
 
@@ -462,7 +479,7 @@ function createDropzoneHtml(): string {
         // Add processing time if available
         if (details.processingTime) {
           const seconds = (details.processingTime / 1000).toFixed(2);
-          successMessage += `<br><span class="details-text">Processing time: ${seconds} seconds</span>`;
+          successMessage += '<br><span class="details-text">Processing time: ' + seconds + ' seconds</span>';
         }
       }
 
@@ -474,7 +491,7 @@ function createDropzoneHtml(): string {
         const warningsContainer = document.createElement('div');
         warningsContainer.className = 'warnings-container';
         warningsContainer.innerHTML = '<strong>Warnings:</strong><ul>' +
-          result.warnings.map(w => `<li>${w.userMessage || w}</li>`).join('') +
+          result.warnings.map(function(w) { return '<li>' + (w.userMessage || w) + '</li>'; }).join('') +
           '</ul>';
         statusMessage.appendChild(warningsContainer);
       }
@@ -502,7 +519,7 @@ function createDropzoneHtml(): string {
       // Create detailed error message
       let errorMessage = 'Error importing file';
       if (userObject && userObject.fileName) {
-        errorMessage = `Error importing file "${userObject.fileName}"`;
+        errorMessage = 'Error importing file "' + userObject.fileName + '"';
       }
 
       if (error) {
@@ -536,7 +553,7 @@ function createDropzoneHtml(): string {
         if (error.details.stage) {
           const stagePara = document.createElement('p');
           stagePara.className = 'error-stage';
-          stagePara.textContent = `Error occurred during: ${error.details.stage}`;
+          stagePara.textContent = 'Error occurred during: ' + error.details.stage;
           errorDetails.appendChild(stagePara);
         }
 
@@ -598,18 +615,27 @@ function createDropzoneHtml(): string {
  * @param base64Data - Base64 encoded file data
  * @returns Result of the import operation
  */
-function processMapeoSettingsFile(fileName: string, base64Data: string): { success: boolean; message: string } {
+function processMapeoSettingsFile(
+  fileName: string,
+  base64Data: string,
+): { success: boolean; message: string } {
   try {
     console.log(`Starting import of Mapeo settings file: ${fileName}`);
 
     // Decode the base64 data
-    console.log('Decoding base64 data...');
-    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/octet-stream', fileName);
+    console.log("Decoding base64 data...");
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      "application/octet-stream",
+      fileName,
+    );
     console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
     // Create a temporary folder in Drive to extract the file
-    console.log('Creating temporary folder...');
-    const tempFolder = DriveApp.createFolder('Mapeo_Settings_Import_' + new Date().getTime());
+    console.log("Creating temporary folder...");
+    const tempFolder = DriveApp.createFolder(
+      "Mapeo_Settings_Import_" + new Date().getTime(),
+    );
 
     // Save the blob to the temp folder
     const file = tempFolder.createFile(blob);
@@ -621,81 +647,70 @@ function processMapeoSettingsFile(fileName: string, base64Data: string): { succe
 
     try {
       // Try to extract using a custom function or service
-      console.log('Attempting to extract file...');
+      console.log("Attempting to extract file...");
       const extractedFiles = extractTarFile(blob, tempFolder);
       console.log(`Extracted ${extractedFiles.length} files`);
 
       // Look for the configuration files
-      console.log('Extracting configuration data...');
-      const configData = extractMapeoConfigurationData(extractedFiles, tempFolder);
-      console.log('Configuration data extracted successfully');
+      console.log("Extracting configuration data...");
+      const configData = extractMapeoConfigurationData(
+        extractedFiles,
+        tempFolder,
+      );
+      console.log("Configuration data extracted successfully");
 
       // Apply the configuration data to the spreadsheet
-      console.log('Applying configuration to spreadsheet...');
+      console.log("Applying configuration to spreadsheet...");
       applyMapeoConfigurationToSpreadsheet(configData);
-      console.log('Configuration applied successfully');
+      console.log("Configuration applied successfully");
 
       // Clean up the temporary folder
-      console.log('Cleaning up temporary resources...');
+      console.log("Cleaning up temporary resources...");
       tempFolder.setTrashed(true);
 
       // Return success
-      console.log('Import completed successfully');
+      console.log("Import completed successfully");
       return {
         success: true,
-        message: 'Mapeo settings file imported successfully'
+        message: "Mapeo settings file imported successfully",
       };
     } catch (extractError) {
-      console.error('Error extracting tar file:', extractError);
+      console.error("Error extracting tar file:", extractError);
 
       // If extraction fails, try to parse it directly
-      console.log('Attempting to parse file as JSON...');
+      console.log("Attempting to parse file as JSON...");
       const fileContent = blob.getDataAsString();
-      let jsonData;
+      let jsonData: any;
 
       try {
         jsonData = JSON.parse(fileContent);
-        console.log('Successfully parsed file as JSON');
+        console.log("Successfully parsed file as JSON");
 
         // Process the JSON data
-        console.log('Applying JSON configuration to spreadsheet...');
+        console.log("Applying JSON configuration to spreadsheet...");
         applyMapeoJsonConfigToSpreadsheet(jsonData);
-        console.log('Configuration applied successfully');
+        console.log("Configuration applied successfully");
 
         // Clean up
-        console.log('Cleaning up temporary resources...');
+        console.log("Cleaning up temporary resources...");
         tempFolder.setTrashed(true);
 
-        console.log('Import completed successfully');
+        console.log("Import completed successfully");
         return {
           success: true,
-          message: 'Mapeo settings file imported successfully'
+          message: "Mapeo settings file imported successfully",
         };
       } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
-        throw new Error('Could not parse the Mapeo settings file. The file may be corrupted.');
+        console.error("Error parsing JSON:", jsonError);
+        throw new Error(
+          `Could not parse the Mapeo settings file. The file may be corrupted.`,
+        );
       }
     }
   } catch (error) {
-    console.error('Error processing Mapeo settings file:', error);
+    console.error("Error processing Mapeo settings file:", error);
     throw error;
   }
-}
-
-/**
- * Extracts a tar file (workaround since GAS doesn't support tar extraction natively)
- * @param blob - The tar file blob
- * @param folder - The folder to extract to
- * @returns Array of extracted file blobs
- */
-function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScript.Drive.Folder): GoogleAppsScript.Base.Blob[] {
-  // This is a placeholder. In a real implementation, you would:
-  // 1. Either use an external service to extract the tar
-  // 2. Or implement a JavaScript tar extractor
-  // 3. Or convert the tar to a zip file first
-
-  // For now, we'll throw an error that will be caught and handled
-  throw new Error('TAR extraction not implemented');
 }
 
 /**
@@ -704,7 +719,10 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob, folder: GoogleAppsScri
  * @param tempFolder - Temporary folder containing the files
  * @returns Configuration data object
  */
-function extractMapeoConfigurationData(extractedFiles: GoogleAppsScript.Base.Blob[], tempFolder: GoogleAppsScript.Drive.Folder): any {
+function extractMapeoConfigurationData(
+  extractedFiles: GoogleAppsScript.Base.Blob[],
+  tempFolder: GoogleAppsScript.Drive.Folder,
+): any {
   // Use the extractConfigurationData function from importCategory.ts
   // This will automatically detect and normalize the format
   return extractConfigurationData(extractedFiles, tempFolder);
@@ -724,7 +742,7 @@ function applyMapeoJsonConfigToSpreadsheet(jsonData: any): void {
     presets: normalizedConfig.presets,
     fields: normalizedConfig.fields,
     icons: normalizedConfig.icons || [],
-    messages: normalizedConfig.messages || {}
+    messages: normalizedConfig.messages || {},
   });
 }
 
@@ -733,13 +751,19 @@ function applyMapeoJsonConfigToSpreadsheet(jsonData: any): void {
  * @param sheet - The metadata sheet
  * @param metadata - Metadata object
  */
-function applyMetadataToSheet(sheet: GoogleAppsScript.Spreadsheet.Sheet, metadata: any): void {
+function applyMetadataToSheet(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  metadata: any,
+): void {
   // Set headers
-  sheet.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]);
-  sheet.getRange(1, 1, 1, 2).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, 2).setValues([["Key", "Value"]]);
+  sheet.getRange(1, 1, 1, 2).setFontWeight("bold");
 
   // Add metadata rows
-  const metadataRows = Object.entries(metadata).map(([key, value]) => [key, value]);
+  const metadataRows = Object.entries(metadata).map(([key, value]) => [
+    key,
+    value,
+  ]);
   if (metadataRows.length > 0) {
     sheet.getRange(2, 1, metadataRows.length, 2).setValues(metadataRows);
   }
@@ -751,19 +775,23 @@ function applyMetadataToSheet(sheet: GoogleAppsScript.Spreadsheet.Sheet, metadat
  * @param presets - Array of preset objects
  * @param icons - Array of icon objects
  */
-function applyCategoriesFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, presets: any[], icons: any[]): void {
+function applyCategoriesFromMapeo(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  presets: any[],
+  icons: any[],
+): void {
   // Set headers
-  sheet.getRange(1, 1, 1, 3).setValues([['English', 'Icons', 'Details']]);
-  sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, 3).setValues([["English", "Icons", "Details"]]);
+  sheet.getRange(1, 1, 1, 3).setFontWeight("bold");
 
   // Prepare category rows
-  const categoryRows = presets.map(preset => {
+  const categoryRows = presets.map((preset) => {
     // Find matching icon
-    const iconObj = icons.find(icon => icon.id === preset.icon);
-    const iconUrl = iconObj ? iconObj.url : '';
+    const iconObj = icons.find((icon) => icon.id === preset.icon);
+    const iconUrl = iconObj ? iconObj.url : "";
 
     // Get fields as comma-separated string
-    const fields = preset.fields ? preset.fields.join(', ') : '';
+    const fields = preset.fields ? preset.fields.join(", ") : "";
 
     return [preset.name, iconUrl, fields];
   });
@@ -786,26 +814,33 @@ function applyCategoriesFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, pre
  * @param sheet - The Details sheet
  * @param fields - Array of field objects
  */
-function applyFieldsFromMapeo(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]): void {
+function applyFieldsFromMapeo(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  fields: any[],
+): void {
   // Set headers
-  sheet.getRange(1, 1, 1, 4).setValues([['Label', 'Helper Text', 'Type', 'Options']]);
-  sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+  sheet
+    .getRange(1, 1, 1, 4)
+    .setValues([["Label", "Helper Text", "Type", "Options"]]);
+  sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
 
   // Prepare field rows
-  const fieldRows = fields.map(field => {
+  const fieldRows = fields.map((field) => {
     // Convert field type to spreadsheet format
-    let typeStr = 'text';
-    if (field.type === 'select') typeStr = 'select';
-    if (field.type === 'multiselect') typeStr = 'multiple';
-    if (field.type === 'number') typeStr = 'number';
+    let typeStr = "text";
+    if (field.type === "select") typeStr = "select";
+    if (field.type === "multiselect") typeStr = "multiple";
+    if (field.type === "number") typeStr = "number";
 
     // Convert options to comma-separated string
-    let optionsStr = '';
+    let optionsStr = "";
     if (field.options && field.options.length > 0) {
-      optionsStr = field.options.map((opt: any) => opt.label || opt.value).join(', ');
+      optionsStr = field.options
+        .map((opt: any) => opt.label || opt.value)
+        .join(", ");
     }
 
-    return [field.label, field.helperText || '', typeStr, optionsStr];
+    return [field.label, field.helperText || "", typeStr, optionsStr];
   });
 
   // Add field rows
@@ -828,33 +863,39 @@ function applyMapeoConfigurationToSpreadsheet(configData: any): void {
     presets: normalizedConfig.presets,
     fields: normalizedConfig.fields,
     icons: normalizedConfig.icons || [],
-    messages: normalizedConfig.messages || {}
+    messages: normalizedConfig.messages || {},
   });
 }
 
-function handleFileImport(fileName: string, base64Data: string): { success: boolean; message: string } {
+function handleFileImport(
+  fileName: string,
+  base64Data: string,
+): { success: boolean; message: string } {
   try {
     // Validate file extension
-    const fileExtension = fileName.split('.').pop()?.toLowerCase();
-    if (fileExtension !== 'comapeocat' && fileExtension !== 'mapeosettings') {
-      throw new Error('Invalid file type. Please upload a .comapeocat or .mapeosettings file.');
+    const fileExtension = fileName.toString().split(".").pop()?.toLowerCase();
+    if (fileExtension !== "comapeocat" && fileExtension !== "mapeosettings") {
+      throw new Error(
+        `Invalid file type. Please upload a .comapeocat or .mapeosettings file.`,
+      );
     }
 
     // Process the file based on its type
-    if (fileExtension === 'comapeocat') {
+    if (fileExtension === "comapeocat") {
       // Call the global processImportedCategoryFile function
       return processImportedCategoryFile(fileName, base64Data);
-    } else if (fileExtension === 'mapeosettings') {
+    } else if (fileExtension === "mapeosettings") {
       // Process the .mapeosettings file
       return processMapeoSettingsFile(fileName, base64Data);
     }
 
-    throw new Error('Unsupported file type.');
+    throw new Error(`Unsupported file type.`);
   } catch (error) {
-    console.error('Error importing file:', error);
+    console.error("Error importing file:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }

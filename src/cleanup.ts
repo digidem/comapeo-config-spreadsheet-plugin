@@ -3,7 +3,7 @@ function removeTranslationAndMetadataSheets(): void {
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
-  sheetsToRemove.forEach(sheetName => {
+  sheetsToRemove.forEach((sheetName) => {
     const sheet = spreadsheet.getSheetByName(sheetName);
     if (sheet) {
       spreadsheet.deleteSheet(sheet);
@@ -35,7 +35,9 @@ function deleteIcons(): void {
   const range = categoriesSheet.getRange(2, 2, lastRow - 1, 1);
   range.clearContent();
 
-  console.log("Deleted content from column B in Categories sheet, excluding the header and non-empty cells");
+  console.log(
+    "Deleted content from column B in Categories sheet, excluding the header and non-empty cells",
+  );
 }
 
 function cleanup(): void {
@@ -56,7 +58,7 @@ function cleanupTempResources(
     retryDelayMs?: number;
     forceDelete?: boolean;
     deleteChildrenFirst?: boolean;
-  }
+  },
 ): { success: boolean; errors?: string[] } {
   // Default options
   const maxRetries = options?.maxRetries || 3;
@@ -73,14 +75,14 @@ function cleanupTempResources(
     try {
       tempFolder.getName(); // This will throw if folder doesn't exist or is inaccessible
     } catch (error) {
-      console.warn('Folder already deleted or inaccessible:', error);
+      console.warn("Folder already deleted or inaccessible:", error);
       return { success: true }; // Consider this a success since the folder is gone
     }
 
     // Delete children first if requested
     if (deleteChildrenFirst) {
       try {
-        console.log('Deleting child files first...');
+        console.log("Deleting child files first...");
         const files = tempFolder.getFiles();
         while (files.hasNext()) {
           const file = files.next();
@@ -99,11 +101,15 @@ function cleanupTempResources(
                 try {
                   Utilities.sleep(retryDelayMs);
                   file.setTrashed(true);
-                  console.log(`Successfully deleted file ${file.getName()} on retry ${retryCount + 1}`);
+                  console.log(
+                    `Successfully deleted file ${file.getName()} on retry ${retryCount + 1}`,
+                  );
                   break;
                 } catch (retryError) {
                   retryCount++;
-                  console.warn(`Retry ${retryCount} failed for file ${file.getName()}: ${retryError}`);
+                  console.warn(
+                    `Retry ${retryCount} failed for file ${file.getName()}: ${retryError}`,
+                  );
                 }
               }
             }
@@ -111,7 +117,7 @@ function cleanupTempResources(
         }
 
         // Delete subfolders
-        console.log('Deleting subfolders...');
+        console.log("Deleting subfolders...");
         const folders = tempFolder.getFolders();
         while (folders.hasNext()) {
           const subfolder = folders.next();
@@ -162,7 +168,7 @@ function cleanupTempResources(
     // Return success status
     return {
       success: folderDeleted || errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error) {
     const errorMsg = `Unexpected error during cleanup: ${error}`;
@@ -171,7 +177,7 @@ function cleanupTempResources(
 
     return {
       success: false,
-      errors
+      errors,
     };
   }
 }

@@ -3,9 +3,13 @@
  * @param folder - Optional Google Drive folder to save icons
  * @returns Array of CoMapeoIcon objects
  */
-function processIcons(folder?: GoogleAppsScript.Drive.Folder, suffixes: string[] = []): CoMapeoIcon[] {
+function processIcons(
+  folder?: GoogleAppsScript.Drive.Folder,
+  suffixes: string[] = [],
+): CoMapeoIcon[] {
   console.log("Starting icon processing");
-  const { categories, backgroundColors, iconUrls, categoriesSheet } = getCategoryData();
+  const { categories, backgroundColors, iconUrls, categoriesSheet } =
+    getCategoryData();
   return categories.reduce((icons: CoMapeoIcon[], category, index) => {
     const [name, , , icon] = category;
     const backgroundColor = backgroundColors[index][0];
@@ -24,7 +28,7 @@ function processIcons(folder?: GoogleAppsScript.Drive.Folder, suffixes: string[]
 
     icons.push({
       name: slugify(name),
-      svg: iconSvg
+      svg: iconSvg,
     });
 
     console.log(`Finished processing icon for: ${name}`);
@@ -33,15 +37,26 @@ function processIcons(folder?: GoogleAppsScript.Drive.Folder, suffixes: string[]
 }
 
 function getCategoryData() {
-  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
-  const categories = categoriesSheet.getRange(2, 1, categoriesSheet.getLastRow() - 1, 4).getValues();
-  const backgroundColors = categoriesSheet.getRange(2, 2, categories.length, 1).getBackgrounds();
-  const iconUrls = categoriesSheet.getRange(2, 2, categories.length, 1).getValues();
+  const categoriesSheet =
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories");
+  const categories = categoriesSheet
+    .getRange(2, 1, categoriesSheet.getLastRow() - 1, 4)
+    .getValues();
+  const backgroundColors = categoriesSheet
+    .getRange(2, 2, categories.length, 1)
+    .getBackgrounds();
+  const iconUrls = categoriesSheet
+    .getRange(2, 2, categories.length, 1)
+    .getValues();
 
   return { categories, backgroundColors, iconUrls, categoriesSheet };
 }
 
-function processIconImage(name: string, iconImage: any, backgroundColor: string): string {
+function processIconImage(
+  name: string,
+  iconImage: any,
+  backgroundColor: string,
+): string {
   if (isGoogleDriveIcon(iconImage)) {
     console.log(`Using existing Google Drive icon for ${name}: ${iconImage}`);
     return iconImage;
@@ -54,43 +69,72 @@ function processIconImage(name: string, iconImage: any, backgroundColor: string)
 }
 
 function isGoogleDriveIcon(iconImage: any): boolean {
-  return typeof iconImage === 'string' && iconImage.startsWith('https://drive.google.com');
+  return (
+    typeof iconImage === "string" &&
+    iconImage.startsWith("https://drive.google.com")
+  );
 }
 
 function isCellImage(iconImage: any): boolean {
-  return typeof iconImage === 'object' && iconImage.toString() === 'CellImage';
+  return typeof iconImage === "object" && iconImage.toString() === "CellImage";
 }
 
-function processCellImage(name: string, iconImage: any, backgroundColor: string): string {
+function processCellImage(
+  name: string,
+  iconImage: any,
+  backgroundColor: string,
+): string {
   const iconUrl = iconImage.getUrl();
   console.log(`Processing cell image icon for ${name}: ${iconUrl}`);
   let generateData = getGenerateData(iconUrl, backgroundColor);
   if (generateData) {
     return generateData[0].svg;
   } else {
-    console.log(`Failed to process cell image. Generating new icon for ${name}`);
+    console.log(
+      `Failed to process cell image. Generating new icon for ${name}`,
+    );
     return generateNewIcon(name, backgroundColor);
   }
 }
 
-function saveIconToFolder(folder: GoogleAppsScript.Drive.Folder, name: string, iconSvg: string, suffixes: string[]): string {
+function saveIconToFolder(
+  folder: GoogleAppsScript.Drive.Folder,
+  name: string,
+  iconSvg: string,
+  suffixes: string[],
+): string {
   console.log(`Saving icon to folder for ${name}:`, iconSvg);
 
-  const { iconContent, mimeType } = getIconContent({ svg: iconSvg, name: slugify(name) });
+  const { iconContent, mimeType } = getIconContent({
+    svg: iconSvg,
+    name: slugify(name),
+  });
 
   if (!iconContent) {
-    console.error('Failed to get icon content');
-    return '';
+    console.error("Failed to get icon content");
+    return "";
   }
 
   let files: GoogleAppsScript.Drive.File[] = [];
   if (suffixes.length > 0) {
-    suffixes.forEach(suffix => {
-      const file = createIconFile(folder, slugify(name), suffix.replace('-', ''), iconContent, mimeType);
+    suffixes.forEach((suffix) => {
+      const file = createIconFile(
+        folder,
+        slugify(name),
+        suffix.replace("-", ""),
+        iconContent,
+        mimeType,
+      );
       files.push(file);
     });
   } else {
-    const file = createIconFile(folder, slugify(name), '', iconContent, mimeType);
+    const file = createIconFile(
+      folder,
+      slugify(name),
+      "",
+      iconContent,
+      mimeType,
+    );
     files.push(file);
   }
   const file = files[0]; // Use the first file for compatibility with existing code
@@ -98,36 +142,56 @@ function saveIconToFolder(folder: GoogleAppsScript.Drive.Folder, name: string, i
   return file.getUrl();
 }
 
-function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeType: string } {
-  if (icon.svg.startsWith('data:image/svg+xml,')) {
+function getIconContent(icon: CoMapeoIcon): {
+  iconContent: string | null;
+  mimeType: string;
+} {
+  if (icon.svg.startsWith("data:image/svg+xml,")) {
     return {
-      iconContent: decodeURIComponent(icon.svg.replace(/data:image\/svg\+xml,/, '')),
-      mimeType: MimeType.SVG
+      iconContent: decodeURIComponent(
+        icon.svg.replace(/data:image\/svg\+xml,/, ""),
+      ),
+      mimeType: MimeType.SVG,
     };
-  } else if (icon.svg.startsWith('https://drive.google.com/file/d/')) {
-    const fileId = icon.svg.split('/d/')[1].split('/')[0];
+  } else if (icon.svg.startsWith("https://drive.google.com/file/d/")) {
+    const fileId = icon.svg.split("/d/")[1].split("/")[0];
     const file = DriveApp.getFileById(fileId);
     return {
       iconContent: file.getBlob().getDataAsString(),
-      mimeType: file.getMimeType()
+      mimeType: file.getMimeType(),
     };
   } else {
-    console.error('Unsupported icon format');
-    return { iconContent: null, mimeType: '' };
+    console.error("Unsupported icon format");
+    return { iconContent: null, mimeType: "" };
   }
 }
 
-function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string, mimeType: string) {
-  const extension = mimeType === MimeType.SVG ? 'svg' : 'png';
+function createIconFile(
+  folder: GoogleAppsScript.Drive.Folder,
+  name: string,
+  size: string,
+  content: string,
+  mimeType: string,
+) {
+  const extension = mimeType === MimeType.SVG ? "svg" : "png";
   return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
 }
 
-function updateIconUrlInSheet(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number, col: number, iconUrl: string) {
+function updateIconUrlInSheet(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  row: number,
+  col: number,
+  iconUrl: string,
+) {
   if (iconUrl) {
     sheet.getRange(row, col).setValue(iconUrl);
-    console.log(`Updated icon URL in sheet: ${sheet.getRange(row, col).getValue()}`);
+    console.log(
+      `Updated icon URL in sheet: ${sheet.getRange(row, col).getValue()}`,
+    );
   } else {
-    console.warn(`Failed to save icon URL for ${sheet.getRange(row, col).getValue()}`);
+    console.warn(
+      `Failed to save icon URL for ${sheet.getRange(row, col).getValue()}`,
+    );
   }
 }
 
@@ -136,10 +200,10 @@ function generateNewIcon(name: string, backgroundColor: string): string {
   const preset = {
     icon: slugify(name),
     color: backgroundColor,
-    name: name
+    name: name,
   };
   const generatedIcon = getIconForPreset(preset);
-  return generatedIcon ? generatedIcon.svg : '';
+  return generatedIcon ? generatedIcon.svg : "";
 }
 
 function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
@@ -156,7 +220,7 @@ function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
     if (generateData) {
       return {
         name: preset.icon,
-        svg: generateData[0].svg
+        svg: generateData[0].svg,
       };
     }
   }
@@ -164,9 +228,9 @@ function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
 }
 
 function getSearchParams(name: string): string[] {
-  const nameOptions = name.split(' ');
-  const extraNameOptions = name.split('-');
-  return [name, ...nameOptions, ...extraNameOptions, 'marker'];
+  const nameOptions = name.split(" ");
+  const extraNameOptions = name.split("-");
+  return [name, ...nameOptions, ...extraNameOptions, "marker"];
 }
 
 function findValidSearchData(searchParams: string[]): any[] | null {
