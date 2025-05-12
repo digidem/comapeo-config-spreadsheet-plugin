@@ -55,7 +55,9 @@ function applyCategories(
       // Map each field ID to its Label
       const fieldLabels = preset.fields.map((fieldId: string) => {
         // Use the Label from the fieldMap if available, otherwise use the original ID
-        return fieldMap[fieldId] || fieldId;
+        const label = fieldMap[fieldId] || fieldId;
+        // Strip commas from the label to avoid issues in the Details column
+        return label.replace(/,/g, "");
       });
 
       fieldsList = fieldLabels.join(", ");

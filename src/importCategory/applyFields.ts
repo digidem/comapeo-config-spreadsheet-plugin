@@ -21,8 +21,8 @@ function applyFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]) {
   const fieldRows = fields.map((field) => {
     // Convert field type to spreadsheet format
     let typeStr = "text";
-    if (field.type === "selectOne" || field.type === "select")
-      typeStr = "select";
+    if (field.type === "selectOne" || field.type === "single")
+      typeStr = "single";
     if (field.type === "selectMultiple" || field.type === "multiple")
       typeStr = "multiple";
     if (field.type === "number") typeStr = "number";
@@ -35,7 +35,10 @@ function applyFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]) {
         .join(", ");
     }
 
-    return [field.label, field.helperText || "", typeStr, optionsStr];
+    // Strip commas from label
+    const sanitizedLabel = field.label ? field.label.replace(/,/g, "") : "";
+
+    return [sanitizedLabel, field.helperText || "", typeStr, optionsStr];
   });
 
   try {
