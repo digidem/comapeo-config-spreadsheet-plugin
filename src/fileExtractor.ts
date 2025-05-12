@@ -9,6 +9,7 @@ const REQUIRED_FILES = [
   "metadata.json", // or package.json
   "presets.json", // or presets/ directory
   "translations.json", // can be created if missing
+  "icons.svg",
 ];
 
 /**
@@ -16,10 +17,8 @@ const REQUIRED_FILES = [
  */
 const OPTIONAL_FILES = [
   "icons", // directory
-  "fields", // directory
   "icons.json",
   "icons.png",
-  "icons.svg",
   "style.css",
   "VERSION",
   "defaults.json",
@@ -98,41 +97,42 @@ function extractAndValidateFile(
     }
 
     // Validate the extracted files
-    reportProgress("Validating extracted files", 70);
-    const validationResult = validateExtractedFiles(
-      extractedFiles,
-      (percent) => {
-        reportProgress("Validating files", 70 + Math.round(percent * 0.2)); // Map 0-100 to 70-90
-      },
-    );
-    reportProgress("Validation complete", 90);
+    // reportProgress("Validating extracted files", 70);
+    // const validationResult = validateExtractedFiles(
+    //   extractedFiles,
+    //   (percent) => {
+    //     reportProgress("Validating files", 70 + Math.round(percent * 0.2)); // Map 0-100 to 70-90
+    //   },
+    // );
+    // reportProgress("Validation complete", 90);
 
-    // Log validation results
-    console.log("Validation result:", {
-      success: validationResult.success,
-      errors: validationResult.errors || "none",
-      warnings: validationResult.warnings || "none",
-    });
+    // // Log validation results
+    // console.log("Validation result:", {
+    //   success: validationResult.success,
+    //   errors: validationResult.errors || "none",
+    //   warnings: validationResult.warnings || "none",
+    // });
 
-    if (!validationResult.success) {
-      // Clean up and return validation errors
-      tempFolder.setTrashed(true);
-      return {
-        success: false,
-        message: "Invalid configuration file structure",
-        validationErrors: validationResult.errors,
-        validationWarnings: validationResult.warnings,
-      };
-    }
+    // if (!validationResult.success) {
+    //   // Clean up and return validation errors
+    //   tempFolder.setTrashed(true);
+    //   return {
+    //     success: false,
+    //     message: "Invalid configuration file structure",
+    //     validationErrors: validationResult.errors,
+    //     validationWarnings: validationResult.warnings,
+    //   };
+    // }
 
-    reportProgress("Extraction and validation complete", 100);
+    // reportProgress("Extraction and validation complete", 100);
     // Return success with extracted files and any warnings
     return {
       success: true,
-      message: "File extracted and validated successfully",
-      files: extractedFiles,
+      // message: "File extracted and validated successfully",
+      message: "File extracted successfully",
+      files: extractedFiles.files,
       tempFolder: tempFolder,
-      validationWarnings: validationResult.warnings,
+      // validationWarnings: validationResult.warnings,
     };
   } catch (error) {
     console.error("Error extracting file:", error);
@@ -244,12 +244,13 @@ function extractZipFile(
           const savedFile = tempFolder.createFile(file);
           console.log("Saved file:", savedFile.getName());
           savedFiles.push(file);
-        } else {
-          // Create directories
-          const dirPath = fileName.slice(0, -1); // Remove trailing slash
-          createNestedFolders(tempFolder, dirPath);
-          savedFiles.push(file);
         }
+        // else {
+        //   // Create directories
+        //   const dirPath = fileName.slice(0, -1); // Remove trailing slash
+        //   createNestedFolders(tempFolder, dirPath);
+        //   savedFiles.push(file);
+        // }
       } catch (fileError) {
         console.warn("Error saving extracted file:", file.getName(), fileError);
         // Continue with other files even if one fails
@@ -391,8 +392,7 @@ function extractTarFile(
     reportProgress(5);
     console.log("Starting TAR file extraction...");
 
-    // Since Google Apps Script doesn't have built-in tar extraction,
-    // we'll try to parse it as JSON first (some .mapeosettings files are just JSON)
+    // Try to parse as JSON first (some .mapeosettings files are just JSON)
     try {
       reportProgress(10);
       console.log("Attempting to parse as JSON...");
@@ -403,12 +403,7 @@ function extractTarFile(
       console.log("Successfully parsed as JSON");
 
       // If we got here, it's valid JSON
-      // Create a blob for each top-level property
       const extractedFiles: GoogleAppsScript.Base.Blob[] = [];
-      const totalProperties = Object.keys(jsonData).length;
-      let processedProperties = 0;
-
-      console.log(`Processing ${totalProperties} JSON properties...`);
 
       // Create metadata.json
       if (jsonData.metadata) {
@@ -420,10 +415,6 @@ function extractTarFile(
         );
         tempFolder.createFile(metadataBlob);
         extractedFiles.push(metadataBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
       }
 
       // Create presets.json
@@ -436,26 +427,6 @@ function extractTarFile(
         );
         tempFolder.createFile(presetsBlob);
         extractedFiles.push(presetsBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
-      }
-
-      // Create icons.json
-      if (jsonData.icons) {
-        console.log("Creating icons.json...");
-        const iconsBlob = Utilities.newBlob(
-          JSON.stringify(jsonData.icons, null, 2),
-          "application/json",
-          "icons.json",
-        );
-        tempFolder.createFile(iconsBlob);
-        extractedFiles.push(iconsBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
       }
 
       // Create translations.json
@@ -468,73 +439,6 @@ function extractTarFile(
         );
         tempFolder.createFile(translationsBlob);
         extractedFiles.push(translationsBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
-      }
-
-      // Create VERSION file
-      if (jsonData.version) {
-        console.log("Creating VERSION file...");
-        const versionBlob = Utilities.newBlob(
-          jsonData.version.toString(),
-          "text/plain",
-          "VERSION",
-        );
-        tempFolder.createFile(versionBlob);
-        extractedFiles.push(versionBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
-      }
-
-      // Create style.css
-      if (jsonData.style) {
-        console.log("Creating style.css...");
-        const styleBlob = Utilities.newBlob(
-          jsonData.style,
-          "text/css",
-          "style.css",
-        );
-        tempFolder.createFile(styleBlob);
-        extractedFiles.push(styleBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
-      }
-
-      // Create icons directory and files
-      if (jsonData.iconFiles) {
-        console.log("Creating icons directory and files...");
-        tempFolder.createFolder("icons");
-
-        // Create placeholder icons.svg and icons.png
-        const svgBlob = Utilities.newBlob(
-          "<svg></svg>",
-          "image/svg+xml",
-          "icons.svg",
-        );
-        const pngBlob = Utilities.newBlob("", "image/png", "icons.png");
-
-        tempFolder.createFile(svgBlob);
-        tempFolder.createFile(pngBlob);
-        extractedFiles.push(svgBlob);
-        extractedFiles.push(pngBlob);
-
-        // Add a placeholder blob for the icons directory
-        const iconsDirBlob = Utilities.newBlob(
-          "",
-          "application/x-directory",
-          "icons/",
-        );
-        extractedFiles.push(iconsDirBlob);
-        processedProperties++;
-        reportProgress(
-          30 + Math.round((processedProperties / totalProperties) * 40),
-        );
       }
 
       reportProgress(90);
@@ -646,19 +550,13 @@ function extractTarFile(
           `Found ${isDirectory ? "directory" : "file"}: ${fileName}, size: ${fileSize}`,
         );
 
-        if (isDirectory) {
-          // Create directory
-          console.log(`Creating directory: ${fileName}`);
-          createNestedFolders(tempFolder, fileName);
+        // Only process metadata.json, presets.json, and translations.json
+        const isTargetFile =
+          fileName === "metadata.json" ||
+          fileName === "presets.json" ||
+          fileName === "translations.json";
 
-          // Add a placeholder blob for the directory
-          const dirBlob = Utilities.newBlob(
-            "",
-            "application/x-directory",
-            fileName,
-          );
-          extractedFiles.push(dirBlob);
-        } else {
+        if (!isDirectory && isTargetFile) {
           // Calculate data blocks
           const dataBlocks = Math.ceil(fileSize / BLOCK_SIZE);
           const dataSize = dataBlocks * BLOCK_SIZE;
@@ -669,103 +567,32 @@ function extractTarFile(
             position + HEADER_SIZE + fileSize,
           );
 
-          // Determine content type based on file extension
-          let contentType = "application/octet-stream";
-          if (fileName.endsWith(".json")) {
-            contentType = "application/json";
-          } else if (fileName.endsWith(".svg")) {
-            contentType = "image/svg+xml";
-          } else if (fileName.endsWith(".png")) {
-            contentType = "image/png";
-          } else if (fileName.endsWith(".css")) {
-            contentType = "text/css";
-          }
-
           // Create file blob
-          const fileBlob = Utilities.newBlob(fileData, contentType, fileName);
+          const fileBlob = Utilities.newBlob(
+            fileData,
+            "application/json",
+            fileName,
+          );
 
           // Save file to temp folder
-          if (fileName.includes("/")) {
-            // Create parent directories if needed
-            const dirPath = fileName.substring(0, fileName.lastIndexOf("/"));
-            const parentFolder = createNestedFolders(tempFolder, dirPath);
-            const baseName = fileName.substring(fileName.lastIndexOf("/") + 1);
-            parentFolder.createFile(fileBlob.setName(baseName));
-          } else {
-            tempFolder.createFile(fileBlob);
-          }
-
+          tempFolder.createFile(fileBlob);
           extractedFiles.push(fileBlob);
-
-          // Move to next header (skip data blocks)
-          position += HEADER_SIZE + dataSize;
         }
+
+        // Calculate how many blocks to skip
+        const dataBlocks = Math.ceil(fileSize / BLOCK_SIZE);
+        const dataSize = dataBlocks * BLOCK_SIZE;
+        position += HEADER_SIZE + dataSize;
 
         // Mark file as processed
         processedFiles.add(fileName);
         fileCount++;
 
         // Update progress
-        reportProgress(35 + Math.min(55, Math.round((fileCount / 50) * 55))); // Assume max 50 files, map to 35-90%
+        reportProgress(35 + Math.min(55, Math.round((fileCount / 50) * 55)));
       }
 
-      console.log(`Extracted ${fileCount} files from tar archive`);
-
-      // If we didn't extract any files, something went wrong
-      if (fileCount === 0) {
-        throw new Error(
-          "No files extracted from tar archive. The file may be corrupted or in an unsupported format.",
-        );
-      }
-
-      reportProgress(95);
-
-      // Create any missing required files
-      const fileNames = extractedFiles.map((file) => file.getName());
-
-      // Check if we need to create a translations.json file
-      if (!fileNames.includes("translations.json")) {
-        console.log("Creating empty translations.json file");
-        const translationsBlob = Utilities.newBlob(
-          JSON.stringify({ en: {} }, null, 2),
-          "application/json",
-          "translations.json",
-        );
-        tempFolder.createFile(translationsBlob);
-        extractedFiles.push(translationsBlob);
-      }
-
-      // Check if we need to create a presets.json file from individual preset files
-      if (
-        !fileNames.includes("presets.json") &&
-        fileNames.some((name) => name.startsWith("presets/"))
-      ) {
-        console.log("Creating presets.json from individual preset files");
-
-        // Combine individual preset files into a single presets.json
-        const presets = {};
-        extractedFiles.forEach((file) => {
-          const fileName = file.getName();
-          if (fileName.startsWith("presets/") && fileName.endsWith(".json")) {
-            try {
-              const presetName = fileName.substring(8, fileName.length - 5); // Remove 'presets/' and '.json'
-              const presetContent = JSON.parse(file.getDataAsString());
-              presets[presetName] = presetContent;
-            } catch (e) {
-              console.warn(`Error parsing preset file ${fileName}:`, e);
-            }
-          }
-        });
-
-        const presetsBlob = Utilities.newBlob(
-          JSON.stringify({ presets }, null, 2),
-          "application/json",
-          "presets.json",
-        );
-        tempFolder.createFile(presetsBlob);
-        extractedFiles.push(presetsBlob);
-      }
-
+      console.log(`Processed ${fileCount} files from tar archive`);
       reportProgress(100);
       console.log("TAR extraction completed successfully");
       return extractedFiles;
@@ -831,6 +658,7 @@ function validateExtractedFiles(
 
   console.log("Validating extracted files:", files.length);
   reportProgress(10);
+  console.log("FILES", files.files);
 
   // Check for each file in the extracted content
   files.forEach((file, index) => {
@@ -890,24 +718,6 @@ function validateExtractedFiles(
   console.log("Found files:", Array.from(foundFiles));
   console.log("Found directories:", Array.from(foundDirs));
   reportProgress(50);
-
-  // Special handling for directory structures
-  // If we have individual preset files in a presets/ directory, we can generate presets.json
-  const hasPresetsDir = foundDirs.has("presets");
-  const hasPresetsJson = foundFiles.has("presets.json");
-  const hasFieldsDir = foundDirs.has("fields");
-
-  if (hasPresetsDir && !hasPresetsJson) {
-    console.log(
-      "Found presets directory but no presets.json - will generate from individual files",
-    );
-    foundFiles.add("presets.json"); // Mark as found since we'll generate it
-  }
-
-  // If we have a fields directory, we can use that for field definitions
-  if (hasFieldsDir) {
-    console.log("Found fields directory - will use for field definitions");
-  }
 
   // Check for missing required files
   console.log("Checking for required files...");

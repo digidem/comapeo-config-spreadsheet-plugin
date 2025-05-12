@@ -2,7 +2,7 @@
  * Test function to verify that details and icons are properly extracted and applied
  */
 function testDetailsAndIcons() {
-  const ui = SpreadsheetApp.getUi();
+  // const ui = SpreadsheetApp.getUi();
 
   try {
     // Show a progress dialog
@@ -34,10 +34,10 @@ function testDetailsAndIcons() {
       .setWidth(600)
       .setHeight(400);
 
-    const dialog = ui.showModelessDialog(
-      htmlOutput,
-      "Testing Details and Icons Extraction",
-    );
+    // const dialog = ui.showModelessDialog(
+    //   htmlOutput,
+    //   "Testing Details and Icons Extraction",
+    // );
 
     // Helper function to update progress
     const updateProgress = (
@@ -68,8 +68,7 @@ function testDetailsAndIcons() {
     log("Starting details and icons extraction test", "info");
 
     // Use a default URL for testing
-    const url =
-      "https://github.com/digidem/mapeo-default-config/releases/download/v3.6.1/mapeo-default-settings-v3.6.1.mapeosettings";
+    const url = "https://luandro.com/dist/mapeo-default-min.mapeosettings";
     log(`Using test file: ${url}`, "info");
 
     // Download the test file

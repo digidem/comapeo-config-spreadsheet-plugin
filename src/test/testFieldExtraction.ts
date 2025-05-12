@@ -8,7 +8,7 @@
  * @param url - URL of the test file to download (optional)
  */
 function testFieldExtraction(url?: string) {
-  const ui = SpreadsheetApp.getUi();
+  // const ui = SpreadsheetApp.getUi();
 
   try {
     // Show a progress dialog
@@ -40,10 +40,10 @@ function testFieldExtraction(url?: string) {
       .setWidth(600)
       .setHeight(400);
 
-    const dialog = ui.showModelessDialog(
-      htmlOutput,
-      "Testing Field Extraction",
-    );
+    // const dialog = ui.showModelessDialog(
+    //   htmlOutput,
+    //   "Testing Field Extraction",
+    // );
 
     // Helper function to update progress
     const updateProgress = (
@@ -75,8 +75,7 @@ function testFieldExtraction(url?: string) {
 
     // Use a default URL if none provided
     if (!url) {
-      url =
-        "https://github.com/digidem/mapeo-default-config/releases/download/v3.6.1/mapeo-default-settings-v3.6.1.mapeosettings";
+      url = "https://luandro.com/dist/mapeo-default-min.mapeosettings";
       log(`Using default test file: ${url}`, "info");
     }
 
@@ -183,7 +182,7 @@ function testFieldExtraction(url?: string) {
         log("Clearing existing Details sheet", "info");
         sheet.clear();
       }
-
+      console.log("configData", configData);
       // Apply fields
       if (configData.fields && configData.fields.length > 0) {
         log(

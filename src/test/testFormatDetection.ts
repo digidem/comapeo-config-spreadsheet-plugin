@@ -75,8 +75,7 @@ function testFormatDetection(url?: string) {
 
     // Use a default URL if none provided
     if (!url) {
-      url =
-        "https://github.com/digidem/mapeo-default-config/releases/download/v3.6.1/mapeo-default-settings-v3.6.1.mapeosettings";
+      url = "https://luandro.com/dist/mapeo-default-min.mapeosettings";
       log(`Using default test file: ${url}`, "info");
     }
 

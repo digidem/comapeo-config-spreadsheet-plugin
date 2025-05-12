@@ -658,7 +658,7 @@ function processMapeoSettingsFile(
         tempFolder,
       );
       console.log("Configuration data extracted successfully");
-
+      console.log("configData", configData);
       // Apply the configuration data to the spreadsheet
       console.log("Applying configuration to spreadsheet...");
       applyMapeoConfigurationToSpreadsheet(configData);

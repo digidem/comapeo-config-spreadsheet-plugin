@@ -257,7 +257,7 @@ function runTestExtractAndValidateProcess(userInterface?: any): { success: boole
     // Step 1: Download the file from URL
     updateStatus('Step 1/5: Downloading test file...');
     addLogEntry('\n--- STEP 1: DOWNLOADING FILE ---');
-    const fileUrl = 'https://github.com/digidem/comapeo-category-library/releases/download/v1.0.0/comapeo-biodiversity-comapeo-config-generator-v24.10.24.comapeocat';
+    const fileUrl = 'https://luandro.com/dist/mapeo-default-min.mapeosettings';
     addLogEntry(`Downloading file from URL: ${fileUrl}`);
 
     const response = UrlFetchApp.fetch(fileUrl);
@@ -275,9 +275,10 @@ function runTestExtractAndValidateProcess(userInterface?: any): { success: boole
     updateProgress(20);
 
     // Set the file name and content type
-    const fileName = 'test-comapeo-biodiversity.comapeocat';
+    const fileName = 'mapeo-minimal.mapeosettings';
     fileBlob.setName(fileName);
-    fileBlob.setContentType('application/octet-stream');
+    fileBlob.setContentType('application/gzip');
+    // fileBlob.setContentType('application/octet-stream');
     addLogEntry(`File name set to: ${fileName}`);
 
     // Step 2: Extract and validate the file

@@ -8,7 +8,7 @@
  * @param url - URL of the test file to download (optional)
  */
 function testImportCategory(url?: string) {
-  const ui = SpreadsheetApp.getUi();
+  // const ui = SpreadsheetApp.getUi();
 
   try {
     // Show a progress dialog
@@ -40,7 +40,7 @@ function testImportCategory(url?: string) {
       .setWidth(600)
       .setHeight(400);
 
-    const dialog = ui.showModelessDialog(htmlOutput, "Testing Category Import");
+    // const dialog = ui.showModelessDialog(htmlOutput, "Testing Category Import");
 
     // Helper function to update progress
     const updateProgress = (
@@ -72,8 +72,7 @@ function testImportCategory(url?: string) {
 
     // Use a default URL if none provided
     if (!url) {
-      url =
-        "https://github.com/digidem/mapeo-default-config/releases/download/v3.6.1/mapeo-default-settings-v3.6.1.mapeosettings";
+      url = "https://luandro.com/dist/mapeo-default-min.mapeosettings";
       log(`Using default test file: ${url}`, "info");
     }
 
