@@ -555,10 +555,6 @@ function extractTarFile(
           fileName === "translations.json";
 
         if (!isDirectory && isTargetFile) {
-          // Calculate data blocks
-          const dataBlocks = Math.ceil(fileSize / BLOCK_SIZE);
-          const dataSize = dataBlocks * BLOCK_SIZE;
-
           // Extract file data
           const fileData = bytes.slice(
             position + HEADER_SIZE,
@@ -656,7 +652,6 @@ function validateExtractedFiles(
 
   console.log("Validating extracted files:", files.length);
   reportProgress(10);
-  console.log("FILES", files.files);
 
   // Check for each file in the extracted content
   files.forEach((file, index) => {
@@ -716,6 +711,10 @@ function validateExtractedFiles(
   console.log("Found files:", Array.from(foundFiles));
   console.log("Found directories:", Array.from(foundDirs));
   reportProgress(50);
+
+  // Check if we have a presets directory
+  const hasPresetsDir = foundDirs.has("presets");
+  console.log("Has presets directory:", hasPresetsDir);
 
   // Check for missing required files
   console.log("Checking for required files...");

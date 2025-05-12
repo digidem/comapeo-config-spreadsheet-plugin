@@ -372,17 +372,23 @@ function createDropzoneHtml(): string {
         statusMessage.innerHTML = 'Processing file...<br><span class="details-text">Preparing to extract file contents</span>';
 
         try {
-          const base64data = e.target.result.toString().split(',')[1];
+          // Make sure we're getting the base64 data correctly
+          const result = e.target.result.toString();
+          const base64data = result.split(',')[1];
+
+          if (!base64data) {
+            throw new Error('Failed to extract base64 data from file');
+          }
 
           // Call the appropriate Google Apps Script function based on file extension
           const fileExtension = file.name.toString().split('.').pop().toLowerCase();
 
-          // Create a progress handler function
+          // Create a simple progress handler function
           const progressHandler = function(progressData) {
             try {
               if (progressData && typeof progressData === 'object') {
                 // Update progress bar
-                if (progressData.percent !== undefined) {
+                if (typeof progressData.percent === 'number') {
                   updateProgress(20 + Math.round(progressData.percent * 0.8)); // Scale to 20-100%
                 }
 
@@ -395,19 +401,6 @@ function createDropzoneHtml(): string {
                     statusHtml += '<br><span class="details-text">' + progressData.detail + '</span>';
                   }
 
-                  // Add counts if available
-                  if (progressData.counts) {
-                    const countsArray = [];
-                    for (const key in progressData.counts) {
-                      if (progressData.counts[key]) {
-                        countsArray.push(progressData.counts[key] + ' ' + key);
-                      }
-                    }
-                    if (countsArray.length > 0) {
-                      statusHtml += '<br><span class="details-text">Found: ' + countsArray.join(', ') + '</span>';
-                    }
-                  }
-
                   statusMessage.innerHTML = statusHtml;
                 }
               }
@@ -416,19 +409,12 @@ function createDropzoneHtml(): string {
             }
           };
 
-          // @ts-ignore - file is defined in the JavaScript context
-          if (fileExtension === 'comapeocat' || fileExtension === 'zip') {
+          if (fileExtension === 'comapeocat' || fileExtension === 'zip' || fileExtension === 'mapeosettings') {
             google.script.run
               .withSuccessHandler(onSuccess)
               .withFailureHandler(onFailure)
               .withUserObject({ fileName: file.name })
-              .processImportedCategoryFileWithProgress(file.name, base64data, progressHandler);
-          } else if (fileExtension === 'mapeosettings') {
-            google.script.run
-              .withSuccessHandler(onSuccess)
-              .withFailureHandler(onFailure)
-              .withUserObject({ fileName: file.name })
-              .processMapeoSettingsFileWithProgress(file.name, base64data, progressHandler);
+              .importConfigurationFile(file.name, base64data);
           } else {
             onFailure(new Error('Unsupported file type'));
           }
@@ -602,7 +588,6 @@ function createDropzoneHtml(): string {
 </body>
 </html>`;
 }
-
 /**
  * Handles the file import process
  * @param fileName - Name of the uploaded file
@@ -618,7 +603,7 @@ function createDropzoneHtml(): string {
 function processMapeoSettingsFile(
   fileName: string,
   base64Data: string,
-): { success: boolean; message: string } {
+): { success: boolean; message: string; details?: any } {
   try {
     console.log(`Starting import of Mapeo settings file: ${fileName}`);
 
@@ -631,320 +616,132 @@ function processMapeoSettingsFile(
     );
     console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
-    // Create a temporary folder in Drive to extract the file
+    // Create a temporary folder
     console.log("Creating temporary folder...");
     const tempFolder = DriveApp.createFolder(
       "Mapeo_Settings_Import_" + new Date().getTime(),
     );
+    console.log(`Created temporary folder: ${tempFolder.getName()}`);
 
-    // Save the blob to the temp folder
-    const file = tempFolder.createFile(blob);
-    console.log(`Saved file to temp folder: ${file.getName()}`);
-
-    // Extract the tar file (mapeosettings is a tar file)
-    // Note: Google Apps Script doesn't have built-in tar extraction
-    // We'll need to use a workaround or external library
+    // Extract the file - using the direct approach from testImportCategory.ts
+    console.log("Extracting file...");
+    let extractionResult: {
+      success: boolean;
+      message: string;
+      files?: GoogleAppsScript.Base.Blob[];
+      tempFolder?: GoogleAppsScript.Drive.Folder;
+      validationErrors?: string[];
+      validationWarnings?: string[];
+    };
 
     try {
-      // Try to extract using a custom function or service
-      console.log("Attempting to extract file...");
-      const extractedFiles = extractTarFile(blob, tempFolder);
-      console.log(`Extracted ${extractedFiles.length} files`);
+      // Use the simple call without progress handler
+      extractionResult = extractAndValidateFile(fileName, blob);
 
-      // Look for the configuration files
-      console.log("Extracting configuration data...");
-      const configData = extractMapeoConfigurationData(
-        extractedFiles,
-        tempFolder,
-      );
-      console.log("Configuration data extracted successfully");
-      console.log("configData", configData);
-      // Apply the configuration data to the spreadsheet
-      console.log("Applying configuration to spreadsheet...");
-      applyMapeoConfigurationToSpreadsheet(configData);
-      console.log("Configuration applied successfully");
-
-      // Clean up the temporary folder
-      console.log("Cleaning up temporary resources...");
-      tempFolder.setTrashed(true);
-
-      // Return success
-      console.log("Import completed successfully");
-      return {
-        success: true,
-        message: "Mapeo settings file imported successfully",
-      };
-    } catch (extractError) {
-      console.error("Error extracting tar file:", extractError);
-
-      // If extraction fails, try to parse it directly
-      console.log("Attempting to parse file as JSON...");
-      const fileContent = blob.getDataAsString();
-      let jsonData: any;
-
-      try {
-        jsonData = JSON.parse(fileContent);
-        console.log("Successfully parsed file as JSON");
-
-        // Process the JSON data
-        console.log("Applying JSON configuration to spreadsheet...");
-        applyMapeoJsonConfigToSpreadsheet(jsonData);
-        console.log("Configuration applied successfully");
-
-        // Clean up
-        console.log("Cleaning up temporary resources...");
-        tempFolder.setTrashed(true);
-
-        console.log("Import completed successfully");
+      if (!extractionResult.success) {
+        console.error("Extraction failed:", extractionResult.message);
         return {
-          success: true,
-          message: "Mapeo settings file imported successfully",
+          success: false,
+          message: extractionResult.message,
         };
-      } catch (jsonError) {
-        console.error("Error parsing JSON:", jsonError);
-        throw new Error(
-          `Could not parse the Mapeo settings file. The file may be corrupted.`,
-        );
       }
+
+      console.log(
+        `Extraction successful: ${extractionResult.files.length} files extracted`,
+      );
+    } catch (error) {
+      console.error("Error during extraction:", error);
+      return {
+        success: false,
+        message: `Failed to extract file: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
+
+    // Extract configuration data
+    console.log("Extracting configuration data...");
+    let configData: {
+      metadata: any;
+      presets: any[];
+      fields: any[];
+      icons: any[];
+      messages: Record<string, any>;
+    };
+
+    try {
+      // Use the simple call without progress handler
+      configData = extractConfigurationData(
+        extractionResult.files,
+        extractionResult.tempFolder,
+      );
+
+      console.log("Configuration data extracted successfully");
+      console.log(
+        `- Presets: ${configData.presets ? configData.presets.length : 0}`,
+      );
+      console.log(
+        `- Fields: ${configData.fields ? configData.fields.length : 0}`,
+      );
+      console.log(`- Icons: ${configData.icons ? configData.icons.length : 0}`);
+    } catch (error) {
+      console.error("Error extracting configuration data:", error);
+      return {
+        success: false,
+        message: `Failed to extract configuration data: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    // Apply configuration to spreadsheet
+    console.log("Applying configuration to spreadsheet...");
+    try {
+      applyConfigurationToSpreadsheet(configData);
+      console.log("Configuration applied to spreadsheet successfully");
+    } catch (error) {
+      console.error("Error applying configuration to spreadsheet:", error);
+      return {
+        success: false,
+        message: `Failed to apply configuration to spreadsheet: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    // Clean up
+    console.log("Cleaning up...");
+    try {
+      extractionResult.tempFolder.setTrashed(true);
+      console.log("Temporary folder deleted");
+    } catch (error) {
+      console.warn("Error cleaning up temporary folder:", error);
+    }
+
+    // Return success
+    console.log("Import completed successfully");
+    return {
+      success: true,
+      message: "Mapeo settings file imported successfully",
+      details: {
+        presets: configData.presets ? configData.presets.length : 0,
+        fields: configData.fields ? configData.fields.length : 0,
+        icons: configData.icons ? configData.icons.length : 0,
+      },
+    };
   } catch (error) {
     console.error("Error processing Mapeo settings file:", error);
-    throw error;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
 /**
- * Extracts configuration data from Mapeo settings files
- * @param extractedFiles - Array of extracted file blobs
- * @param tempFolder - Temporary folder containing the files
- * @returns Configuration data object
+ * Handles the file import process
+ * @param fileName - Name of the uploaded file
+ * @param base64Data - Base64 encoded file data
+ * @returns Result of the import operation
  */
-function extractMapeoConfigurationData(
-  extractedFiles: GoogleAppsScript.Base.Blob[],
-  tempFolder: GoogleAppsScript.Drive.Folder,
-): any {
-  // Use the extractConfigurationData function from importCategory.ts
-  // This will automatically detect and normalize the format
-  return extractConfigurationData(extractedFiles, tempFolder);
-}
-
-/**
- * Applies Mapeo JSON configuration directly to the spreadsheet
- * @param jsonData - The parsed JSON data from the Mapeo settings file
- */
-function applyMapeoJsonConfigToSpreadsheet(jsonData: any): void {
-  // Normalize the configuration data
-  const normalizedConfig = normalizeConfig(jsonData);
-
-  // Apply the normalized configuration to the spreadsheet
-  applyConfigurationToSpreadsheet({
-    metadata: normalizedConfig.metadata,
-    presets: normalizedConfig.presets,
-    fields: normalizedConfig.fields,
-    icons: normalizedConfig.icons || [],
-    messages: normalizedConfig.messages || {},
-  });
-}
-
-/**
- * Applies metadata to the metadata sheet
- * @param sheet - The metadata sheet
- * @param metadata - Metadata object
- */
-function applyMetadataToSheet(
-  sheet: GoogleAppsScript.Spreadsheet.Sheet,
-  metadata: any,
-): void {
-  // Set headers
-  sheet.getRange(1, 1, 1, 2).setValues([["Key", "Value"]]);
-  sheet.getRange(1, 1, 1, 2).setFontWeight("bold");
-
-  // Add metadata rows
-  const metadataRows = Object.entries(metadata).map(([key, value]) => [
-    key,
-    value,
-  ]);
-  if (metadataRows.length > 0) {
-    sheet.getRange(2, 1, metadataRows.length, 2).setValues(metadataRows);
-  }
-}
-
-/**
- * Applies categories from Mapeo format to the Categories sheet
- * @param sheet - The Categories sheet
- * @param presets - Array of preset objects
- * @param icons - Array of icon objects
- */
-function applyCategoriesFromMapeo(
-  sheet: GoogleAppsScript.Spreadsheet.Sheet,
-  presets: any[],
-  icons: any[],
-): void {
-  // Set headers
-  sheet.getRange(1, 1, 1, 3).setValues([["English", "Icons", "Details"]]);
-  sheet.getRange(1, 1, 1, 3).setFontWeight("bold");
-
-  // Get the Details sheet to map field IDs to Labels
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const detailsSheet = spreadsheet.getSheetByName("Details");
-
-  // Create a map of field ID (slugified) to field Label
-  const fieldMap = {};
-  if (detailsSheet) {
-    try {
-      const lastRow = Math.max(detailsSheet.getLastRow(), 2);
-      if (lastRow > 1) {
-        const fieldData = detailsSheet
-          .getRange(2, 1, lastRow - 1, 1)
-          .getValues();
-
-        fieldData.forEach((row) => {
-          if (row[0]) {
-            const fieldId = slugify(row[0]);
-            fieldMap[fieldId] = row[0]; // Map slugified ID to actual Label
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Error getting field labels:", error);
-    }
-  }
-
-  // Prepare category rows
-  const categoryRows = presets.map((preset) => {
-    // Find matching icon
-    const iconObj = icons.find((icon) => icon.id === preset.icon);
-    const iconUrl = iconObj ? iconObj.url : "";
-
-    // Get fields as comma-separated string with actual Label values
-    let fields = "";
-    if (preset.fields && preset.fields.length > 0) {
-      // Map each field ID to its Label
-      const fieldLabels = preset.fields.map((fieldId: string) => {
-        // Use the Label from the map if available, otherwise use the original ID
-        return fieldMap[fieldId] || fieldId;
-      });
-      fields = fieldLabels.join(", ");
-    }
-
-    return [preset.name, iconUrl, fields];
-  });
-
-  // Add category rows
-  if (categoryRows.length > 0) {
-    sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
-  }
-
-  // Data validation for the Details column is handled separately
-  // to avoid import errors
-
-  // Set background colors if available
-  presets.forEach((preset, index) => {
-    if (preset.color) {
-      sheet.getRange(index + 2, 1).setBackground(preset.color);
-    }
-  });
-}
-
-/**
- * Applies fields from Mapeo format to the Details sheet
- * @param sheet - The Details sheet
- * @param fields - Array of field objects
- */
-function applyFieldsFromMapeo(
-  sheet: GoogleAppsScript.Spreadsheet.Sheet,
-  fields: any[],
-): void {
-  // Set headers
-  sheet
-    .getRange(1, 1, 1, 4)
-    .setValues([["Label", "Helper Text", "Type", "Options"]]);
-  sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
-
-  // Prepare field rows
-  const fieldRows = fields.map((field) => {
-    // Convert field type to spreadsheet format
-    let typeStr = "text";
-    if (field.type === "select") typeStr = "select";
-    if (field.type === "multiselect") typeStr = "multiple";
-    if (field.type === "number") typeStr = "number";
-
-    // Convert options to comma-separated string
-    let optionsStr = "";
-    if (field.options && field.options.length > 0) {
-      optionsStr = field.options
-        .map((opt: any) => opt.label || opt.value)
-        .join(", ");
-    }
-
-    return [field.label, field.helperText || "", typeStr, optionsStr];
-  });
-
-  try {
-    // Clear the entire sheet to remove any data validations
-    sheet.clear();
-
-    // Set headers again after clearing
-    sheet
-      .getRange(1, 1, 1, 4)
-      .setValues([["Label", "Helper Text", "Type", "Options"]]);
-    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
-
-    // Add field rows one by one to avoid validation errors
-    if (fieldRows.length > 0) {
-      for (let i = 0; i < fieldRows.length; i++) {
-        try {
-          // Set each cell individually to avoid validation errors
-          for (let j = 0; j < 4; j++) {
-            sheet.getRange(i + 2, j + 1).setValue(fieldRows[i][j]);
-          }
-        } catch (rowError) {
-          console.error(`Error setting field row ${i + 2}:`, rowError);
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error in applyFieldsFromMapeo:", error);
-  }
-}
-
-/**
- * Applies Mapeo configuration data to the spreadsheet
- * @param configData - Configuration data object
- */
-function applyMapeoConfigurationToSpreadsheet(configData: any): void {
-  // Normalize the configuration data
-  const normalizedConfig = normalizeConfig(configData);
-
-  // Apply the normalized configuration to the spreadsheet
-  applyConfigurationToSpreadsheet({
-    metadata: normalizedConfig.metadata,
-    presets: normalizedConfig.presets,
-    fields: normalizedConfig.fields,
-    icons: normalizedConfig.icons || [],
-    messages: normalizedConfig.messages || {},
-  });
-
-  // Add dropdowns after all data has been imported with a delay
-  try {
-    // Wait a moment to ensure all data is properly set
-    Utilities.sleep(1000);
-
-    // Only call if the function exists
-    if (typeof addAllDropdowns === "function") {
-      addAllDropdowns();
-    }
-  } catch (error) {
-    console.log(
-      "Note: Dropdowns not added. This is optional and won't affect the import.",
-    );
-  }
-}
-
 function handleFileImport(
   fileName: string,
   base64Data: string,
-): { success: boolean; message: string } {
+): { success: boolean; message: string; details?: any } {
   try {
     // Validate file extension
     const fileExtension = fileName.toString().split(".").pop()?.toLowerCase();
@@ -954,22 +751,155 @@ function handleFileImport(
       );
     }
 
-    // Process the file based on its type
-    if (fileExtension === "comapeocat") {
-      // Call the global processImportedCategoryFile function
-      return processImportedCategoryFile(fileName, base64Data);
-    } else if (fileExtension === "mapeosettings") {
-      // Process the .mapeosettings file
-      return processMapeoSettingsFile(fileName, base64Data);
-    }
-
-    throw new Error(`Unsupported file type.`);
+    // Use the direct import approach for both file types
+    return importConfigurationFile(fileName, base64Data);
   } catch (error) {
     console.error("Error importing file:", error);
     return {
       success: false,
       message:
         error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+/**
+ * Unified function to import configuration files (both .comapeocat and .mapeosettings)
+ * This uses the direct approach from testImportCategory.ts
+ * @param fileName - Name of the uploaded file
+ * @param base64Data - Base64 encoded file data
+ * @returns Result of the import operation
+ */
+function importConfigurationFile(
+  fileName: string,
+  base64Data: string,
+): { success: boolean; message: string; details?: any } {
+  try {
+    console.log(`Starting import of file: ${fileName}`);
+
+    // Decode the base64 data
+    console.log("Decoding base64 data...");
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(base64Data),
+      "application/octet-stream",
+      fileName,
+    );
+    console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
+
+    // Create a temporary folder
+    console.log("Creating temporary folder...");
+    const tempFolder = DriveApp.createFolder(
+      "Config_Import_" + new Date().getTime(),
+    );
+    console.log(`Created temporary folder: ${tempFolder.getName()}`);
+
+    // Extract the file - using the direct approach from testImportCategory.ts
+    console.log("Extracting file...");
+    let extractionResult: {
+      success: boolean;
+      message: string;
+      files?: GoogleAppsScript.Base.Blob[];
+      tempFolder?: GoogleAppsScript.Drive.Folder;
+      validationErrors?: string[];
+      validationWarnings?: string[];
+    };
+
+    try {
+      // Use the simple call without progress handler
+      extractionResult = extractAndValidateFile(fileName, blob);
+
+      if (!extractionResult.success) {
+        console.error("Extraction failed:", extractionResult.message);
+        return {
+          success: false,
+          message: extractionResult.message,
+        };
+      }
+
+      console.log(
+        `Extraction successful: ${extractionResult.files.length} files extracted`,
+      );
+    } catch (error) {
+      console.error("Error during extraction:", error);
+      return {
+        success: false,
+        message: `Failed to extract file: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    // Extract configuration data
+    console.log("Extracting configuration data...");
+    let configData: {
+      metadata: any;
+      presets: any[];
+      fields: any[];
+      icons: any[];
+      messages: Record<string, any>;
+    };
+
+    try {
+      // Use the simple call without progress handler
+      configData = extractConfigurationData(
+        extractionResult.files,
+        extractionResult.tempFolder,
+      );
+
+      console.log("Configuration data extracted successfully");
+      console.log(
+        `- Presets: ${configData.presets ? configData.presets.length : 0}`,
+      );
+      console.log(
+        `- Fields: ${configData.fields ? configData.fields.length : 0}`,
+      );
+      console.log(`- Icons: ${configData.icons ? configData.icons.length : 0}`);
+    } catch (error) {
+      console.error("Error extracting configuration data:", error);
+      return {
+        success: false,
+        message: `Failed to extract configuration data: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    // Apply configuration to spreadsheet
+    console.log("Applying configuration to spreadsheet...");
+    try {
+      applyConfigurationToSpreadsheet(configData);
+      console.log("Configuration applied to spreadsheet successfully");
+    } catch (error) {
+      console.error("Error applying configuration to spreadsheet:", error);
+      return {
+        success: false,
+        message: `Failed to apply configuration to spreadsheet: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    // Clean up
+    console.log("Cleaning up...");
+    try {
+      extractionResult.tempFolder.setTrashed(true);
+      console.log("Temporary folder deleted");
+    } catch (error) {
+      console.warn("Error cleaning up temporary folder:", error);
+    }
+
+    // Return success
+    console.log("Import completed successfully");
+    const fileType = fileName.endsWith(".comapeocat") ? "CoMapeo" : "Mapeo";
+    return {
+      success: true,
+      message: `${fileType} configuration file imported successfully`,
+      details: {
+        presets: configData.presets ? configData.presets.length : 0,
+        fields: configData.fields ? configData.fields.length : 0,
+        icons: configData.icons ? configData.icons.length : 0,
+        languages: Object.keys(configData.messages).length,
+      },
+    };
+  } catch (error) {
+    console.error("Error importing configuration file:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
     };
   }
 }

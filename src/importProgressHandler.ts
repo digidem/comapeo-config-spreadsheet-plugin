@@ -91,13 +91,13 @@ function processImportedCategoryFileWithProgress(
     });
 
     const extractionResult = extractAndValidateFile(fileName, blob, {
-      onProgress: (detail, percent) => {
+      onProgress: (stage, percent) => {
         // Map extraction progress to 15-40% of overall progress
         const mappedPercent = 15 + Math.round(percent * 0.25);
         progressHandler({
           percent: mappedPercent,
           stage: "Extracting files",
-          detail,
+          detail: stage,
         });
       },
     });
