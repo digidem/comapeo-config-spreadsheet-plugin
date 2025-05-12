@@ -128,11 +128,9 @@ function extractAndValidateFile(
     // Return success with extracted files and any warnings
     return {
       success: true,
-      // message: "File extracted and validated successfully",
       message: "File extracted successfully",
-      files: extractedFiles.files,
+      files: extractedFiles,
       tempFolder: tempFolder,
-      // validationWarnings: validationResult.warnings,
     };
   } catch (error) {
     console.error("Error extracting file:", error);

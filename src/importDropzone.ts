@@ -784,14 +784,48 @@ function applyCategoriesFromMapeo(
   sheet.getRange(1, 1, 1, 3).setValues([["English", "Icons", "Details"]]);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold");
 
+  // Get the Details sheet to map field IDs to Labels
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const detailsSheet = spreadsheet.getSheetByName("Details");
+
+  // Create a map of field ID (slugified) to field Label
+  const fieldMap = {};
+  if (detailsSheet) {
+    try {
+      const lastRow = Math.max(detailsSheet.getLastRow(), 2);
+      if (lastRow > 1) {
+        const fieldData = detailsSheet
+          .getRange(2, 1, lastRow - 1, 1)
+          .getValues();
+
+        fieldData.forEach((row) => {
+          if (row[0]) {
+            const fieldId = slugify(row[0]);
+            fieldMap[fieldId] = row[0]; // Map slugified ID to actual Label
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error getting field labels:", error);
+    }
+  }
+
   // Prepare category rows
   const categoryRows = presets.map((preset) => {
     // Find matching icon
     const iconObj = icons.find((icon) => icon.id === preset.icon);
     const iconUrl = iconObj ? iconObj.url : "";
 
-    // Get fields as comma-separated string
-    const fields = preset.fields ? preset.fields.join(", ") : "";
+    // Get fields as comma-separated string with actual Label values
+    let fields = "";
+    if (preset.fields && preset.fields.length > 0) {
+      // Map each field ID to its Label
+      const fieldLabels = preset.fields.map((fieldId: string) => {
+        // Use the Label from the map if available, otherwise use the original ID
+        return fieldMap[fieldId] || fieldId;
+      });
+      fields = fieldLabels.join(", ");
+    }
 
     return [preset.name, iconUrl, fields];
   });
@@ -800,6 +834,9 @@ function applyCategoriesFromMapeo(
   if (categoryRows.length > 0) {
     sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
   }
+
+  // Data validation for the Details column is handled separately
+  // to avoid import errors
 
   // Set background colors if available
   presets.forEach((preset, index) => {
@@ -843,9 +880,31 @@ function applyFieldsFromMapeo(
     return [field.label, field.helperText || "", typeStr, optionsStr];
   });
 
-  // Add field rows
-  if (fieldRows.length > 0) {
-    sheet.getRange(2, 1, fieldRows.length, 4).setValues(fieldRows);
+  try {
+    // Clear the entire sheet to remove any data validations
+    sheet.clear();
+
+    // Set headers again after clearing
+    sheet
+      .getRange(1, 1, 1, 4)
+      .setValues([["Label", "Helper Text", "Type", "Options"]]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+
+    // Add field rows one by one to avoid validation errors
+    if (fieldRows.length > 0) {
+      for (let i = 0; i < fieldRows.length; i++) {
+        try {
+          // Set each cell individually to avoid validation errors
+          for (let j = 0; j < 4; j++) {
+            sheet.getRange(i + 2, j + 1).setValue(fieldRows[i][j]);
+          }
+        } catch (rowError) {
+          console.error(`Error setting field row ${i + 2}:`, rowError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in applyFieldsFromMapeo:", error);
   }
 }
 
@@ -865,6 +924,21 @@ function applyMapeoConfigurationToSpreadsheet(configData: any): void {
     icons: normalizedConfig.icons || [],
     messages: normalizedConfig.messages || {},
   });
+
+  // Add dropdowns after all data has been imported with a delay
+  try {
+    // Wait a moment to ensure all data is properly set
+    Utilities.sleep(1000);
+
+    // Only call if the function exists
+    if (typeof addAllDropdowns === "function") {
+      addAllDropdowns();
+    }
+  } catch (error) {
+    console.log(
+      "Note: Dropdowns not added. This is optional and won't affect the import.",
+    );
+  }
 }
 
 function handleFileImport(

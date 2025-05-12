@@ -10,7 +10,7 @@
  */
 function applyFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]) {
   console.log(`Applying ${fields.length} fields to Details sheet`);
-
+  console.log("Fields", fields);
   // Set headers
   sheet
     .getRange(1, 1, 1, 4)
@@ -38,9 +38,31 @@ function applyFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]) {
     return [field.label, field.helperText || "", typeStr, optionsStr];
   });
 
-  // Add field rows
-  if (fieldRows.length > 0) {
-    sheet.getRange(2, 1, fieldRows.length, 4).setValues(fieldRows);
+  try {
+    // Clear the entire sheet to remove any data validations
+    sheet.clear();
+
+    // Set headers again after clearing
+    sheet
+      .getRange(1, 1, 1, 4)
+      .setValues([["Label", "Helper Text", "Type", "Options"]]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+
+    // Add field rows one by one to avoid validation errors
+    if (fieldRows.length > 0) {
+      for (let i = 0; i < fieldRows.length; i++) {
+        try {
+          // Set each cell individually to avoid validation errors
+          for (let j = 0; j < 4; j++) {
+            sheet.getRange(i + 2, j + 1).setValue(fieldRows[i][j]);
+          }
+        } catch (rowError) {
+          console.error(`Error setting field row ${i + 2}:`, rowError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in applyFields:", error);
   }
 
   // Auto-resize columns for better readability

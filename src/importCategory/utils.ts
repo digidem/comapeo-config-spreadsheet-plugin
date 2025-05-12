@@ -37,7 +37,17 @@ function createOrClearSheet(
     sheet = spreadsheet.insertSheet(sheetName);
   } else {
     // Clear the sheet if it exists
-    sheet.clear();
+    try {
+      // First clear all data validations to prevent validation errors
+      if (sheet.getLastRow() > 0) {
+        sheet.getDataRange().clearDataValidations();
+      }
+      // Then clear all content, formatting, etc.
+      sheet.clear();
+    } catch (error) {
+      console.error(`Error clearing sheet ${sheetName}:`, error);
+      // Continue even if there's an error
+    }
   }
 
   return sheet;

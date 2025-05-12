@@ -12,9 +12,9 @@
 function applyCategories(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   presets: any[],
+  fields: any[],
   icons: any[],
 ) {
-  console.log("Presets", presets);
   console.log(
     `Applying ${presets.length} categories with ${icons.length} icons`,
   );
@@ -34,18 +34,42 @@ function applyCategories(
   // Prepare category rows
   const categoryRows = presets.map((preset) => {
     // Find matching icon
-    let iconUrl = preset.icon ? iconMap[preset.icon] || "" : "";
+    const iconUrl = preset.icon ? iconMap[preset.icon] || "" : "";
 
-    // Get fields as comma-separated string
-    const fields = preset.fields ? preset.fields.join(", ") : "";
+    // Get fields as comma-separated string with actual Label values
+    let fieldsList = "";
+    if (
+      preset.fields &&
+      Array.isArray(preset.fields) &&
+      preset.fields.length > 0
+    ) {
+      // Create a map of field IDs to their labels for quick lookup
+      const fieldMap = {};
+      for (const field of fields) {
+        if (field.id && field.label) {
+          fieldMap[field.id] = field.label;
+        }
+      }
 
-    return [preset.name, iconUrl, fields];
+      // Map each field ID to its Label
+      const fieldLabels = preset.fields.map((fieldId: string) => {
+        // Use the Label from the fieldMap if available, otherwise use the original ID
+        return fieldMap[fieldId] || fieldId;
+      });
+
+      fieldsList = fieldLabels.join(", ");
+    }
+
+    return [preset.name, iconUrl, fieldsList];
   });
 
   // Add category rows
   if (categoryRows.length > 0) {
     sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
   }
+
+  // Data validation for the Details column is handled separately
+  // to avoid import errors
 
   // Auto-resize columns for better readability
   sheet.autoResizeColumns(1, 3);
