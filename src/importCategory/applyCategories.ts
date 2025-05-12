@@ -7,6 +7,7 @@
  * Applies categories (presets) to the Categories sheet.
  * @param sheet - The categories sheet
  * @param presets - Array of preset objects
+ * @param fields - Array of field objects
  * @param icons - Array of icon objects
  */
 function applyCategories(
@@ -66,6 +67,18 @@ function applyCategories(
   // Add category rows
   if (categoryRows.length > 0) {
     sheet.getRange(2, 1, categoryRows.length, 3).setValues(categoryRows);
+
+    // Apply background colors based on preset.color
+    presets.forEach((preset, index) => {
+      if (preset.color && typeof preset.color === "string") {
+        // Check if it's a valid hex color (starts with # and has 3 or 6 hex digits)
+        const isValidHexColor = /^#([0-9A-F]{3}){1,2}$/i.test(preset.color);
+        if (isValidHexColor) {
+          // Apply the color to the first cell (category name)
+          sheet.getRange(index + 2, 1).setBackground(preset.color);
+        }
+      }
+    });
   }
 
   // Data validation for the Details column is handled separately
