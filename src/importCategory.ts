@@ -40,7 +40,7 @@ function extractConfigurationData(
       };
     }
 
-    return parseExtractedFiles(files);
+    return parseExtractedFiles(files, tempFolder);
   } catch (error) {
     console.error("Error in extractConfigurationData:", error);
     // Return a minimal valid configuration to prevent crashes
@@ -104,7 +104,10 @@ function processImportedCategoryFile(
     }
 
     // Parse the extracted files using the function from importCategory/parseFiles.ts
-    const configData = parseExtractedFiles(extractionResult.files);
+    const configData = parseExtractedFiles(
+      extractionResult.files,
+      extractionResult.tempFolder,
+    );
 
     // Apply the configuration to the spreadsheet using the function from importCategory/applyConfiguration.ts
     applyConfigurationToSpreadsheet(configData);
