@@ -193,11 +193,12 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob): {
               `Found ${isDirectory ? "directory" : "file"}: ${fileName}, size: ${fileSize}`,
             );
 
-            // Only process metadata.json, presets.json, and translations.json
+            // Only process metadata.json, presets.json, translations.json, and icons.svg
             const isTargetFile =
               fileName === "metadata.json" ||
               fileName === "presets.json" ||
-              fileName === "translations.json";
+              fileName === "translations.json" ||
+              fileName === "icons.svg";
 
             if (!isDirectory && isTargetFile) {
               // Extract file data

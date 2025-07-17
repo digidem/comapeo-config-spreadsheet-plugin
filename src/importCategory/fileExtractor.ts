@@ -96,36 +96,6 @@ function extractAndValidateFile(
       };
     }
 
-    // Validate the extracted files
-    // reportProgress("Validating extracted files", 70);
-    // const validationResult = validateExtractedFiles(
-    //   extractedFiles,
-    //   (percent) => {
-    //     reportProgress("Validating files", 70 + Math.round(percent * 0.2)); // Map 0-100 to 70-90
-    //   },
-    // );
-    // reportProgress("Validation complete", 90);
-
-    // // Log validation results
-    // console.log("Validation result:", {
-    //   success: validationResult.success,
-    //   errors: validationResult.errors || "none",
-    //   warnings: validationResult.warnings || "none",
-    // });
-
-    // if (!validationResult.success) {
-    //   // Clean up and return validation errors
-    //   tempFolder.setTrashed(true);
-    //   return {
-    //     success: false,
-    //     message: "Invalid configuration file structure",
-    //     validationErrors: validationResult.errors,
-    //     validationWarnings: validationResult.warnings,
-    //   };
-    // }
-
-    // reportProgress("Extraction and validation complete", 100);
-    // Return success with extracted files and any warnings
     return {
       success: true,
       message: "File extracted successfully",
@@ -548,11 +518,12 @@ function extractTarFile(
           `Found ${isDirectory ? "directory" : "file"}: ${fileName}, size: ${fileSize}`,
         );
 
-        // Only process metadata.json, presets.json, and translations.json
+        // Only process metadata.json, presets.json, translations.json, and icons.svg
         const isTargetFile =
           fileName === "metadata.json" ||
           fileName === "presets.json" ||
-          fileName === "translations.json";
+          fileName === "translations.json" ||
+          fileName === "icons.svg";
 
         if (!isDirectory && isTargetFile) {
           // Extract file data
@@ -561,12 +532,10 @@ function extractTarFile(
             position + HEADER_SIZE + fileSize,
           );
 
-          // Create file blob
-          const fileBlob = Utilities.newBlob(
-            fileData,
-            "application/json",
-            fileName,
-          );
+          // Create file blob with appropriate MIME type
+          const mimeType =
+            fileName === "icons.svg" ? "image/svg+xml" : "application/json";
+          const fileBlob = Utilities.newBlob(fileData, mimeType, fileName);
 
           // Save file to temp folder
           tempFolder.createFile(fileBlob);
