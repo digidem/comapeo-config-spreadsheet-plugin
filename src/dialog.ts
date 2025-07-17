@@ -308,3 +308,136 @@ function showAddLanguagesDialog() {
     title,
   );
 }
+
+function showSelectTranslationLanguagesDialog() {
+  const primaryLanguage = getPrimaryLanguage();
+  const availableTargetLanguages = getAvailableTargetLanguages();
+  
+  const title = selectTranslationLanguagesDialogText[locale].title;
+  const messageTemplate = selectTranslationLanguagesDialogText[locale].message;
+  
+  // Replace placeholder with actual source language
+  const messages = messageTemplate.map(msg => 
+    msg.replace('{{sourceLanguage}}', primaryLanguage.name)
+  );
+  
+  // Generate checkboxes for each available target language
+  const languageCheckboxes = Object.entries(availableTargetLanguages)
+    .map(([code, name]) => 
+      `<div class="language-checkbox">
+        <input type="checkbox" id="lang_${code}" value="${code}" />
+        <label for="lang_${code}">${name}</label>
+      </div>`
+    )
+    .join('');
+
+  const message = `
+    ${messages.map(msg => `<p>${msg}</p>`).join('')}
+    <div class="language-selection-container">
+      <div class="source-language-info">
+        <strong>Source Language:</strong> ${primaryLanguage.name}
+      </div>
+      <div class="target-languages">
+        <strong>Target Languages:</strong>
+        ${languageCheckboxes}
+      </div>
+      <div class="select-all-container">
+        <button type="button" onclick="selectAllLanguages()" class="select-all-btn">Select All</button>
+        <button type="button" onclick="deselectAllLanguages()" class="select-all-btn">Deselect All</button>
+      </div>
+    </div>
+    <script>
+      function selectAllLanguages() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.checked = true);
+      }
+      
+      function deselectAllLanguages() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+      }
+      
+      function getSelectedTargetLanguages() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedLanguages = Array.from(checkboxes).map(checkbox => checkbox.value);
+        
+        if (selectedLanguages.length === 0) {
+          alert('Please select at least one target language.');
+          document.querySelector('.action-btn').classList.remove('processing');
+          return;
+        }
+        
+        google.script.run
+          .withFailureHandler((error) => {
+            console.error('Failed to translate:', error);
+            document.querySelector('.action-btn').classList.remove('processing');
+            alert('Translation failed: ' + error.message);
+          })
+          .withSuccessHandler(() => {
+            google.script.host.close();
+          })
+          .translateToSelectedLanguages(selectedLanguages);
+      }
+    </script>
+    <style>
+      .language-selection-container {
+        text-align: left;
+        margin: 20px 0;
+        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+      .source-language-info {
+        margin-bottom: 20px;
+        font-size: 1.1em;
+      }
+      .target-languages {
+        margin-bottom: 20px;
+      }
+      .language-checkbox {
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .language-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+      }
+      .language-checkbox label {
+        font-size: 1.1em;
+        cursor: pointer;
+      }
+      .select-all-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .select-all-btn {
+        padding: 8px 16px;
+        background-color: rgba(109, 68, 217, 0.3);
+        border: 1px solid #6d44d9;
+        color: #e0e0e0;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .select-all-btn:hover {
+        background-color: rgba(109, 68, 217, 0.5);
+      }
+    </style>
+  `;
+  
+  const buttonText = selectTranslationLanguagesDialogText[locale].buttonText;
+  const html = generateDialog(
+    title,
+    message,
+    buttonText,
+    null,
+    "getSelectedTargetLanguages",
+  );
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(700).setHeight(800),
+    title,
+  );
+}

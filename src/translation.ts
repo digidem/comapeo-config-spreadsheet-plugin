@@ -10,6 +10,7 @@ const DETAILS_OPTIONS_COLUMN = "D";
 function translateSheet(
   sheetName: string,
   targetLanguage: TranslationLanguage,
+  sourceLanguage?: TranslationLanguage,
 ): void {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if (!sheet) {
@@ -17,11 +18,17 @@ function translateSheet(
   }
   const lastRow = sheet.getLastRow();
   const languagesList = languages();
-  const mainLanguage = Object.keys(languages(true))[0];
-  console.log("Main language", mainLanguage);
+  const primaryLanguage = getPrimaryLanguage();
+  const mainLanguage = sourceLanguage || primaryLanguage.code;
+  
+  console.log("Source language", mainLanguage);
+  console.log("Target language", targetLanguage);
+  console.log("Primary language from A1", primaryLanguage);
+  
   for (const [code, name] of Object.entries(languagesList)) {
     console.log(`Language code: ${code}, name: ${name}`);
   }
+  
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
@@ -37,6 +44,111 @@ function translateSheet(
         targetCell.setValue(translation);
       }
     }
+  }
+}
+
+function translateSheetBidirectional(
+  sheetName: string,
+  targetLanguages: TranslationLanguage[],
+  sourceLanguage?: TranslationLanguage,
+): void {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`Sheet "${sheetName}" not found`);
+  }
+  
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    console.warn(`Sheet "${sheetName}" has no data to translate`);
+    return;
+  }
+  
+  const primaryLanguage = getPrimaryLanguage();
+  const actualSourceLanguage = sourceLanguage || primaryLanguage.code;
+  const availableTargetLanguages = getAvailableTargetLanguages();
+  
+  // Validate that source language is different from target languages
+  const conflictingLanguages = targetLanguages.filter(lang => lang === actualSourceLanguage);
+  if (conflictingLanguages.length > 0) {
+    throw new Error(`Cannot translate from ${actualSourceLanguage} to itself`);
+  }
+  
+  // Validate that target languages are available
+  const invalidLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  if (invalidLanguages.length > 0) {
+    throw new Error(`Invalid target languages: ${invalidLanguages.join(', ')}`);
+  }
+  
+  console.log("Bidirectional translation:");
+  console.log("Source language:", actualSourceLanguage);
+  console.log("Target languages:", targetLanguages);
+  console.log("Available target languages:", availableTargetLanguages);
+  
+  // Get headers to find column positions
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  let translationErrors: string[] = [];
+  let successfulTranslations = 0;
+  
+  for (const targetLang of targetLanguages) {
+    // Find the target column for this language
+    let targetColumn = -1;
+    
+    // First check standard languages
+    const standardLanguages = {
+      en: "English",
+      es: "Español",
+      pt: "Português",
+    };
+    
+    if (standardLanguages[targetLang]) {
+      const targetLanguageName = standardLanguages[targetLang];
+      targetColumn = headers.findIndex(header => header === targetLanguageName);
+    } else {
+      // Check for custom languages (format: "Language Name - ISO")
+      targetColumn = headers.findIndex(header => 
+        header && typeof header === "string" && header.includes(` - ${targetLang}`)
+      );
+    }
+    
+    if (targetColumn === -1) {
+      translationErrors.push(`Target column not found for language: ${targetLang}`);
+      continue;
+    }
+    
+    // Translate each row
+    for (let i = 2; i <= lastRow; i++) {
+      const originalText = sheet.getRange(i, 1).getValue() as string;
+      if (originalText && typeof originalText === "string" && originalText.trim()) {
+        const targetCell = sheet.getRange(i, targetColumn + 1); // +1 because findIndex is 0-based
+        if (!targetCell.getValue()) {
+          try {
+            const translation = LanguageApp.translate(
+              originalText.trim(),
+              actualSourceLanguage,
+              targetLang,
+            );
+            if (translation && translation.trim()) {
+              targetCell.setValue(translation.trim());
+              successfulTranslations++;
+            }
+          } catch (error) {
+            const errorMessage = `Translation error for ${targetLang} (row ${i}): ${error.message}`;
+            console.error(errorMessage);
+            translationErrors.push(errorMessage);
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`Translation summary for ${sheetName}:`, {
+    successfulTranslations,
+    errors: translationErrors.length,
+  });
+  
+  if (translationErrors.length > 0) {
+    console.warn("Translation errors:", translationErrors);
   }
 }
 
@@ -129,6 +241,109 @@ function autoTranslateSheets(): void {
     for (const lang of Object.keys(languages())) {
       translateSheet(sheetName, lang as TranslationLanguage);
     }
+  }
+}
+
+function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
+  // Validation
+  if (!targetLanguages || targetLanguages.length === 0) {
+    throw new Error("No target languages specified");
+  }
+
+  const allSheets = sheets();
+  const translationSheets = sheets(true);
+  const categoriesAndDetailsSheets = allSheets.filter(
+    (sheet) => !translationSheets.includes(sheet),
+  );
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[0],
+  );
+  const detailsSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[1],
+  );
+
+  if (!categoriesSheet || !detailsSheet) {
+    throw new Error("Categories or Details sheet not found");
+  }
+
+  const primaryLanguage = getPrimaryLanguage();
+  const availableTargetLanguages = getAvailableTargetLanguages();
+  
+  // Validate target languages exist
+  const invalidTargetLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  if (invalidTargetLanguages.length > 0) {
+    throw new Error(`Invalid target languages: ${invalidTargetLanguages.join(', ')}. Available languages: ${Object.keys(availableTargetLanguages).join(', ')}`);
+  }
+  
+  // Validate source language is different from target languages
+  const conflictingLanguages = targetLanguages.filter(lang => lang === primaryLanguage.code);
+  if (conflictingLanguages.length > 0) {
+    throw new Error(`Cannot translate from ${primaryLanguage.name} to itself. Please change the language in cell A1 of the Categories sheet or select different target languages.`);
+  }
+
+  console.log("Auto-translating from primary language:", primaryLanguage);
+  console.log("Target languages:", targetLanguages);
+  console.log("Available target languages:", availableTargetLanguages);
+
+  let totalErrors = 0;
+  let totalSuccessful = 0;
+
+  for (const sheetName of translationSheets) {
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      if (sheetName === CATEGORY_TRANSLATIONS_SHEET) {
+        sheet = createCategoryTranslationsSheet();
+      } else {
+        sheet = spreadsheet.insertSheet(sheetName);
+        const mainLanguage = Object.entries(languages(true))[0];
+        const otherLanguages = Object.entries(languages());
+        const headers = [
+          mainLanguage[1],
+          ...otherLanguages.map(([_, name]) => name),
+        ];
+        sheet
+          .getRange(1, 1, 1, headers.length)
+          .setValues([headers])
+          .setFontWeight("bold");
+
+        let sourceSheet: string;
+        let sourceColumn: string;
+        if (sheetName === DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_HELPER_TEXT_COLUMN;
+        } else if (sheetName === DETAIL_OPTION_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_OPTIONS_COLUMN;
+        } else {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = MAIN_LANGUAGE_COLUMN;
+        }
+
+        const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
+        if (!sourceSheetObj) {
+          throw new Error(`Source sheet ${sourceSheet} not found`);
+        }
+        const lastRow = sourceSheetObj.getLastRow();
+        const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+        sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      }
+    }
+    
+    try {
+      // Use bidirectional translation for selected target languages
+      translateSheetBidirectional(sheetName, targetLanguages, primaryLanguage.code as TranslationLanguage);
+    } catch (error) {
+      console.error(`Error translating sheet ${sheetName}:`, error);
+      totalErrors++;
+    }
+  }
+
+  console.log(`Translation completed. Total errors: ${totalErrors}`);
+  
+  if (totalErrors > 0) {
+    console.warn(`Some translations failed. Check the logs for details.`);
   }
 }
 

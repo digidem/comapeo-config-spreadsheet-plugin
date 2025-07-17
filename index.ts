@@ -42,28 +42,32 @@ function onOpen() {
 }
 
 function translateCoMapeoCategory() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    translateMenuTexts[locale].action,
-    translateMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO,
-  );
+  try {
+    showSelectTranslationLanguagesDialog();
+  } catch (error) {
+    SpreadsheetApp.getUi().alert(
+      translateMenuTexts[locale].error,
+      translateMenuTexts[locale].errorText + error.message,
+      SpreadsheetApp.getUi().ButtonSet.OK,
+    );
+  }
+}
 
-  if (result === ui.Button.YES) {
-    try {
-      autoTranslateSheets();
-      ui.alert(
-        translateMenuTexts[locale].completed,
-        translateMenuTexts[locale].completedText,
-        ui.ButtonSet.OK,
-      );
-    } catch (error) {
-      ui.alert(
-        translateMenuTexts[locale].error,
-        translateMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK,
-      );
-    }
+function translateToSelectedLanguages(selectedLanguages: string[]) {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    autoTranslateSheetsBidirectional(selectedLanguages as TranslationLanguage[]);
+    ui.alert(
+      translateMenuTexts[locale].completed,
+      translateMenuTexts[locale].completedText,
+      ui.ButtonSet.OK,
+    );
+  } catch (error) {
+    ui.alert(
+      translateMenuTexts[locale].error,
+      translateMenuTexts[locale].errorText + error.message,
+      ui.ButtonSet.OK,
+    );
   }
 }
 

@@ -19,6 +19,27 @@ let addLanguageDialogText: Record<string, DialogText> = {
   },
 };
 
+let selectTranslationLanguagesDialogText: Record<string, DialogText> = {
+  es: {
+    title: "Seleccionar idiomas de destino",
+    buttonText: "Traducir",
+    message: [
+      "Selecciona los idiomas a los que deseas traducir desde {{sourceLanguage}}:",
+      "Todos los idiomas disponibles se muestran abajo. Selecciona uno o más idiomas de destino.",
+      "Las traducciones se realizarán automáticamente para las celdas vacías en las columnas de idioma seleccionadas.",
+    ],
+  },
+  en: {
+    title: "Select Target Languages",
+    buttonText: "Translate",
+    message: [
+      "Select the languages you want to translate to from {{sourceLanguage}}:",
+      "All available languages are shown below. Select one or more target languages.",
+      "Translations will be performed automatically for empty cells in the selected language columns.",
+    ],
+  },
+};
+
 let iconDialogTexts: Record<string, DialogText> = {
   es: {
     title: "Íconos de CoMapeo Generados",
