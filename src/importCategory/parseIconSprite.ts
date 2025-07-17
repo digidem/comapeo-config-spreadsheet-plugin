@@ -249,7 +249,7 @@ function deconstructSvgSprite(
           MimeType.SVG,
         );
         Logger.log(`File ${fileName} already exists, created ${v2FileName} instead`);
-        
+
         // Add to icon objects
         iconObjects.push({
           name: baseName,

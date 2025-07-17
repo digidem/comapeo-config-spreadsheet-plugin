@@ -20,15 +20,15 @@ function translateSheet(
   const languagesList = languages();
   const primaryLanguage = getPrimaryLanguage();
   const mainLanguage = sourceLanguage || primaryLanguage.code;
-  
+
   console.log("Source language", mainLanguage);
   console.log("Target language", targetLanguage);
   console.log("Primary language from A1", primaryLanguage);
-  
+
   for (const [code, name] of Object.entries(languagesList)) {
     console.log(`Language code: ${code}, name: ${name}`);
   }
-  
+
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
@@ -56,66 +56,62 @@ function translateSheetBidirectional(
   if (!sheet) {
     throw new Error(`Sheet "${sheetName}" not found`);
   }
-  
+
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) {
     console.warn(`Sheet "${sheetName}" has no data to translate`);
     return;
   }
-  
+
   const primaryLanguage = getPrimaryLanguage();
   const actualSourceLanguage = sourceLanguage || primaryLanguage.code;
   const availableTargetLanguages = getAvailableTargetLanguages();
-  
+
   // Validate that source language is different from target languages
   const conflictingLanguages = targetLanguages.filter(lang => lang === actualSourceLanguage);
   if (conflictingLanguages.length > 0) {
     throw new Error(`Cannot translate from ${actualSourceLanguage} to itself`);
   }
-  
+
   // Validate that target languages are available
   const invalidLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
   if (invalidLanguages.length > 0) {
     throw new Error(`Invalid target languages: ${invalidLanguages.join(', ')}`);
   }
-  
+
   console.log("Bidirectional translation:");
   console.log("Source language:", actualSourceLanguage);
   console.log("Target languages:", targetLanguages);
   console.log("Available target languages:", availableTargetLanguages);
-  
+
   // Get headers to find column positions
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
+
   let translationErrors: string[] = [];
   let successfulTranslations = 0;
-  
+
   for (const targetLang of targetLanguages) {
     // Find the target column for this language
     let targetColumn = -1;
-    
-    // First check standard languages
-    const standardLanguages = {
-      en: "English",
-      es: "Español",
-      pt: "Português",
-    };
-    
-    if (standardLanguages[targetLang]) {
-      const targetLanguageName = standardLanguages[targetLang];
+
+    // First check all available languages
+    const allLanguages = getAllLanguages();
+
+    if (allLanguages[targetLang]) {
+      const targetLanguageName = allLanguages[targetLang];
       targetColumn = headers.findIndex(header => header === targetLanguageName);
     } else {
       // Check for custom languages (format: "Language Name - ISO")
-      targetColumn = headers.findIndex(header => 
+      targetColumn = headers.findIndex(header =>
         header && typeof header === "string" && header.includes(` - ${targetLang}`)
       );
     }
-    
+
     if (targetColumn === -1) {
       translationErrors.push(`Target column not found for language: ${targetLang}`);
       continue;
     }
-    
+
     // Translate each row
     for (let i = 2; i <= lastRow; i++) {
       const originalText = sheet.getRange(i, 1).getValue() as string;
@@ -141,12 +137,12 @@ function translateSheetBidirectional(
       }
     }
   }
-  
+
   console.log(`Translation summary for ${sheetName}:`, {
     successfulTranslations,
     errors: translationErrors.length,
   });
-  
+
   if (translationErrors.length > 0) {
     console.warn("Translation errors:", translationErrors);
   }
@@ -270,13 +266,21 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
 
   const primaryLanguage = getPrimaryLanguage();
   const availableTargetLanguages = getAvailableTargetLanguages();
-  
-  // Validate target languages exist
-  const invalidTargetLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  const allLanguages = getAllLanguages();
+
+  // Validate target languages exist in the comprehensive language list
+  const invalidTargetLanguages = targetLanguages.filter(lang => !allLanguages[lang]);
   if (invalidTargetLanguages.length > 0) {
-    throw new Error(`Invalid target languages: ${invalidTargetLanguages.join(', ')}. Available languages: ${Object.keys(availableTargetLanguages).join(', ')}`);
+    throw new Error(`Invalid target languages: ${invalidTargetLanguages.join(', ')}. Please check the language codes.`);
   }
-  
+
+  // Validate target languages are available (not the primary language)
+  const unavailableTargetLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  if (unavailableTargetLanguages.length > 0) {
+    const unavailableLanguageNames = unavailableTargetLanguages.map(lang => allLanguages[lang]).join(', ');
+    throw new Error(`Target languages not available: ${unavailableLanguageNames}. These languages might be the same as your source language (${primaryLanguage.name}).`);
+  }
+
   // Validate source language is different from target languages
   const conflictingLanguages = targetLanguages.filter(lang => lang === primaryLanguage.code);
   if (conflictingLanguages.length > 0) {
@@ -330,7 +334,7 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
         sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
       }
     }
-    
+
     try {
       // Use bidirectional translation for selected target languages
       translateSheetBidirectional(sheetName, targetLanguages, primaryLanguage.code as TranslationLanguage);
@@ -341,7 +345,7 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
   }
 
   console.log(`Translation completed. Total errors: ${totalErrors}`);
-  
+
   if (totalErrors > 0) {
     console.warn(`Some translations failed. Check the logs for details.`);
   }
