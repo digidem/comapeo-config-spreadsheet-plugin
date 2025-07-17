@@ -148,18 +148,31 @@ function translateSheetBidirectional(
   }
 }
 
-function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+function createCategoryTranslationsSheet(targetLanguages?: TranslationLanguage[]): GoogleAppsScript.Spreadsheet.Sheet {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET);
 
   if (!sheet) {
     sheet = spreadsheet.insertSheet(CATEGORY_TRANSLATIONS_SHEET);
-    const mainLanguage = Object.entries(languages(true))[0];
-    const otherLanguages = Object.entries(languages());
-    const headers = [
-      mainLanguage[1],
-      ...otherLanguages.map(([_, name]) => name),
-    ];
+    const primaryLanguage = getPrimaryLanguage();
+    const allLanguages = getAllLanguages();
+    
+    // Create headers: primary language + selected target languages only
+    const headers = [primaryLanguage.name];
+    
+    if (targetLanguages && targetLanguages.length > 0) {
+      // Add only selected target languages
+      for (const langCode of targetLanguages) {
+        if (allLanguages[langCode]) {
+          headers.push(allLanguages[langCode]);
+        }
+      }
+    } else {
+      // Fallback to old behavior if no target languages specified
+      const otherLanguages = Object.entries(languages());
+      headers.push(...otherLanguages.map(([_, name]) => name));
+    }
+    
     sheet
       .getRange(1, 1, 1, headers.length)
       .setValues([headers])
@@ -173,6 +186,70 @@ function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
     }
   }
   return sheet;
+}
+
+function createTranslationSheet(sheetName: string, targetLanguages: TranslationLanguage[], sourceSheet: string, sourceColumn: string): GoogleAppsScript.Spreadsheet.Sheet {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+    const primaryLanguage = getPrimaryLanguage();
+    const allLanguages = getAllLanguages();
+    
+    // Create headers: primary language + selected target languages only
+    const headers = [primaryLanguage.name];
+    
+    // Add only selected target languages
+    for (const langCode of targetLanguages) {
+      if (allLanguages[langCode]) {
+        headers.push(allLanguages[langCode]);
+      }
+    }
+    
+    sheet
+      .getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight("bold");
+
+    const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
+    if (!sourceSheetObj) {
+      throw new Error(`Source sheet ${sourceSheet} not found`);
+    }
+    const lastRow = sourceSheetObj.getLastRow();
+    const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+    sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+  }
+  
+  return sheet;
+}
+
+function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, targetLanguages: TranslationLanguage[]): void {
+  const allLanguages = getAllLanguages();
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  // Check which target languages are missing from the sheet
+  const missingLanguages: string[] = [];
+  for (const langCode of targetLanguages) {
+    const languageName = allLanguages[langCode];
+    if (languageName && !headers.includes(languageName)) {
+      missingLanguages.push(languageName);
+    }
+  }
+  
+  // Add missing language columns
+  if (missingLanguages.length > 0) {
+    const startColumn = headers.length + 1;
+    const newHeaders = [...headers, ...missingLanguages];
+    
+    // Update the header row
+    sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
+    
+    // Set header formatting
+    sheet.getRange(1, startColumn, 1, missingLanguages.length).setFontWeight("bold");
+    
+    console.log(`Added ${missingLanguages.length} new language columns: ${missingLanguages.join(', ')}`);
+  }
 }
 
 function autoTranslateSheets(): void {
@@ -298,20 +375,8 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
     let sheet = spreadsheet.getSheetByName(sheetName);
     if (!sheet) {
       if (sheetName === CATEGORY_TRANSLATIONS_SHEET) {
-        sheet = createCategoryTranslationsSheet();
+        sheet = createCategoryTranslationsSheet(targetLanguages);
       } else {
-        sheet = spreadsheet.insertSheet(sheetName);
-        const mainLanguage = Object.entries(languages(true))[0];
-        const otherLanguages = Object.entries(languages());
-        const headers = [
-          mainLanguage[1],
-          ...otherLanguages.map(([_, name]) => name),
-        ];
-        sheet
-          .getRange(1, 1, 1, headers.length)
-          .setValues([headers])
-          .setFontWeight("bold");
-
         let sourceSheet: string;
         let sourceColumn: string;
         if (sheetName === DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET) {
@@ -325,14 +390,11 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
           sourceColumn = MAIN_LANGUAGE_COLUMN;
         }
 
-        const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
-        if (!sourceSheetObj) {
-          throw new Error(`Source sheet ${sourceSheet} not found`);
-        }
-        const lastRow = sourceSheetObj.getLastRow();
-        const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
-        sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+        sheet = createTranslationSheet(sheetName, targetLanguages, sourceSheet, sourceColumn);
       }
+    } else {
+      // Sheet exists, ensure it has columns for the target languages
+      ensureLanguageColumnsExist(sheet, targetLanguages);
     }
 
     try {
