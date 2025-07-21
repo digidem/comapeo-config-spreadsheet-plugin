@@ -409,14 +409,14 @@ function showSelectTranslationLanguagesDialog() {
 
         google.script.run
           .withFailureHandler((error) => {
-            console.error('Failed to translate:', error);
+            console.error('Failed to generate CoMapeo config:', error);
             document.querySelector('.action-btn').classList.remove('processing');
-            alert('Translation failed: ' + error.message);
+            alert('CoMapeo config generation failed: ' + error.message);
           })
           .withSuccessHandler(() => {
             google.script.host.close();
           })
-          .translateToSelectedLanguages(selectedLanguages);
+          .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
       }
     </script>
     <style>

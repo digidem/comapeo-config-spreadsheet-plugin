@@ -3,15 +3,24 @@
  * Shows progress dialogs and handles errors appropriately.
  */
 function generateCoMapeoConfig() {
+  // First, show the translation language selection dialog
+  showSelectTranslationLanguagesDialog();
+}
+
+/**
+ * Called after user selects translation languages.
+ * Continues the CoMapeo config generation process.
+ */
+function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]) {
   try {
     // Step 1: Initialize
     showProcessingModalDialog(processingDialogTexts[0][locale]);
     console.log("Generating CoMapeo config...");
 
-    // Step 2: Auto translate
+    // Step 2: Auto translate with selected languages
     showProcessingModalDialog(processingDialogTexts[1][locale]);
-    console.log("Auto translating...");
-    autoTranslateSheets();
+    console.log("Auto translating to selected languages...");
+    autoTranslateSheetsBidirectional(selectedLanguages);
 
     // Step 3: Lint (passing false to prevent UI alerts)
     console.log("Linting CoMapeo config...");

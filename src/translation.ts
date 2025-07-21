@@ -36,12 +36,17 @@ function translateSheet(
     if (originalText) {
       const targetCell = sheet.getRange(i, targetColumn);
       if (!targetCell.getValue()) {
-        const translation = LanguageApp.translate(
-          originalText,
-          mainLanguage,
-          targetLanguage,
-        );
-        targetCell.setValue(translation);
+        try {
+          const translation = LanguageApp.translate(
+            originalText,
+            mainLanguage,
+            targetLanguage,
+          );
+          targetCell.setValue(translation);
+        } catch (error) {
+          console.warn(`Translation failed for "${originalText}" from ${mainLanguage} to ${targetLanguage}: ${error.message}`);
+          // Skip this translation but don't fail the entire process
+        }
       }
     }
   }
@@ -271,6 +276,10 @@ function autoTranslateSheets(): void {
     throw new Error("Categories or Details sheet not found");
   }
 
+  const primaryLanguage = getPrimaryLanguage();
+  let totalErrors = 0;
+  let totalSuccessful = 0;
+
   for (const sheetName of translationSheets) {
     let sheet = spreadsheet.getSheetByName(sheetName);
     if (!sheet) {
@@ -311,9 +320,23 @@ function autoTranslateSheets(): void {
         sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
       }
     }
+
     for (const lang of Object.keys(languages())) {
-      translateSheet(sheetName, lang as TranslationLanguage);
+      try {
+        translateSheet(sheetName, lang as TranslationLanguage);
+        totalSuccessful++;
+      } catch (error) {
+        console.warn(`Translation failed for ${sheetName} to ${lang}: ${error.message}`);
+        totalErrors++;
+        // Continue with other languages instead of stopping completely
+      }
     }
+  }
+
+  console.log(`Translation completed. Successful: ${totalSuccessful}, Errors: ${totalErrors}`);
+
+  if (totalErrors > 0) {
+    console.warn(`Some translations failed. The CoMapeo config will be generated with available translations.`);
   }
 }
 

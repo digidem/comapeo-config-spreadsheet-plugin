@@ -57,13 +57,30 @@ function processIconImage(
   iconImage: any,
   backgroundColor: string,
 ): string {
-  if (isGoogleDriveIcon(iconImage)) {
-    console.log(`Using existing Google Drive icon for ${name}: ${iconImage}`);
-    return iconImage;
-  } else if (isCellImage(iconImage)) {
-    return processCellImage(name, iconImage, backgroundColor);
-  } else {
-    console.log(`Generating new icon for ${name}`);
+  try {
+    if (isGoogleDriveIcon(iconImage)) {
+      console.log(`Using existing Google Drive icon for ${name}: ${iconImage}`);
+      // Validate that we can access this Drive file before using it
+      if (iconImage.startsWith("https://drive.google.com/file/d/")) {
+        const fileId = iconImage.split("/d/")[1].split("/")[0];
+        try {
+          DriveApp.getFileById(fileId); // Test access
+          return iconImage; // Return the URL if we can access it
+        } catch (error) {
+          console.warn(`Cannot access Google Drive icon for ${name}, generating fallback: ${error.message}`);
+          return generateNewIcon(name, backgroundColor);
+        }
+      }
+      return iconImage;
+    } else if (isCellImage(iconImage)) {
+      return processCellImage(name, iconImage, backgroundColor);
+    } else {
+      console.log(`Generating new icon for ${name}`);
+      return generateNewIcon(name, backgroundColor);
+    }
+  } catch (error) {
+    console.error(`Error processing icon for ${name}: ${error.message}`);
+    console.log(`Falling back to generating new icon for ${name}`);
     return generateNewIcon(name, backgroundColor);
   }
 }
@@ -111,8 +128,16 @@ function saveIconToFolder(
   });
 
   if (!iconContent) {
-    console.error("Failed to get icon content");
-    return "";
+    console.warn(`Failed to get icon content for ${name}, using fallback approach`);
+    // Fall back to generating a new icon instead of failing completely
+    const backgroundColor = "#6d44d9"; // Default color
+    const fallbackSvg = generateNewIcon(name, backgroundColor);
+    if (fallbackSvg) {
+      return saveIconToFolder(folder, name, fallbackSvg, suffixes);
+    } else {
+      console.error(`Complete failure to generate icon for ${name}`);
+      return "";
+    }
   }
 
   let files: GoogleAppsScript.Drive.File[] = [];
@@ -155,11 +180,19 @@ function getIconContent(icon: CoMapeoIcon): {
     };
   } else if (icon.svg.startsWith("https://drive.google.com/file/d/")) {
     const fileId = icon.svg.split("/d/")[1].split("/")[0];
-    const file = DriveApp.getFileById(fileId);
-    return {
-      iconContent: file.getBlob().getDataAsString(),
-      mimeType: file.getMimeType(),
-    };
+    console.log(`Attempting to access Drive file with ID: ${fileId}`);
+
+    try {
+      const file = DriveApp.getFileById(fileId);
+      return {
+        iconContent: file.getBlob().getDataAsString(),
+        mimeType: file.getMimeType(),
+      };
+    } catch (error) {
+      console.error(`Failed to access Drive file with ID "${fileId}": ${error.message}`);
+      console.warn(`Skipping inaccessible Drive file, returning null content`);
+      return { iconContent: null, mimeType: "" };
+    }
   } else {
     console.error("Unsupported icon format");
     return { iconContent: null, mimeType: "" };

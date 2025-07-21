@@ -1,6 +1,23 @@
 function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
-  const folder: GoogleAppsScript.Drive.Folder =
-    DriveApp.getFolderById(folderId);
+  console.log("Attempting to access folder with ID:", folderId);
+
+  if (!folderId) {
+    throw new Error("Folder ID is null or undefined");
+  }
+
+  let folder: GoogleAppsScript.Drive.Folder;
+  try {
+    folder = DriveApp.getFolderById(folderId);
+  } catch (error) {
+    console.error("Failed to access folder by ID:", folderId, error);
+    throw new Error(`Failed to access Drive folder with ID "${folderId}". This could be due to permissions or the folder not being properly created. Original error: ${error.message}`);
+  }
+
+  if (!folder) {
+    throw new Error(`Folder with ID "${folderId}" was not found or is not accessible`);
+  }
+
+  console.log("Successfully accessed folder:", folder.getName());
   const blobs: GoogleAppsScript.Base.Blob[] = [];
 
   function addFolderContentsToBlobs(
@@ -87,15 +104,45 @@ function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
     );
   }
   console.log("Created folder:", rootFolder.getName(), "in rawBuilds");
-  const folders = createSubFolders(rootFolder);
-  savePresetsAndIcons(config, folders, ["-100px", "-24px"]);
-  saveFields(config.fields, folders.fields);
-  saveMessages(config.messages, folders.messages);
-  saveMetadataAndPackage(config, rootFolder);
-  return {
-    url: rootFolder.getUrl(),
-    id: rootFolder.getId(),
-  };
+
+  // Verify folder ID is valid before proceeding
+  const folderId = rootFolder.getId();
+  console.log("Folder ID:", folderId);
+
+  if (!folderId) {
+    throw new Error("Failed to get valid folder ID from created folder");
+  }
+
+  try {
+    const folders = createSubFolders(rootFolder);
+    console.log("Created subfolders successfully");
+
+    // Process each step individually with better error handling
+    console.log("Saving presets and icons...");
+    savePresetsAndIcons(config, folders, ["-100px", "-24px"]);
+
+    console.log("Saving fields...");
+    saveFields(config.fields, folders.fields);
+
+    console.log("Saving messages...");
+    saveMessages(config.messages, folders.messages);
+
+    console.log("Saving metadata and package...");
+    saveMetadataAndPackage(config, rootFolder);
+
+    console.log("Successfully saved all config files to folder");
+
+    // Add a small delay to ensure Drive operations are fully committed
+    Utilities.sleep(1000);
+
+    return {
+      url: rootFolder.getUrl(),
+      id: folderId,
+    };
+  } catch (error) {
+    console.error("Error saving config files to Drive:", error);
+    throw new Error(`Failed to save config files to Drive: ${error.message}`);
+  }
 }
 
 function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
@@ -115,8 +162,16 @@ function savePresetsAndIcons(
   },
   suffixes: string[],
 ) {
-  savePresets(config.presets, folders.presets);
-  config.icons = processIcons(folders.icons, suffixes);
+  try {
+    console.log("Saving presets...");
+    savePresets(config.presets, folders.presets);
+    console.log("Processing icons...");
+    config.icons = processIcons(folders.icons, suffixes);
+    console.log("Icons processed successfully");
+  } catch (error) {
+    console.error("Error in savePresetsAndIcons:", error);
+    throw new Error(`Failed to save presets and icons: ${error.message}`);
+  }
 }
 
 function savePresets(

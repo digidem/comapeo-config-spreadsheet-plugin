@@ -71,6 +71,8 @@ function translateToSelectedLanguages(selectedLanguages: string[]) {
   }
 }
 
+// This function is defined in generateCoMapeoConfig.ts and will be available globally
+
 function addCustomLanguages() {
   try {
     showAddLanguagesDialog();
