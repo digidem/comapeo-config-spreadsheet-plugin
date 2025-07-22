@@ -4,6 +4,8 @@ function generateDialog(
   buttonText?: string,
   buttonUrl?: string,
   buttonFunction?: string,
+  secondaryButtonText?: string,
+  secondaryButtonFunction?: string,
 ): string {
   return `
     <!DOCTYPE html>
@@ -124,15 +126,23 @@ function generateDialog(
         ${message}
         ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ""}
         ${
-          buttonFunction
+          buttonFunction || secondaryButtonFunction
             ? `
-          <button onclick="handleClick()" class="action-btn">
-            <span class="btn-text">${buttonText}</span>
-            <span class="spinner"></span>
-          </button>
+          <div class="button-container" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+            ${buttonFunction ? `
+              <button onclick="handlePrimaryClick()" class="action-btn primary-btn">
+                <span class="btn-text">${buttonText}</span>
+                <span class="spinner"></span>
+              </button>` : ''}
+            ${secondaryButtonFunction ? `
+              <button onclick="handleSecondaryClick()" class="action-btn secondary-btn" style="background: linear-gradient(45deg, #666, #888) !important;">
+                <span class="btn-text">${secondaryButtonText}</span>
+                <span class="spinner"></span>
+              </button>` : ''}
+          </div>
           <script>
-            function handleClick() {
-              const button = document.querySelector('.action-btn');
+            function handlePrimaryClick() {
+              const button = document.querySelector('.primary-btn');
               button.classList.add('processing');
               try {
                 ${buttonFunction}();
@@ -141,6 +151,17 @@ function generateDialog(
                 button.classList.remove('processing');
               }
             }
+            ${secondaryButtonFunction ? `
+            function handleSecondaryClick() {
+              const button = document.querySelector('.secondary-btn');
+              button.classList.add('processing');
+              try {
+                ${secondaryButtonFunction}();
+              } catch (error) {
+                console.error('Error:', error);
+                button.classList.remove('processing');
+              }
+            }` : ''}
           </script>
         `
             : ""
@@ -418,6 +439,19 @@ function showSelectTranslationLanguagesDialog() {
           })
           .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
       }
+
+      function skipTranslation() {
+        google.script.run
+          .withFailureHandler((error) => {
+            console.error('Failed to generate CoMapeo config:', error);
+            document.querySelector('.skip-btn').classList.remove('processing');
+            alert('CoMapeo config generation failed: ' + error.message);
+          })
+          .withSuccessHandler(() => {
+            google.script.host.close();
+          })
+          .generateCoMapeoConfigWithSelectedLanguages([]);
+      }
     </script>
     <style>
       .language-selection-container {
@@ -499,12 +533,99 @@ function showSelectTranslationLanguagesDialog() {
   `;
 
   const buttonText = selectTranslationLanguagesDialogText[locale].buttonText;
+  const skipButtonText = selectTranslationLanguagesDialogText[locale].skipButtonText;
+
+  // Add the script functions for the dialog
+  const scriptFunctions = `
+    const commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];
+
+    function filterLanguages() {
+      const searchTerm = document.getElementById('languageSearch').value.toLowerCase();
+      const checkboxes = document.querySelectorAll('.language-checkbox');
+      let visibleCount = 0;
+
+      checkboxes.forEach(checkbox => {
+        const label = checkbox.querySelector('label').textContent.toLowerCase();
+        if (label.includes(searchTerm)) {
+          checkbox.style.display = 'flex';
+          visibleCount++;
+        } else {
+          checkbox.style.display = 'none';
+        }
+      });
+
+      document.getElementById('languageCount').textContent = visibleCount;
+    }
+
+    function selectAllLanguages() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:not([style*="display: none"])');
+      checkboxes.forEach(checkbox => checkbox.checked = true);
+    }
+
+    function deselectAllLanguages() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => checkbox.checked = false);
+    }
+
+    function selectCommonLanguages() {
+      deselectAllLanguages();
+      commonLanguages.forEach(langCode => {
+        const checkbox = document.getElementById('lang_' + langCode);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      });
+    }
+
+    function getSelectedTargetLanguages() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const selectedLanguages = Array.from(checkboxes).map(checkbox => checkbox.value);
+
+      if (selectedLanguages.length === 0) {
+        alert('Please select at least one target language.');
+        document.querySelector('.primary-btn').classList.remove('processing');
+        return;
+      }
+
+      google.script.run
+        .withFailureHandler((error) => {
+          console.error('Failed to generate CoMapeo config:', error);
+          document.querySelector('.primary-btn').classList.remove('processing');
+          alert('CoMapeo config generation failed: ' + error.message);
+        })
+        .withSuccessHandler(() => {
+          google.script.host.close();
+        })
+        .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
+    }
+
+    function skipTranslation() {
+      console.log('skipTranslation function called');
+      google.script.run
+        .withFailureHandler((error) => {
+          console.error('Failed to generate CoMapeo config:', error);
+          document.querySelector('.secondary-btn').classList.remove('processing');
+          alert('CoMapeo config generation failed: ' + error.message);
+        })
+        .withSuccessHandler(() => {
+          console.log('Skip translation completed successfully');
+          google.script.host.close();
+        })
+        .generateCoMapeoConfigSkipTranslation();
+    }
+  `;
+
+  // Add the message content with all the language selection UI
+  const fullMessage = message + `<script>${scriptFunctions}</script>`;
+
   const html = generateDialog(
     title,
-    message,
+    fullMessage,
     buttonText,
     null,
     "getSelectedTargetLanguages",
+    skipButtonText,
+    "skipTranslation",
   );
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html).setWidth(750).setHeight(900),

@@ -341,9 +341,10 @@ function autoTranslateSheets(): void {
 }
 
 function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
-  // Validation
+  // Validation - return early if no languages specified (skip translation)
   if (!targetLanguages || targetLanguages.length === 0) {
-    throw new Error("No target languages specified");
+    console.log("No target languages specified - skipping translation");
+    return;
   }
 
   const allSheets = sheets();

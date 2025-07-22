@@ -19,23 +19,27 @@ let addLanguageDialogText: Record<string, DialogText> = {
   },
 };
 
-let selectTranslationLanguagesDialogText: Record<string, DialogText> = {
+let selectTranslationLanguagesDialogText: Record<string, DialogText & { skipButtonText: string }> = {
   es: {
     title: "Seleccionar idiomas de destino",
     buttonText: "Traducir",
+    skipButtonText: "Saltar traducción",
     message: [
       "Selecciona los idiomas a los que deseas traducir desde {{sourceLanguage}}:",
       "Todos los idiomas disponibles se muestran abajo. Selecciona uno o más idiomas de destino.",
       "Las traducciones se realizarán automáticamente para las celdas vacías en las columnas de idioma seleccionadas.",
+      "Si prefieres continuar sin traducir, puedes hacer clic en 'Saltar traducción'.",
     ],
   },
   en: {
     title: "Select Target Languages",
     buttonText: "Translate",
+    skipButtonText: "Skip Translation",
     message: [
       "Select the languages you want to translate to from {{sourceLanguage}}:",
       "All available languages are shown below. Select one or more target languages.",
       "Translations will be performed automatically for empty cells in the selected language columns.",
+      "If you prefer to continue without translating, you can click 'Skip Translation'.",
     ],
   },
 };

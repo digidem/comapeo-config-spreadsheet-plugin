@@ -8,6 +8,15 @@ function generateCoMapeoConfig() {
 }
 
 /**
+ * Called when user chooses to skip translation.
+ * Continues the CoMapeo config generation process without translation.
+ */
+function generateCoMapeoConfigSkipTranslation() {
+  console.log("Skip translation function called on server side");
+  generateCoMapeoConfigWithSelectedLanguages([]);
+}
+
+/**
  * Called after user selects translation languages.
  * Continues the CoMapeo config generation process.
  */
@@ -17,10 +26,14 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     showProcessingModalDialog(processingDialogTexts[0][locale]);
     console.log("Generating CoMapeo config...");
 
-    // Step 2: Auto translate with selected languages
-    showProcessingModalDialog(processingDialogTexts[1][locale]);
-    console.log("Auto translating to selected languages...");
-    autoTranslateSheetsBidirectional(selectedLanguages);
+    // Step 2: Auto translate with selected languages (skip if no languages selected)
+    if (selectedLanguages.length > 0) {
+      showProcessingModalDialog(processingDialogTexts[1][locale]);
+      console.log("Auto translating to selected languages...");
+      autoTranslateSheetsBidirectional(selectedLanguages);
+    } else {
+      console.log("Skipping translation - no languages selected");
+    }
 
     // Step 3: Lint (passing false to prevent UI alerts)
     console.log("Linting CoMapeo config...");
