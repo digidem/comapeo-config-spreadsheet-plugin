@@ -377,82 +377,6 @@ function showSelectTranslationLanguagesDialog() {
         <button type="button" onclick="selectCommonLanguages()" class="select-all-btn">Select Common</button>
       </div>
     </div>
-    <script>
-      const commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];
-
-      function filterLanguages() {
-        const searchTerm = document.getElementById('languageSearch').value.toLowerCase();
-        const checkboxes = document.querySelectorAll('.language-checkbox');
-        let visibleCount = 0;
-
-        checkboxes.forEach(checkbox => {
-          const label = checkbox.querySelector('label').textContent.toLowerCase();
-          if (label.includes(searchTerm)) {
-            checkbox.style.display = 'flex';
-            visibleCount++;
-          } else {
-            checkbox.style.display = 'none';
-          }
-        });
-
-        document.getElementById('languageCount').textContent = visibleCount;
-      }
-
-      function selectAllLanguages() {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]:not([style*="display: none"])');
-        checkboxes.forEach(checkbox => checkbox.checked = true);
-      }
-
-      function deselectAllLanguages() {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => checkbox.checked = false);
-      }
-
-      function selectCommonLanguages() {
-        deselectAllLanguages();
-        commonLanguages.forEach(langCode => {
-          const checkbox = document.getElementById('lang_' + langCode);
-          if (checkbox) {
-            checkbox.checked = true;
-          }
-        });
-      }
-
-      function getSelectedTargetLanguages() {
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-        const selectedLanguages = Array.from(checkboxes).map(checkbox => checkbox.value);
-
-        if (selectedLanguages.length === 0) {
-          alert('Please select at least one target language.');
-          document.querySelector('.action-btn').classList.remove('processing');
-          return;
-        }
-
-        google.script.run
-          .withFailureHandler((error) => {
-            console.error('Failed to generate CoMapeo config:', error);
-            document.querySelector('.action-btn').classList.remove('processing');
-            alert('CoMapeo config generation failed: ' + error.message);
-          })
-          .withSuccessHandler(() => {
-            google.script.host.close();
-          })
-          .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
-      }
-
-      function skipTranslation() {
-        google.script.run
-          .withFailureHandler((error) => {
-            console.error('Failed to generate CoMapeo config:', error);
-            document.querySelector('.skip-btn').classList.remove('processing');
-            alert('CoMapeo config generation failed: ' + error.message);
-          })
-          .withSuccessHandler(() => {
-            google.script.host.close();
-          })
-          .generateCoMapeoConfigWithSelectedLanguages([]);
-      }
-    </script>
     <style>
       .language-selection-container {
         text-align: left;
@@ -600,15 +524,17 @@ function showSelectTranslationLanguagesDialog() {
     }
 
     function skipTranslation() {
-      console.log('skipTranslation function called');
+      console.log('[CLIENT] Skip Translation button clicked');
+      console.log('[CLIENT] Calling server function: generateCoMapeoConfigSkipTranslation()');
       google.script.run
         .withFailureHandler((error) => {
-          console.error('Failed to generate CoMapeo config:', error);
+          console.error('[CLIENT] ❌ Failed to generate CoMapeo config:', error);
           document.querySelector('.secondary-btn').classList.remove('processing');
           alert('CoMapeo config generation failed: ' + error.message);
         })
         .withSuccessHandler(() => {
-          console.log('Skip translation completed successfully');
+          console.log('[CLIENT] ✅ Skip translation completed successfully');
+          console.log('[CLIENT] Closing dialog');
           google.script.host.close();
         })
         .generateCoMapeoConfigSkipTranslation();
