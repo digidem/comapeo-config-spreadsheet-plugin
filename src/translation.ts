@@ -343,9 +343,15 @@ function autoTranslateSheets(): void {
 function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
   // Validation - return early if no languages specified (skip translation)
   if (!targetLanguages || targetLanguages.length === 0) {
-    console.log("No target languages specified - skipping translation");
+    console.log("[TRANSLATION] ✓ SKIPPING TRANSLATION - No target languages specified");
+    console.log("[TRANSLATION] targetLanguages parameter:", targetLanguages);
+    console.log("[TRANSLATION] Returning early without translation");
     return;
   }
+
+  console.log("[TRANSLATION] Starting bidirectional translation");
+  console.log("[TRANSLATION] Target languages count:", targetLanguages.length);
+  console.log("[TRANSLATION] Target languages:", targetLanguages);
 
   const allSheets = sheets();
   const translationSheets = sheets(true);
@@ -430,10 +436,13 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
     }
   }
 
-  console.log(`Translation completed. Total errors: ${totalErrors}`);
+  console.log("[TRANSLATION] Translation summary:");
+  console.log("[TRANSLATION] - Total errors:", totalErrors);
+  console.log("[TRANSLATION] - Sheets processed:", translationSheets.length);
+  console.log("[TRANSLATION] ✅ Translation completed");
 
   if (totalErrors > 0) {
-    console.warn(`Some translations failed. Check the logs for details.`);
+    console.warn("[TRANSLATION] ⚠️  Some translations failed. Check the logs for details.");
   }
 }
 

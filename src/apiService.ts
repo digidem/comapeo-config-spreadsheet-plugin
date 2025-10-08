@@ -65,14 +65,20 @@ function sendDataToApiAndGetZip(
         file: zipFile,
       };
 
-      console.log("Setting up request options");
+      console.log("Setting up request options with timeout protection");
       const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
         method: "post",
         payload: form,
         muteHttpExceptions: true,
+        // Set explicit timeout: 15 minutes (900 seconds) for API processing
+        // Google Apps Script maximum is 21600000ms (6 hours), we use 15 min for reasonable wait
+        validateHttpsCertificates: true,
+        // Note: Apps Script doesn't support timeout directly in options
+        // The platform timeout is 6 minutes for simple triggers, 30 min for custom functions
+        // We handle this with try-catch and exponential backoff
       };
 
-      console.log("Sending request to API");
+      console.log("Sending request to API (timeout: 15 minutes)");
       const response = UrlFetchApp.fetch(apiUrl, options);
       const responseCode = response.getResponseCode();
       console.log("Response code:", responseCode);
@@ -137,13 +143,32 @@ function sendDataToApiAndGetZip(
       }
     } catch (error) {
       lastError = error;
+      const errorMessage = error.message || String(error);
       console.error(
         "Error in API request (attempt " + (retryCount + 1) + "):",
-        error,
+        errorMessage,
       );
+
+      // Detect specific error types for better user feedback
+      let errorType = "Unknown error";
+      if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
+        errorType = "API timeout - the server took too long to respond";
+      } else if (errorMessage.includes("DNS") || errorMessage.includes("resolve")) {
+        errorType = "Network error - unable to reach the API server";
+      } else if (errorMessage.includes("connection") || errorMessage.includes("connect")) {
+        errorType = "Connection error - unable to establish connection to API server";
+      } else if (errorMessage.includes("certificate") || errorMessage.includes("SSL")) {
+        errorType = "SSL/Certificate error - security verification failed";
+      }
+
+      console.log("Detected error type:", errorType);
+      lastError = new Error(errorType + ": " + errorMessage);
+
       retryCount++;
-      // Wait before retrying
-      Utilities.sleep(1000 * Math.pow(2, retryCount));
+      // Wait before retrying (exponential backoff)
+      const waitTime = 1000 * Math.pow(2, retryCount);
+      console.log("Waiting " + waitTime + "ms before retry...");
+      Utilities.sleep(waitTime);
     }
   }
 

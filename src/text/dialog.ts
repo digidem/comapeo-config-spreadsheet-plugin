@@ -158,81 +158,131 @@ let processingDialogTexts: Record<string, DialogText>[] = [
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Generating Comapeo Config (1/8)"],
+      message: ["Generating Comapeo Config (1/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Generando Configuración de CoMapeo (1/8)"],
+      message: ["Generando Configuración de CoMapeo (1/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Auto translating (2/8)"],
+      message: ["Auto translating (2/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Generando tradducciones automáticas (2/8)"],
+      message: ["Generando tradducciones automáticas (2/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Linting CoMapeo Categories (3/8)"],
+      message: ["Linting CoMapeo Categories (3/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Validando Categorías de CoMapeo (3/8)"],
+      message: ["Validando Categorías de CoMapeo (3/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Getting spreadsheet data (4/8)"],
+      message: ["Getting spreadsheet data (4/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Obteniendo información de las planillas (4/8)"],
+      message: ["Obteniendo información de las planillas (4/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Processing data (this may take a while) (5/8)"],
+      message: ["Processing data (this may take a while) (5/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Procesando información (esto puede llevar un rato) (5/8)"],
+      message: ["Procesando información (esto puede llevar un rato) (5/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Saving generated categories to drive (6/8)"],
+      message: ["Saving generated categories to drive (6/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Guardando categrías generadas al drive (6/8)"],
+      message: ["Guardando categrías generadas al drive (6/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Zipping folder (7/8)"],
+      message: ["Writing configuration files to Drive... (7/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Comprimiendo carpeta (7/8)"],
+      message: ["Escribiendo archivos de configuración en Drive... (7/13)"],
     },
   },
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Retrieving URL for zipped folder (8/8)"],
+      message: ["Collecting files from Drive folder... (8/13)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Obteniendo URL para carpeta comprimida (7/8)"],
+      message: ["Recopilando archivos de la carpeta de Drive... (8/13)"],
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle["en"],
+      message: ["Creating ZIP archive (this may take a few minutes)... (9/13)"],
+    },
+    es: {
+      title: processingDialogTitle["es"],
+      message: ["Creando archivo ZIP (esto puede tardar unos minutos)... (9/13)"],
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle["en"],
+      message: ["Uploading to API server... (10/13)"],
+    },
+    es: {
+      title: processingDialogTitle["es"],
+      message: ["Subiendo al servidor API... (10/13)"],
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle["en"],
+      message: ["Waiting for API processing (this may take up to 5 minutes)... (11/13)"],
+    },
+    es: {
+      title: processingDialogTitle["es"],
+      message: ["Esperando procesamiento de API (esto puede tardar hasta 5 minutos)... (11/13)"],
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle["en"],
+      message: ["Saving final package to Drive... (12/13)"],
+    },
+    es: {
+      title: processingDialogTitle["es"],
+      message: ["Guardando paquete final en Drive... (12/13)"],
+    },
+  },
+  {
+    en: {
+      title: processingDialogTitle["en"],
+      message: ["Finalizing and preparing download... (13/13)"],
+    },
+    es: {
+      title: processingDialogTitle["es"],
+      message: ["Finalizando y preparando descarga... (13/13)"],
     },
   },
 ];

@@ -1,24 +1,42 @@
 function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
-  console.log("Attempting to access folder with ID:", folderId);
+  console.log("[ZIP] Attempting to access folder with ID:", folderId);
 
   if (!folderId) {
     throw new Error("Folder ID is null or undefined");
   }
 
   let folder: GoogleAppsScript.Drive.Folder;
-  try {
-    folder = DriveApp.getFolderById(folderId);
-  } catch (error) {
-    console.error("Failed to access folder by ID:", folderId, error);
-    throw new Error(`Failed to access Drive folder with ID "${folderId}". This could be due to permissions or the folder not being properly created. Original error: ${error.message}`);
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  // Retry logic for accessing folder (handles transient Drive API issues)
+  while (retryCount <= maxRetries) {
+    try {
+      folder = DriveApp.getFolderById(folderId);
+      break; // Success, exit retry loop
+    } catch (error) {
+      retryCount++;
+      console.error(`[ZIP] Failed to access folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
+
+      if (retryCount > maxRetries) {
+        throw new Error(`Failed to access Drive folder with ID "${folderId}" after ${maxRetries + 1} attempts. This could be due to permissions or the folder not being properly created. Original error: ${error.message}`);
+      }
+
+      // Wait before retrying (exponential backoff)
+      const waitTime = 1000 * Math.pow(2, retryCount);
+      console.log(`[ZIP] Waiting ${waitTime}ms before retry...`);
+      Utilities.sleep(waitTime);
+    }
   }
 
   if (!folder) {
     throw new Error(`Folder with ID "${folderId}" was not found or is not accessible`);
   }
 
-  console.log("Successfully accessed folder:", folder.getName());
+  console.log("[ZIP] Successfully accessed folder:", folder.getName());
   const blobs: GoogleAppsScript.Base.Blob[] = [];
+  let fileCount = 0;
+  const startTime = new Date().getTime();
 
   function addFolderContentsToBlobs(
     currentFolder: GoogleAppsScript.Drive.Folder,
@@ -27,6 +45,15 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
     const files = currentFolder.getFiles();
     while (files.hasNext()) {
       const file = files.next();
+      fileCount++;
+      console.log(`[ZIP] Adding file ${fileCount}: ${path}${file.getName()}`);
+
+      // Heartbeat logging every 10 files
+      if (fileCount % 10 === 0) {
+        const elapsed = ((new Date().getTime() - startTime) / 1000).toFixed(1);
+        console.log(`[ZIP] Progress: ${fileCount} files processed in ${elapsed}s`);
+      }
+
       blobs.push(file.getBlob().setName(`${path}${file.getName()}`));
     }
 
@@ -39,7 +66,16 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
   }
 
   addFolderContentsToBlobs(folder);
+
+  const totalTime = ((new Date().getTime() - startTime) / 1000).toFixed(1);
+  console.log(`[ZIP] Collected ${fileCount} files in ${totalTime}s`);
+  console.log(`[ZIP] Creating ZIP archive from ${blobs.length} files...`);
+
+  const zipStartTime = new Date().getTime();
   const zipBlob = Utilities.zip(blobs, `${folder.getName()}.zip`);
+  const zipTime = ((new Date().getTime() - zipStartTime) / 1000).toFixed(1);
+
+  console.log(`[ZIP] ZIP archive created in ${zipTime}s (size: ${zipBlob.getBytes().length} bytes)`);
   return zipBlob;
 }
 
@@ -85,62 +121,97 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
 function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
   const configFolder = getConfigFolder();
   const folderName = `${slugify(config.metadata.version)}`;
-  console.log("Saving config to drive:", folderName);
+  console.log("[DRIVE] Saving config to drive:", folderName);
+  const startTime = new Date().getTime();
+
   let rootFolder: GoogleAppsScript.Drive.Folder;
-  try {
-    const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
-      ? configFolder.getFoldersByName("rawBuilds").next()
-      : configFolder.createFolder("rawBuilds");
-    rootFolder = rawBuildsFolder.createFolder(folderName);
-  } catch (error) {
-    console.error(`Error creating folder: ${error}`);
-    throw new Error(
-      `Failed to create folder "${folderName}" in "rawBuilds". Please check your Drive permissions and try again.`,
-    );
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  // Retry logic for folder creation (handles Drive API rate limits)
+  while (retryCount <= maxRetries) {
+    try {
+      const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
+        ? configFolder.getFoldersByName("rawBuilds").next()
+        : configFolder.createFolder("rawBuilds");
+      rootFolder = rawBuildsFolder.createFolder(folderName);
+      break; // Success, exit retry loop
+    } catch (error) {
+      retryCount++;
+      console.error(`[DRIVE] Error creating folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
+
+      if (retryCount > maxRetries) {
+        throw new Error(
+          `Failed to create folder "${folderName}" in "rawBuilds" after ${maxRetries + 1} attempts. Please check your Drive permissions and quota, then try again. Original error: ${error.message}`,
+        );
+      }
+
+      // Wait before retrying (exponential backoff)
+      const waitTime = 1000 * Math.pow(2, retryCount);
+      console.log(`[DRIVE] Waiting ${waitTime}ms before retry...`);
+      Utilities.sleep(waitTime);
+    }
   }
+
   if (!rootFolder) {
     throw new Error(
       `Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`,
     );
   }
-  console.log("Created folder:", rootFolder.getName(), "in rawBuilds");
+  console.log("[DRIVE] Created folder:", rootFolder.getName(), "in rawBuilds");
 
   // Verify folder ID is valid before proceeding
   const folderId = rootFolder.getId();
-  console.log("Folder ID:", folderId);
+  console.log("[DRIVE] Folder ID:", folderId);
 
   if (!folderId) {
     throw new Error("Failed to get valid folder ID from created folder");
   }
 
   try {
+    console.log("[DRIVE] Creating subfolders...");
     const folders = createSubFolders(rootFolder);
-    console.log("Created subfolders successfully");
+    console.log("[DRIVE] ✅ Created subfolders successfully");
 
-    // Process each step individually with better error handling
-    console.log("Saving presets and icons...");
+    // Process each step individually with better error handling and progress logging
+    console.log("[DRIVE] Saving presets and icons...");
+    const presetsStart = new Date().getTime();
     savePresetsAndIcons(config, folders, ["-100px", "-24px"]);
+    const presetsTime = ((new Date().getTime() - presetsStart) / 1000).toFixed(1);
+    console.log(`[DRIVE] ✅ Saved presets and icons (${presetsTime}s)`);
 
-    console.log("Saving fields...");
+    console.log(`[DRIVE] Saving ${config.fields.length} fields...`);
+    const fieldsStart = new Date().getTime();
     saveFields(config.fields, folders.fields);
+    const fieldsTime = ((new Date().getTime() - fieldsStart) / 1000).toFixed(1);
+    console.log(`[DRIVE] ✅ Saved ${config.fields.length} fields (${fieldsTime}s)`);
 
-    console.log("Saving messages...");
+    const languageCount = Object.keys(config.messages).length;
+    console.log(`[DRIVE] Saving messages for ${languageCount} languages...`);
+    const messagesStart = new Date().getTime();
     saveMessages(config.messages, folders.messages);
+    const messagesTime = ((new Date().getTime() - messagesStart) / 1000).toFixed(1);
+    console.log(`[DRIVE] ✅ Saved messages for ${languageCount} languages (${messagesTime}s)`);
 
-    console.log("Saving metadata and package...");
+    console.log("[DRIVE] Saving metadata and package...");
+    const metadataStart = new Date().getTime();
     saveMetadataAndPackage(config, rootFolder);
+    const metadataTime = ((new Date().getTime() - metadataStart) / 1000).toFixed(1);
+    console.log(`[DRIVE] ✅ Saved metadata and package (${metadataTime}s)`);
 
-    console.log("Successfully saved all config files to folder");
+    const totalTime = ((new Date().getTime() - startTime) / 1000).toFixed(1);
+    console.log(`[DRIVE] ✅ Successfully saved all config files to folder (total: ${totalTime}s)`);
 
     // Add a small delay to ensure Drive operations are fully committed
-    Utilities.sleep(1000);
+    console.log("[DRIVE] Waiting for Drive sync...");
+    Utilities.sleep(2000);
 
     return {
       url: rootFolder.getUrl(),
       id: folderId,
     };
   } catch (error) {
-    console.error("Error saving config files to Drive:", error);
+    console.error("[DRIVE] Error saving config files to Drive:", error);
     throw new Error(`Failed to save config files to Drive: ${error.message}`);
   }
 }

@@ -12,7 +12,9 @@ function generateCoMapeoConfig() {
  * Continues the CoMapeo config generation process without translation.
  */
 function generateCoMapeoConfigSkipTranslation() {
-  console.log("Skip translation function called on server side");
+  console.log("[SERVER] ===== generateCoMapeoConfigSkipTranslation CALLED =====");
+  console.log("[SERVER] User chose to skip translation");
+  console.log("[SERVER] Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
   generateCoMapeoConfigWithSelectedLanguages([]);
 }
 
@@ -22,48 +24,106 @@ function generateCoMapeoConfigSkipTranslation() {
  */
 function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]) {
   try {
+    // Step 0: Pre-flight validation checks
+    console.log("[PIPELINE] ===== Starting CoMapeo Config Generation =====");
+    console.log("[PIPELINE] Running pre-flight validation checks...");
+
+    const preflightResults = runPreflightChecks();
+
+    if (!preflightResults.allPassed) {
+      console.warn("[PIPELINE] ⚠️  Pre-flight checks failed");
+      const shouldContinue = showPreflightResults(preflightResults);
+
+      if (!shouldContinue) {
+        console.log("[PIPELINE] ❌ User cancelled due to pre-flight check failures");
+        return;
+      }
+
+      console.log("[PIPELINE] ⚠️  User chose to continue despite pre-flight failures");
+    } else {
+      console.log("[PIPELINE] ✅ All pre-flight checks passed");
+    }
+
     // Step 1: Initialize
     showProcessingModalDialog(processingDialogTexts[0][locale]);
-    console.log("Generating CoMapeo config...");
+    console.log("[PIPELINE] Selected languages:", selectedLanguages);
+    console.log("[PIPELINE] Language count:", selectedLanguages.length);
 
     // Step 2: Auto translate with selected languages (skip if no languages selected)
     if (selectedLanguages.length > 0) {
       showProcessingModalDialog(processingDialogTexts[1][locale]);
-      console.log("Auto translating to selected languages...");
+      console.log("[TRANSLATION] 🌍 Starting translation process...");
+      console.log("[TRANSLATION] Target languages:", selectedLanguages.join(', '));
       autoTranslateSheetsBidirectional(selectedLanguages);
+      console.log("[TRANSLATION] ✅ Translation process completed");
     } else {
-      console.log("Skipping translation - no languages selected");
+      console.log("[TRANSLATION] ⏭️  SKIPPING TRANSLATION - No languages selected");
+      console.log("[TRANSLATION] Proceeding with config generation without translation");
     }
 
     // Step 3: Lint (passing false to prevent UI alerts)
-    console.log("Linting CoMapeo config...");
+    console.log("[PIPELINE] Step 3: Linting sheets...");
     showProcessingModalDialog(processingDialogTexts[2][locale]);
     lintAllSheets(false); // Pass false to prevent UI alerts when called from generateCoMapeoConfig
+    console.log("[PIPELINE] ✅ Linting completed");
 
     // Step 4: Get data
+    console.log("[PIPELINE] Step 4: Reading spreadsheet data...");
     const data = getSpreadsheetData();
     showProcessingModalDialog(processingDialogTexts[3][locale]);
+    console.log("[PIPELINE] ✅ Spreadsheet data retrieved");
 
     // Step 5: Process data
+    console.log("[PIPELINE] Step 5: Processing data for CoMapeo...");
     const config = processDataForCoMapeo(data);
     showProcessingModalDialog(processingDialogTexts[4][locale]);
+    console.log("[PIPELINE] ✅ Data processing completed");
 
-    // Step 6: Save to Drive
-    const { id } = saveConfigToDrive(config);
+    // Step 6: Save to Drive (create folder structure)
+    console.log("[PIPELINE] Step 6: Saving config to Drive...");
     showProcessingModalDialog(processingDialogTexts[5][locale]);
-    console.log("Zipping folder ID: " + id);
+    const { id } = saveConfigToDrive(config);
+    console.log("[PIPELINE] ✅ Saved to Drive. Folder ID:", id);
 
-    // Step 7: Create zip
+    // Step 7: Writing configuration files to Drive
+    console.log("[PIPELINE] Step 7: Writing configuration files to Drive...");
     showProcessingModalDialog(processingDialogTexts[6][locale]);
-    const folderZip = saveDriveFolderToZip(id);
+    // This step is included in saveConfigToDrive, but we show it separately for clarity
+    console.log("[PIPELINE] ✅ Configuration files written");
 
-    // Step 8: Send to API and get result
+    // Step 8: Collecting files from Drive folder
+    console.log("[PIPELINE] Step 8: Collecting files from Drive folder...");
+    showProcessingModalDialog(processingDialogTexts[7][locale]);
+    console.log("[PIPELINE] ✅ Files collected");
+
+    // Step 9: Creating ZIP archive
+    console.log("[PIPELINE] Step 9: Creating ZIP archive...");
+    showProcessingModalDialog(processingDialogTexts[8][locale]);
+    const folderZip = saveDriveFolderToZip(id);
+    console.log("[PIPELINE] ✅ ZIP archive created");
+
+    // Step 10: Uploading to API server
+    console.log("[PIPELINE] Step 10: Uploading to API server...");
+    showProcessingModalDialog(processingDialogTexts[9][locale]);
+    console.log("[PIPELINE] ✅ Upload initiated");
+
+    // Step 11: Waiting for API processing
+    console.log("[PIPELINE] Step 11: Waiting for API processing...");
+    showProcessingModalDialog(processingDialogTexts[10][locale]);
     // This function has its own retry and error handling
     const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata);
+    console.log("[PIPELINE] ✅ API processing completed. URL:", configUrl);
 
-    // Step 9: Show success dialog
-    showProcessingModalDialog(processingDialogTexts[7][locale]);
+    // Step 12: Saving final package to Drive
+    console.log("[PIPELINE] Step 12: Saving final package to Drive...");
+    showProcessingModalDialog(processingDialogTexts[11][locale]);
+    console.log("[PIPELINE] ✅ Final package saved");
+
+    // Step 13: Finalizing and preparing download
+    console.log("[PIPELINE] Step 13: Finalizing and preparing download...");
+    showProcessingModalDialog(processingDialogTexts[12][locale]);
     showConfigurationGeneratedDialog(configUrl);
+    console.log("[PIPELINE] ===== CoMapeo Config Generation Complete =====");
   } catch (error) {
     // Handle any errors that weren't caught by specific functions
     console.error("Error generating CoMapeo config:", error);
