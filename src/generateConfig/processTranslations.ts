@@ -4,21 +4,27 @@ function processTranslations(data, fields, presets) {
   // Get base languages
   const baseLanguages = Object.keys(languages());
 
-  // Get additional languages from Category Translations sheet
+  // Get additional languages from Category Translations sheet (if it exists)
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     "Category Translations",
   );
-  const headerRow = sheet
-    ?.getRange(1, 1, 1, sheet.getLastColumn())
-    .getValues()[0];
-  const additionalLanguages = headerRow
-    .slice(3) // Start from column D
-    .filter(Boolean)
-    .map((header) => {
-      const match = header.toString().match(/.*\s*-\s*(\w+)/);
-      return match ? match[1].trim() : null;
-    })
-    .filter(Boolean);
+  let additionalLanguages: string[] = [];
+
+  if (sheet) {
+    const headerRow = sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    additionalLanguages = headerRow
+      .slice(3) // Start from column D
+      .filter(Boolean)
+      .map((header) => {
+        const match = header.toString().match(/.*\s*-\s*(\w+)/);
+        return match ? match[1].trim() : null;
+      })
+      .filter(Boolean);
+  } else {
+    console.warn("⏭️  Category Translations sheet not found - using only base languages");
+  }
 
   const targetLanguages = [...baseLanguages, ...additionalLanguages];
   console.log("Available languages:", targetLanguages);
@@ -31,6 +37,13 @@ function processTranslations(data, fields, presets) {
   console.log("Processing translation sheets:", translationSheets);
   for (const sheetName of translationSheets) {
     console.log(`\nProcessing sheet: ${sheetName}`);
+
+    // Guard check: Skip if translation sheet data doesn't exist
+    if (!data[sheetName]) {
+      console.warn(`⏭️  Skipping sheet "${sheetName}" - sheet data not found (translation may have been skipped)`);
+      continue;
+    }
+
     const translations = data[sheetName].slice(1);
     console.log(`Found ${translations.length} translations`);
     for (

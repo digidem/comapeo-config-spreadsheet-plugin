@@ -8,37 +8,60 @@
 
 ## Active Objectives
 
-### 1. Fix "Skip Translations" Button ✅ COMMITTED
-**Status**: Fixed and committed, needs deployment testing
+### 1. Fix "Skip Translations" Button ✅ FIXED & DEPLOYED
+**Status**: Fixed, deployed, ready for testing
 **Branch**: `import-category`
-**Commits**: `14001db` (fix), `a17514d` (tests)
+**Commits**: `14001db` (UI fix), `a17514d` (tests), `[current]` (translation processing fix)
 
 **Problem**:
-- "Skip Translations" button not clickable/functional
-- Duplicate `skipTranslation()` function definitions caused JavaScript errors
-- Forces translation even when user wants to skip
+- "Skip Translations" button not clickable/functional (✅ FIXED in `14001db`)
+- Duplicate `skipTranslation()` function definitions caused JavaScript errors (✅ FIXED in `14001db`)
+- **NEW**: Skip translation failed when no translation sheets exist with error: "Cannot read properties of undefined (reading 'slice')" at Step 4
+
+**Root Cause**:
+When skipping translation, `autoTranslateSheetsBidirectional()` returns early without creating translation sheets. However, `processTranslations()` assumed all translation sheets would exist in the data object, causing a crash when accessing `data[sheetName].slice(1)` on non-existent sheets.
 
 **Solution Implemented**:
-- ✅ Removed duplicate script block in dialog (lines 380-456)
-- ✅ Fixed `skipTranslation()` to call `generateCoMapeoConfigSkipTranslation()`
-- ✅ Added comprehensive client-side logging (`[CLIENT]` prefix)
-- ✅ Created test suite for skip translation functionality
+- ✅ Removed duplicate script block in dialog (lines 380-456) - commit `14001db`
+- ✅ Fixed `skipTranslation()` to call `generateCoMapeoConfigSkipTranslation()` - commit `14001db`
+- ✅ Added comprehensive client-side logging (`[CLIENT]` prefix) - commit `14001db`
+- ✅ Created test suite for skip translation functionality - commit `a17514d`
+- ✅ **NEW**: Added guard checks in `processTranslations()` for missing translation sheets
+- ✅ **NEW**: Gracefully handle missing Category Translations sheet
+- ✅ **NEW**: Added warning logs when sheets are skipped
 
 **Files Modified**:
 - `src/dialog.ts` - Removed duplicate function, improved logging (commit `14001db`)
 - `src/test/testSkipTranslation.ts` - NEW: Comprehensive test suite (commit `a17514d`)
+- `src/generateConfig/processTranslations.ts` - **NEW**: Added guard checks for missing translation data
 
-**Note**: Other improvements from stash were already in commit `f8909ac`:
-- `src/generateCoMapeoConfig.ts` - Already has granular progress logging
-- `src/driveService.ts` - Already has ZIP creation improvements
-- `src/apiService.ts` - Already has error detection improvements
-- `src/text/dialog.ts` - Already updated to 13 steps
+**Changes in processTranslations.ts**:
+```typescript
+// Guard check: Skip if translation sheet data doesn't exist
+if (!data[sheetName]) {
+  console.warn(`⏭️  Skipping sheet "${sheetName}" - sheet data not found (translation may have been skipped)`);
+  continue;
+}
+
+// Also handle missing Category Translations sheet gracefully
+if (sheet) {
+  // Process additional languages
+} else {
+  console.warn("⏭️  Category Translations sheet not found - using only base languages");
+}
+```
+
+**Test Scenarios**:
+- ⏳ Fresh spreadsheet with no translation sheets (English-only projects)
+- ⏳ Skip translation on existing spreadsheet with translations
+- ⏳ Existing project with translations (regression test)
 
 **Next Steps**:
-1. ✅ Push to Apps Script with `npm run push`
-2. Test skip translation button in live spreadsheet
-3. Verify logging appears in console
-4. If working, update PROGRESS.md status to ✅ VERIFIED
+1. ✅ Push to Apps Script with `npm run push` - DONE
+2. ⏳ Test skip translation with fresh spreadsheet (no translation sheets)
+3. ⏳ Test skip translation with English-only project
+4. ⏳ Verify existing translation workflow still works (regression)
+5. ⏳ If all tests pass, update status to ✅ VERIFIED
 
 ---
 
