@@ -1,33 +1,50 @@
 function processTranslations(data, fields, presets) {
   console.log("Starting processTranslations...");
 
-  // Get base languages
-  const baseLanguages = Object.keys(languages());
-
-  // Get additional languages from Category Translations sheet (if it exists)
+  // Get languages that actually have translation columns (not all 223 possible languages!)
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     "Category Translations",
   );
-  let additionalLanguages: string[] = [];
+
+  let targetLanguages: string[] = [];
 
   if (sheet) {
     const headerRow = sheet
       .getRange(1, 1, 1, sheet.getLastColumn())
       .getValues()[0];
-    additionalLanguages = headerRow
-      .slice(3) // Start from column D
-      .filter(Boolean)
-      .map((header) => {
-        const match = header.toString().match(/.*\s*-\s*(\w+)/);
-        return match ? match[1].trim() : null;
-      })
-      .filter(Boolean);
-  } else {
-    console.warn("⏭️  Category Translations sheet not found - using only base languages");
-  }
 
-  const targetLanguages = [...baseLanguages, ...additionalLanguages];
-  console.log("Available languages:", targetLanguages);
+    // Extract language codes from header columns
+    // Column A is primary language, columns B onwards are translations
+    const allLanguages = getAllLanguages();
+    const primaryLanguage = getPrimaryLanguage();
+
+    for (let i = 0; i < headerRow.length; i++) {
+      const header = headerRow[i]?.toString().trim();
+      if (!header) continue;
+
+      // Check if it's a standard language name
+      const langCode = Object.entries(allLanguages).find(
+        ([code, name]) => name === header
+      )?.[0];
+
+      if (langCode) {
+        targetLanguages.push(langCode);
+      } else {
+        // Check for custom language format: "Language Name - ISO"
+        const match = header.match(/.*\s*-\s*(\w+)/);
+        if (match) {
+          targetLanguages.push(match[1].trim());
+        }
+      }
+    }
+
+    console.log(`Found ${targetLanguages.length} languages in translation sheet headers:`, targetLanguages);
+  } else {
+    // No translation sheet exists - only include primary language
+    const primaryLanguage = getPrimaryLanguage();
+    targetLanguages = [primaryLanguage.code];
+    console.warn("⏭️  Category Translations sheet not found - using only primary language:", primaryLanguage.code);
+  }
 
   const messages: CoMapeoTranslations = Object.fromEntries(
     targetLanguages.map((lang) => [lang, {}]),
