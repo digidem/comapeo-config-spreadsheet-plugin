@@ -1,4 +1,5 @@
-import { getVersionInfo, VERSION, COMMIT } from "./src/version";
+// Note: getVersionInfo, VERSION, COMMIT are defined in src/version.ts
+// Apps Script will compile all .ts files together, making them globally available
 
 let activeUserLocale = Session.getActiveUserLocale().split("_")[0];
 const supportedLocales = ["en", "es"];
@@ -9,8 +10,13 @@ let locale = supportedLocales.includes(activeUserLocale)
 
 function onOpen() {
   // Log version info to Apps Script console
-  console.log(`CoMapeo Config Spreadsheet Plugin v${VERSION} (${COMMIT})`);
-  console.log(`Full version: ${getVersionInfo()}`);
+  // VERSION and COMMIT constants are defined in src/version.ts
+  if (typeof VERSION !== 'undefined' && typeof COMMIT !== 'undefined') {
+    console.log(`CoMapeo Config Spreadsheet Plugin v${VERSION} (${COMMIT})`);
+    if (typeof getVersionInfo !== 'undefined') {
+      console.log(`Full version: ${getVersionInfo()}`);
+    }
+  }
   const ui = SpreadsheetApp.getUi();
   ui.createMenu(menuTexts[locale].menu)
     .addItem(
@@ -115,7 +121,10 @@ function generateIcons() {
 
 function showVersionInfo() {
   const ui = SpreadsheetApp.getUi();
-  const versionInfo = getVersionInfo();
+  // getVersionInfo is defined in src/version.ts
+  const versionInfo = typeof getVersionInfo !== 'undefined'
+    ? getVersionInfo()
+    : (typeof VERSION !== 'undefined' ? VERSION : 'Unknown');
   ui.alert(
     "CoMapeo Config Spreadsheet Plugin",
     `Version: ${versionInfo}\n\nRepository: https://github.com/digidem/comapeo-config-spreadsheet-plugin`,
