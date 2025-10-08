@@ -2,37 +2,43 @@
 
 ## Current Status
 
-**Working Version**: Commit `858725e` - Menu displays correctly, basic functionality working
+**Working Version**: Commit `a17514d` - Menu working, skip translation fix committed
+**Category Generation**: ✅ Working (without skip translations currently)
+**Skip Translation**: 🔧 Fix committed, needs testing
 
 ## Active Objectives
 
-### 1. Fix "Skip Translations" Button ⏳
-**Status**: In Progress
+### 1. Fix "Skip Translations" Button ✅ COMMITTED
+**Status**: Fixed and committed, needs deployment testing
 **Branch**: `import-category`
-**Stashed**: Yes (`git stash list` to view)
+**Commits**: `14001db` (fix), `a17514d` (tests)
 
 **Problem**:
 - "Skip Translations" button not clickable/functional
+- Duplicate `skipTranslation()` function definitions caused JavaScript errors
 - Forces translation even when user wants to skip
 
-**Solution Approach**:
-- Identify duplicate function definitions causing UI conflicts
-- Add comprehensive debug logging (`[CLIENT]`, `[SERVER]`, `[PIPELINE]`, `[TRANSLATION]` prefixes)
-- Fix button event handlers to call correct server-side function
+**Solution Implemented**:
+- ✅ Removed duplicate script block in dialog (lines 380-456)
+- ✅ Fixed `skipTranslation()` to call `generateCoMapeoConfigSkipTranslation()`
+- ✅ Added comprehensive client-side logging (`[CLIENT]` prefix)
+- ✅ Created test suite for skip translation functionality
 
-**Files Modified** (currently stashed):
-- `src/dialog.ts` - Remove duplicate `skipTranslation()` function
-- `src/generateCoMapeoConfig.ts` - Add `generateCoMapeoConfigSkipTranslation()` function with logging
-- `src/translation.ts` - Add skip detection logging
-- `src/text/dialog.ts` - Update dialog text for skip button
-- `src/preflightValidation.ts` - NEW: Pre-flight validation checks
-- `src/test/testSkipTranslation.ts` - NEW: Skip translation tests
+**Files Modified**:
+- `src/dialog.ts` - Removed duplicate function, improved logging (commit `14001db`)
+- `src/test/testSkipTranslation.ts` - NEW: Comprehensive test suite (commit `a17514d`)
+
+**Note**: Other improvements from stash were already in commit `f8909ac`:
+- `src/generateCoMapeoConfig.ts` - Already has granular progress logging
+- `src/driveService.ts` - Already has ZIP creation improvements
+- `src/apiService.ts` - Already has error detection improvements
+- `src/text/dialog.ts` - Already updated to 13 steps
 
 **Next Steps**:
-1. Restore stashed changes carefully
-2. Test skip translation button functionality
-3. Verify no UI breakage
-4. Commit working skip translation fix
+1. ✅ Push to Apps Script with `npm run push`
+2. Test skip translation button in live spreadsheet
+3. Verify logging appears in console
+4. If working, update PROGRESS.md status to ✅ VERIFIED
 
 ---
 
