@@ -1,3 +1,5 @@
+import { getVersionInfo, VERSION, COMMIT } from "./src/version";
+
 let activeUserLocale = Session.getActiveUserLocale().split("_")[0];
 const supportedLocales = ["en", "es"];
 const defaultLocale = "en";
@@ -6,6 +8,9 @@ let locale = supportedLocales.includes(activeUserLocale)
   : defaultLocale;
 
 function onOpen() {
+  // Log version info to Apps Script console
+  console.log(`CoMapeo Config Spreadsheet Plugin v${VERSION} (${COMMIT})`);
+  console.log(`Full version: ${getVersionInfo()}`);
   const ui = SpreadsheetApp.getUi();
   ui.createMenu(menuTexts[locale].menu)
     .addItem(
@@ -23,7 +28,9 @@ function onOpen() {
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
+    .addSeparator()
     .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
+    .addItem("About / Version", "showVersionInfo")
     .addToUi();
 
   // Add developer menu in development environment
@@ -104,6 +111,16 @@ function generateIcons() {
       );
     }
   }
+}
+
+function showVersionInfo() {
+  const ui = SpreadsheetApp.getUi();
+  const versionInfo = getVersionInfo();
+  ui.alert(
+    "CoMapeo Config Spreadsheet Plugin",
+    `Version: ${versionInfo}\n\nRepository: https://github.com/digidem/comapeo-config-spreadsheet-plugin`,
+    ui.ButtonSet.OK
+  );
 }
 
 function generateCoMapeoCategory() {

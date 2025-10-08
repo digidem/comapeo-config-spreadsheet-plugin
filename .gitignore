@@ -176,3 +176,6 @@ dist
 .clasp.json
 .clasp.all.json
 .aider*
+
+# Auto-generated version info
+.version.json

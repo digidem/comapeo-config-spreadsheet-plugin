@@ -1,12 +1,14 @@
 {
   "name": "comapeo-config-spreadsheet-plugin",
+  "version": "1.0.0",
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "clasp push --watch",
-    "push": "clasp push",
+    "version:update": "node src/scripts/update-version.cjs",
+    "dev": "npm run version:update && clasp push --watch",
+    "push": "npm run version:update && clasp push",
     "lint": "bunx biome lint --write --unsafe .",
-    "push:all": "bash src/scripts/push-all.sh"
+    "push:all": "npm run version:update && bash src/scripts/push-all.sh"
   },
   "devDependencies": {
     "@types/bun": "latest",

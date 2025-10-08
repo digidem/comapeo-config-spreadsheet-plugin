@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+try {
+  const commit = execSync('git rev-parse --short HEAD').toString().trim();
+  const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+  const isDirty = execSync('git status --porcelain').toString().trim() !== '';
+
+  const pkg = require('../../package.json');
+  const baseVersion = pkg.version.split('+')[0]; // Remove any existing commit info
+
+  const versionInfo = {
+    version: `${baseVersion}+${commit}`,
+    commit,
+    branch,
+    isDirty,
+    buildDate: new Date().toISOString()
+  };
+
+  // Write .version.json for reference
+  fs.writeFileSync(
+    path.join(__dirname, '../../.version.json'),
+    JSON.stringify(versionInfo, null, 2)
+  );
+
+  // Update the TypeScript version file
+  const versionTs = `/**
+ * Version information for the compiled script
+ * This file is automatically updated before each build
+ */
+
+const versionData = ${JSON.stringify(versionInfo, null, 2)};
+
+export function getVersionInfo(): string {
+  const dirty = versionData.isDirty ? ' (dirty)' : '';
+  return \`\${versionData.version}\${dirty} (\${versionData.commit} on \${versionData.branch})\`;
+}
+
+export function getFullVersionInfo(): string {
+  return \`Compiled using \${versionData.version} at \${versionData.buildDate}\`;
+}
+
+export const VERSION = versionData.version;
+export const COMMIT = versionData.commit;
+export const BRANCH = versionData.branch;
+`;
+
+  fs.writeFileSync(
+    path.join(__dirname, '../version.ts'),
+    versionTs
+  );
+
+  console.log(`Version updated: ${versionInfo.version}`);
+} catch (error) {
+  console.error('Failed to update version:', error.message);
+  process.exit(1);
+}
