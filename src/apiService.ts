@@ -33,12 +33,24 @@ function sendDataToApiAndGetZip(
   zipFile: GoogleAppsScript.Base.Blob,
   metadata: { name: string; version: string },
   maxRetries: number = 3,
+  onProgress?: (message: string, detail?: string) => void,
 ): string {
   const fileName = metadata.name + "-" + metadata.version + ".comapeocat";
   const apiUrl = "http://137.184.153.36:3000/";
   const minValidFileSize = 10 * 1024; // 10KB - files smaller than this are likely errors
   let retryCount = 0;
   let lastError = null;
+
+  // Progress callback helper
+  const reportProgress = (message: string, detail?: string) => {
+    console.log(`[API] ${message}${detail ? ': ' + detail : ''}`);
+    if (onProgress) {
+      onProgress(message, detail);
+    }
+  };
+
+  // Track API processing time for heartbeat
+  let apiStartTime = 0;
 
   while (retryCount <= maxRetries) {
     try {
@@ -78,10 +90,16 @@ function sendDataToApiAndGetZip(
         // We handle this with try-catch and exponential backoff
       };
 
+      reportProgress("Uploading... (6/8)", "Sending package to API server...");
+      apiStartTime = new Date().getTime();
+
       console.log("Sending request to API (timeout: 15 minutes)");
       const response = UrlFetchApp.fetch(apiUrl, options);
       const responseCode = response.getResponseCode();
+
+      const apiDuration = ((new Date().getTime() - apiStartTime) / 1000).toFixed(1);
       console.log("Response code:", responseCode);
+      console.log(`API processing completed in ${apiDuration}s`);
 
       if (responseCode === 200) {
         const responseBlob = response.getBlob();

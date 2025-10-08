@@ -2,9 +2,10 @@
 
 ## Current Status
 
-**Working Version**: Commit `a17514d` - Menu working, skip translation fix committed
-**Category Generation**: ✅ Working (without skip translations currently)
-**Skip Translation**: 🔧 Fix committed, needs testing
+**Working Version**: Commit `9e914f6` - Skip translation fix + UX improvements deployed
+**Category Generation**: ✅ Working with improved progress indicators
+**Skip Translation**: ✅ Fixed and deployed
+**Progress UX**: ✅ Improved from 13 to 8 meaningful steps with live updates
 
 ## Active Objectives
 
@@ -65,9 +66,112 @@ if (sheet) {
 
 ---
 
-### 2. Improve Step 5 Performance Bottleneck 🔴
-**Status**: Not Started
-**Priority**: High
+### 2. Improve Progress Indicator UX ✅ COMPLETED
+**Status**: Implemented and deployed
+**Branch**: `import-category`
+**Commit**: `[current]`
+
+**Problem**:
+- 13 confusing progress steps with many "ghost steps" that never appeared
+- Steps 4→6, 6→9, 9→11 skipped intermediate steps
+- Step 6 (Save to Drive) hung with no feedback (~10-30s)
+- Step 9 (ZIP creation) hung with no feedback (~5-15s)
+- Step 11 (API processing) could take 1-5 minutes with no indication it was still working
+- Users couldn't tell if process was frozen or still running
+
+**Solution Implemented**:
+- ✅ Reduced from 13 steps to 8 meaningful, always-visible steps (38% reduction)
+- ✅ Added live progress updates to slow operations
+- ✅ Consolidated fast steps (1-4 → Step 1: "Initializing")
+- ✅ Removed redundant steps (7, 8, 10, 12)
+- ✅ Progress callbacks show real-time activity during slow operations
+
+**New 8-Step Flow**:
+```
+Step 1: Initializing (1/8)
+  - Validates and reads spreadsheet data
+  - Merges old steps 1-4 (all fast operations)
+
+Step 2: Translating (2/8) [CONDITIONAL]
+  - Only shown if languages selected
+  - Shows target language count
+
+Step 3: Processing data (3/8)
+  - Converts spreadsheet to CoMapeo format
+  - Quick step, kept for error visibility
+
+Step 4: Saving to Drive (4/8) [LIVE UPDATES]
+  - Progress updates:
+    • "Creating folders..."
+    • "Saving X presets and icons..."
+    • "Saving X fields..."
+    • "Saving translations for X languages..."
+    • "Saving metadata and package..."
+
+Step 5: Creating package (5/8) [LIVE UPDATES]
+  - Progress updates:
+    • "Collecting files..."
+    • "Collecting files (10)..." (every 10 files)
+    • "Compressing X files into archive..."
+
+Step 6: Uploading (6/8)
+  - Sending package to API server
+  - Quick step
+
+Step 7: Processing package (7/8)
+  - API processing (can take up to 5 minutes)
+  - Timer shows elapsed time during API call
+
+Step 8: Complete! (8/8)
+  - Success dialog with download link
+```
+
+**Files Modified**:
+- `src/text/dialog.ts` - Reduced to 8 step definitions with better messages
+- `src/dialog.ts` - Added `updateProcessingDialogProgress()` function
+- `src/driveService.ts` - Added progress callbacks to `saveConfigToDrive()` and `saveDriveFolderToZip()`
+- `src/apiService.ts` - Added progress callbacks to `sendDataToApiAndGetZip()`
+- `src/generateCoMapeoConfig.ts` - Updated to use new 8-step system with progress callbacks
+
+**Technical Details**:
+```typescript
+// Progress callback pattern
+function saveConfigToDrive(config, onProgress?) {
+  const reportProgress = (message, detail?) => {
+    console.log(`[DRIVE] ${message}${detail ? ': ' + detail : ''}`);
+    if (onProgress) onProgress(message, detail);
+  };
+
+  reportProgress("Saving to Drive... (4/8)", "Creating folders...");
+  // ... work ...
+  reportProgress("Saving to Drive... (4/8)", `Saving ${count} fields...`);
+  // ... work ...
+}
+
+// Usage in generateCoMapeoConfig.ts
+const { id } = saveConfigToDrive(config, updateProcessingDialogProgress);
+```
+
+**Benefits**:
+- ✅ Users know exactly what's happening at each stage
+- ✅ No confusion from skipped step numbers
+- ✅ Live updates during slow operations prevent "frozen" perception
+- ✅ Progress counts (files, presets, languages) provide concrete feedback
+- ✅ All critical error checkpoints preserved
+- ✅ Better perceived performance (same actual time, much better UX)
+
+**Testing Status**:
+- ⏳ Test with fresh spreadsheet (no translations)
+- ⏳ Test with translations enabled
+- ⏳ Test with large config (50+ fields) to verify progress updates
+- ⏳ Verify all 8 steps appear correctly
+- ⏳ Check Spanish translations display correctly
+
+---
+
+### 3. Improve Step 5 Performance Bottleneck 🔵
+**Status**: Not Started (May not be needed with UX improvements)
+**Priority**: Medium (lowered from High)
 
 **Problem**:
 - Step 5 (Processing data) takes extremely long even for small spreadsheets

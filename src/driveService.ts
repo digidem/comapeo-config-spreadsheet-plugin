@@ -1,9 +1,17 @@
-function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
+function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: string) => void): GoogleAppsScript.Base.Blob {
   console.log("[ZIP] Attempting to access folder with ID:", folderId);
 
   if (!folderId) {
     throw new Error("Folder ID is null or undefined");
   }
+
+  // Progress callback helper
+  const reportProgress = (message: string, detail?: string) => {
+    console.log(`[ZIP] ${message}${detail ? ': ' + detail : ''}`);
+    if (onProgress) {
+      onProgress(message, detail);
+    }
+  };
 
   let folder: GoogleAppsScript.Drive.Folder;
   let retryCount = 0;
@@ -34,6 +42,8 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
   }
 
   console.log("[ZIP] Successfully accessed folder:", folder.getName());
+  reportProgress("Creating package... (5/8)", "Collecting files...");
+
   const blobs: GoogleAppsScript.Base.Blob[] = [];
   let fileCount = 0;
   const startTime = new Date().getTime();
@@ -48,10 +58,11 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
       fileCount++;
       console.log(`[ZIP] Adding file ${fileCount}: ${path}${file.getName()}`);
 
-      // Heartbeat logging every 10 files
+      // Heartbeat logging and progress reporting every 10 files
       if (fileCount % 10 === 0) {
         const elapsed = ((new Date().getTime() - startTime) / 1000).toFixed(1);
         console.log(`[ZIP] Progress: ${fileCount} files processed in ${elapsed}s`);
+        reportProgress("Creating package... (5/8)", `Collecting files (${fileCount})...`);
       }
 
       blobs.push(file.getBlob().setName(`${path}${file.getName()}`));
@@ -69,7 +80,7 @@ function saveDriveFolderToZip(folderId): GoogleAppsScript.Base.Blob {
 
   const totalTime = ((new Date().getTime() - startTime) / 1000).toFixed(1);
   console.log(`[ZIP] Collected ${fileCount} files in ${totalTime}s`);
-  console.log(`[ZIP] Creating ZIP archive from ${blobs.length} files...`);
+  reportProgress("Creating package... (5/8)", `Compressing ${fileCount} files into archive...`);
 
   const zipStartTime = new Date().getTime();
   const zipBlob = Utilities.zip(blobs, `${folder.getName()}.zip`);
@@ -118,11 +129,19 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   return fileUrl;
 }
 
-function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
+function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string, detail?: string) => void): { url: string; id: string } {
   const configFolder = getConfigFolder();
   const folderName = `${slugify(config.metadata.version)}`;
   console.log("[DRIVE] Saving config to drive:", folderName);
   const startTime = new Date().getTime();
+
+  // Progress callback helper
+  const reportProgress = (message: string, detail?: string) => {
+    console.log(`[DRIVE] ${message}${detail ? ': ' + detail : ''}`);
+    if (onProgress) {
+      onProgress(message, detail);
+    }
+  };
 
   let rootFolder: GoogleAppsScript.Drive.Folder;
   let retryCount = 0;
@@ -169,31 +188,31 @@ function saveConfigToDrive(config: CoMapeoConfig): { url: string; id: string } {
   }
 
   try {
-    console.log("[DRIVE] Creating subfolders...");
+    reportProgress("Saving to Drive... (4/8)", "Creating folders...");
     const folders = createSubFolders(rootFolder);
     console.log("[DRIVE] ✅ Created subfolders successfully");
 
     // Process each step individually with better error handling and progress logging
-    console.log("[DRIVE] Saving presets and icons...");
+    reportProgress("Saving to Drive... (4/8)", `Saving ${config.presets.length} presets and icons...`);
     const presetsStart = new Date().getTime();
     savePresetsAndIcons(config, folders, ["-100px", "-24px"]);
     const presetsTime = ((new Date().getTime() - presetsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved presets and icons (${presetsTime}s)`);
 
-    console.log(`[DRIVE] Saving ${config.fields.length} fields...`);
+    reportProgress("Saving to Drive... (4/8)", `Saving ${config.fields.length} fields...`);
     const fieldsStart = new Date().getTime();
     saveFields(config.fields, folders.fields);
     const fieldsTime = ((new Date().getTime() - fieldsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved ${config.fields.length} fields (${fieldsTime}s)`);
 
     const languageCount = Object.keys(config.messages).length;
-    console.log(`[DRIVE] Saving messages for ${languageCount} languages...`);
+    reportProgress("Saving to Drive... (4/8)", `Saving translations for ${languageCount} languages...`);
     const messagesStart = new Date().getTime();
     saveMessages(config.messages, folders.messages);
     const messagesTime = ((new Date().getTime() - messagesStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved messages for ${languageCount} languages (${messagesTime}s)`);
 
-    console.log("[DRIVE] Saving metadata and package...");
+    reportProgress("Saving to Drive... (4/8)", "Saving metadata and package...");
     const metadataStart = new Date().getTime();
     saveMetadataAndPackage(config, rootFolder);
     const metadataTime = ((new Date().getTime() - metadataStart) / 1000).toFixed(1);

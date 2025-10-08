@@ -155,134 +155,92 @@ let importCategoryDialogTexts: Record<string, DialogText> = {
 };
 
 let processingDialogTexts: Record<string, DialogText>[] = [
+  // Step 1: Initializing (merges old steps 1-4)
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Generating Comapeo Config (1/13)"],
+      message: ["Initializing... (1/8)", "Validating and reading spreadsheet data"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Generando Configuración de CoMapeo (1/13)"],
+      message: ["Inicializando... (1/8)", "Validando y leyendo datos de la planilla"],
     },
   },
+  // Step 2: Translating (conditional - only shown if languages selected)
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Auto translating (2/13)"],
+      message: ["Translating... (2/8)", "Auto-translating to selected languages"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Generando tradducciones automáticas (2/13)"],
+      message: ["Traduciendo... (2/8)", "Generando traducciones automáticas"],
     },
   },
+  // Step 3: Processing data
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Linting CoMapeo Categories (3/13)"],
+      message: ["Processing data... (3/8)", "Converting spreadsheet to CoMapeo format"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Validando Categorías de CoMapeo (3/13)"],
+      message: ["Procesando datos... (3/8)", "Convirtiendo planilla a formato CoMapeo"],
     },
   },
+  // Step 4: Saving to Drive (with live progress updates)
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Getting spreadsheet data (4/13)"],
+      message: ["Saving to Drive... (4/8)", "Creating configuration files"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Obteniendo información de las planillas (4/13)"],
+      message: ["Guardando en Drive... (4/8)", "Creando archivos de configuración"],
     },
   },
+  // Step 5: Creating package (with live progress updates)
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Processing data (this may take a while) (5/13)"],
+      message: ["Creating package... (5/8)", "Collecting and compressing files"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Procesando información (esto puede llevar un rato) (5/13)"],
+      message: ["Creando paquete... (5/8)", "Recopilando y comprimiendo archivos"],
     },
   },
+  // Step 6: Uploading
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Saving generated categories to drive (6/13)"],
+      message: ["Uploading... (6/8)", "Sending package to API server"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Guardando categrías generadas al drive (6/13)"],
+      message: ["Subiendo... (6/8)", "Enviando paquete al servidor API"],
     },
   },
+  // Step 7: Processing package (with heartbeat timer)
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Writing configuration files to Drive... (7/13)"],
+      message: ["Processing package... (7/8)", "Waiting for API processing (this may take up to 5 minutes)"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Escribiendo archivos de configuración en Drive... (7/13)"],
+      message: ["Procesando paquete... (7/8)", "Esperando procesamiento de API (esto puede tardar hasta 5 minutos)"],
     },
   },
+  // Step 8: Complete
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Collecting files from Drive folder... (8/13)"],
+      message: ["Complete! (8/8)", "CoMapeo configuration ready for download"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Recopilando archivos de la carpeta de Drive... (8/13)"],
-    },
-  },
-  {
-    en: {
-      title: processingDialogTitle["en"],
-      message: ["Creating ZIP archive (this may take a few minutes)... (9/13)"],
-    },
-    es: {
-      title: processingDialogTitle["es"],
-      message: ["Creando archivo ZIP (esto puede tardar unos minutos)... (9/13)"],
-    },
-  },
-  {
-    en: {
-      title: processingDialogTitle["en"],
-      message: ["Uploading to API server... (10/13)"],
-    },
-    es: {
-      title: processingDialogTitle["es"],
-      message: ["Subiendo al servidor API... (10/13)"],
-    },
-  },
-  {
-    en: {
-      title: processingDialogTitle["en"],
-      message: ["Waiting for API processing (this may take up to 5 minutes)... (11/13)"],
-    },
-    es: {
-      title: processingDialogTitle["es"],
-      message: ["Esperando procesamiento de API (esto puede tardar hasta 5 minutos)... (11/13)"],
-    },
-  },
-  {
-    en: {
-      title: processingDialogTitle["en"],
-      message: ["Saving final package to Drive... (12/13)"],
-    },
-    es: {
-      title: processingDialogTitle["es"],
-      message: ["Guardando paquete final en Drive... (12/13)"],
-    },
-  },
-  {
-    en: {
-      title: processingDialogTitle["en"],
-      message: ["Finalizing and preparing download... (13/13)"],
-    },
-    es: {
-      title: processingDialogTitle["es"],
-      message: ["Finalizando y preparando descarga... (13/13)"],
+      message: ["¡Completo! (8/8)", "Configuración de CoMapeo lista para descargar"],
     },
   },
 ];

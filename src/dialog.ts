@@ -186,11 +186,38 @@ function showIconsGeneratedDialog(folderUrl: string) {
 }
 
 function showProcessingModalDialog(dialogText: DialogText) {
-  const message = ` <p>${dialogText.message}</p> `;
+  const messageLines = Array.isArray(dialogText.message)
+    ? dialogText.message
+    : [dialogText.message];
+
+  const message = messageLines.map(line => `<p>${line}</p>`).join('\n');
   const html = generateDialog(dialogText.title, message);
   SpreadsheetApp.getUi().showModalDialog(
     HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
     dialogText.title,
+  );
+}
+
+/**
+ * Updates the processing dialog with a new progress message without closing it.
+ * Uses Google Apps Script's sidebar update mechanism.
+ * Note: Due to Apps Script limitations, we can't update modals in real-time.
+ * This function will close and reopen the dialog with updated content.
+ */
+function updateProcessingDialogProgress(mainMessage: string, detailMessage?: string) {
+  const title = processingDialogTitle[locale];
+  const messageLines = detailMessage
+    ? [mainMessage, detailMessage]
+    : [mainMessage];
+
+  const message = messageLines.map(line => `<p>${line}</p>`).join('\n');
+  const html = generateDialog(title, message);
+
+  // Apps Script limitation: We have to close and reopen to update
+  // This creates a brief flicker but provides progress feedback
+  SpreadsheetApp.getUi().showModalDialog(
+    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
+    title,
   );
 }
 
