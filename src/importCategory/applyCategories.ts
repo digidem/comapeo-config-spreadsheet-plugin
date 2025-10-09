@@ -16,26 +16,39 @@ function applyCategories(
   fields: any[],
   icons: any[],
 ) {
-  console.log(
-    `Applying ${presets.length} categories with ${icons.length} icons`,
-  );
+  console.log("=== APPLYING CATEGORIES TO SPREADSHEET ===");
+  console.log(`Applying ${presets.length} categories with ${icons.length} icons`);
 
   // Set headers (assuming English as primary language)
   sheet.getRange(1, 1, 1, 3).setValues([["English", "Icons", "Details"]]);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold");
 
   // Create a map of icon name to icon URL for quick lookup
+  console.log("Building icon map for lookup...");
   const iconMap = {};
   for (const icon of icons) {
     if (icon.name && icon.svg) {
       iconMap[icon.name] = icon.svg;
+      console.log(`  - iconMap["${icon.name}"] = ${icon.svg.substring(0, 50)}...`);
     }
   }
+  console.log(`Icon map contains ${Object.keys(iconMap).length} entries`);
 
   // Prepare category rows
+  console.log("Matching icons to presets...");
   const categoryRows = presets.map((preset) => {
     // Find matching icon
     const iconUrl = preset.icon ? iconMap[preset.icon] || "" : "";
+
+    if (preset.icon) {
+      if (iconUrl) {
+        console.log(`  ✓ Matched preset "${preset.name}" (icon: "${preset.icon}") → ${iconUrl.substring(0, 50)}...`);
+      } else {
+        console.log(`  ✗ No icon found for preset "${preset.name}" (looking for icon: "${preset.icon}")`);
+      }
+    } else {
+      console.log(`  - Preset "${preset.name}" has no icon specified`);
+    }
 
     // Get fields as comma-separated string with actual Label values
     let fieldsList = "";

@@ -256,7 +256,10 @@ function deconstructSvgSprite(
       );
 
       // Build new SVG root with a single symbol's content
-      const newSvg = XmlService.createElement("svg");
+      // CRITICAL: Create SVG element with proper namespace
+      const svgNamespace = svgRoot.getNamespace();
+      const newSvg = XmlService.createElement("svg", svgNamespace);
+      Logger.log(`Created new SVG with namespace: ${svgNamespace.getURI()}`);
 
       // Copy all attributes from root <svg> to new <svg>
       const attrs = svgRoot.getAttributes();
@@ -270,49 +273,65 @@ function deconstructSvgSprite(
         newSvg.setAttribute("viewBox", "0 0 24 24");
       }
 
-      // Get all path elements from the symbol and add them to the new SVG
-      const paths = symbol.getChildren("path");
-      Logger.log(`Symbol ${id} has ${paths.length} path elements`);
+      // Get ALL child elements from the symbol (path, rect, circle, etc.)
+      const children = symbol.getChildren();
+      Logger.log(`Symbol ${id} has ${children.length} child element(s)`);
 
-      if (paths && paths.length > 0) {
-        for (let p = 0; p < paths.length; p++) {
-          const path = paths[p];
-          // Clone the path element
-          const newPath = XmlService.createElement("path");
-          // Copy all attributes from the original path
-          const pathAttrs = path.getAttributes();
-          Logger.log(`Path #${p} has ${pathAttrs.length} attributes`);
+      // Clone each child element with all its attributes and content
+      for (let c = 0; c < children.length; c++) {
+        const child = children[c];
+        const childName = child.getName();
+        Logger.log(`  - Processing child element #${c + 1}: <${childName}>`);
 
-          for (let a = 0; a < pathAttrs.length; a++) {
-            const pathAttr = pathAttrs[a];
-            newPath.setAttribute(pathAttr.getName(), pathAttr.getValue());
-            Logger.log(
-              `  - Attribute: ${pathAttr.getName()}="${pathAttr.getValue()}"`,
-            );
+        // Create new element with same name and namespace
+        const newChild = XmlService.createElement(childName, child.getNamespace());
+
+        // Copy all attributes
+        const childAttrs = child.getAttributes();
+        Logger.log(`    - Has ${childAttrs.length} attribute(s)`);
+        for (let a = 0; a < childAttrs.length; a++) {
+          const attr = childAttrs[a];
+          newChild.setAttribute(attr.getName(), attr.getValue());
+          Logger.log(`      - ${attr.getName()}="${attr.getValue()}"`);
+        }
+
+        // Copy text content if any
+        const textContent = child.getText();
+        if (textContent) {
+          newChild.setText(textContent);
+        }
+
+        // Recursively copy nested children if any
+        const nestedChildren = child.getChildren();
+        if (nestedChildren.length > 0) {
+          Logger.log(`    - Has ${nestedChildren.length} nested child(ren)`);
+          // For nested children, we'll use detach since they're less common
+          for (let n = 0; n < nestedChildren.length; n++) {
+            newChild.addContent(nestedChildren[n].detach());
           }
-          // Add the path to the new SVG
-          newSvg.addContent(newPath);
         }
-      } else {
-        // If no paths found, try to get all children and add them
-        const children = symbol.getChildren();
-        Logger.log(
-          `No paths found, adding ${children.length} direct children instead`,
-        );
 
-        for (let c = 0; c < children.length; c++) {
-          const child = children[c];
-          Logger.log(`  - Child element: ${child.getName()}`);
-          newSvg.addContent(child.detach());
-        }
+        // Add the cloned child to the new SVG
+        newSvg.addContent(newChild);
       }
 
       const newDoc = XmlService.createDocument(newSvg);
       const newXmlString = XmlService.getPrettyFormat().format(newDoc);
 
       // Debug log to check what's being created
-      Logger.log(`Generated SVG XML for ${id}:`);
-      Logger.log(newXmlString.substring(0, 200) + "..."); // Log first 200 chars
+      Logger.log(`Generated SVG XML for ${id} (${baseName}):`);
+      if (newXmlString.length <= 500) {
+        Logger.log(newXmlString); // Log full content if small
+      } else {
+        Logger.log(newXmlString.substring(0, 500) + "..."); // Log first 500 chars
+      }
+
+      // Verify namespace is present in output
+      if (newXmlString.indexOf('xmlns=') !== -1) {
+        Logger.log(`✓ Namespace present in generated SVG`);
+      } else {
+        Logger.log(`✗ WARNING: Namespace missing in generated SVG!`);
+      }
 
       // Create a single file with format {name}.svg
       const fileName = `${baseName}.svg`;

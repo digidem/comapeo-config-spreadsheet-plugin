@@ -270,73 +270,49 @@ function parseExtractedFiles(
 				// Store the file for later processing
 				configData.iconsSvgFile = file;
 			}
-			// Process individual icon files
+			// Process icons.png sprite file
+			else if (fileName === "icons.png") {
+				console.log("Found PNG sprite file (icons.png)");
+				// Store for detection, but cannot extract without external API
+				configData.iconsPngFile = file;
+			}
+			// Process icons.json metadata file
+			else if (fileName === "icons.json") {
+				console.log("Found icon metadata file (icons.json)");
+				// Contains coordinates for PNG sprite extraction
+				configData.iconsJsonFile = file;
+			}
+			// Skip individual icon files here - they'll be processed later by processIconSpriteBlob() and extractPngIcons()
+			// DO NOT add placeholder entries as they block proper extraction
 			else if (
 				fileName.endsWith(".svg") ||
 				fileName.endsWith(".png") ||
 				fileName.includes("/icons/") ||
 				fileName.startsWith("icons/")
 			) {
-				// Extract icon name from file path
-				let iconName = fileName
-					.replace(/^.*[\\\/]/, "")
-					.replace(/\.[^/.]+$/, "");
-
-				configData.icons.push({
-					name: iconName,
-					svg: "icon_url_placeholder", // Will be updated later when icons are processed
-					id: iconName,
-				});
+				// Individual icon files are handled by extraction phases:
+				// Phase 1 (Primary): processIconSpriteBlob() for SVG sprite extraction
+				// Phase 2 (Fallback): extractPngIcons() for PNG files in icons/ directory
+				// Adding placeholder entries here would block actual extraction
+				console.log(`Detected individual icon file: ${fileName} (will be processed later)`);
 			}
 		} catch (error) {
 			console.warn(`Error processing file ${fileName}:`, error);
 		}
 	});
 
-	// Try to extract PNG icons first (preferred format for spreadsheet import)
-	console.log("Checking for PNG icons in icons/ directory...");
-	if (hasPngIconsDirectory(tempFolder)) {
-		console.log("Found icons/ directory, extracting PNG icons");
-		try {
-			const pngIcons = extractPngIcons(tempFolder, configData.presets, onProgress);
-			console.log(`Extracted ${pngIcons.length} PNG icons`);
-
-			if (pngIcons.length > 0) {
-				// Create a map of existing icon names to avoid duplicates
-				const existingIconNames = new Set<string>();
-				configData.icons.forEach((icon: { name: string }) => {
-					existingIconNames.add(icon.name);
-				});
-
-				// Add PNG icons (they take precedence over SVG)
-				pngIcons.forEach(
-					(icon: { name: string; svg: string; id: string }) => {
-						if (!existingIconNames.has(icon.name)) {
-							configData.icons.push(icon);
-							existingIconNames.add(icon.name);
-						}
-					},
-				);
-
-				console.log(`Total icons after PNG extraction: ${configData.icons.length}`);
-			}
-		} catch (error) {
-			console.error("Error extracting PNG icons:", error);
-		}
-	} else {
-		console.log("No icons/ directory found, will try SVG sprite");
-	}
-
-	// Fall back to SVG sprite processing if available
+	// Try to extract SVG icons first (preferred format for scalability and display)
+	console.log("=== ICON EXTRACTION PHASE 1: SVG Sprite (Primary) ===");
 	if (configData.iconsSvgFile) {
 		console.log("Processing icons.svg sprite file");
+		console.log(`Icons before SVG extraction: ${configData.icons.length}`);
 		try {
 			// Process the SVG sprite and get icon objects with URLs
 			const extractedIcons = processIconSpriteBlob(
 				tempFolder,
 				configData.iconsSvgFile,
 			);
-			console.log(`Extracted ${extractedIcons.length} icons from SVG sprite`);
+			console.log(`✓ Extracted ${extractedIcons.length} icons from SVG sprite`);
 
 			// Add the extracted icons to the configData.icons array
 			if (extractedIcons.length > 0) {
@@ -346,15 +322,27 @@ function parseExtractedFiles(
 					existingIconNames.add(icon.name);
 				});
 
-				// Add SVG icons that don't already exist (PNG icons take precedence)
+				if (existingIconNames.size > 0) {
+					console.log(`Existing icon names: ${Array.from(existingIconNames).join(", ")}`);
+				}
+
+				// Add SVG icons (they now take precedence)
+				let svgAdded = 0;
+				let svgSkipped = 0;
 				extractedIcons.forEach(
 					(icon: { name: string; svg: string; id: string }) => {
 						if (!existingIconNames.has(icon.name)) {
 							configData.icons.push(icon);
+							svgAdded++;
+							console.log(`  ✓ Added SVG icon: ${icon.name} (URL: ${icon.svg.substring(0, 50)}...)`);
+						} else {
+							svgSkipped++;
+							console.log(`  ⊘ Skipped duplicate SVG icon: ${icon.name}`);
 						}
 					},
 				);
 
+				console.log(`Added ${svgAdded} new SVG icons${svgSkipped > 0 ? `, skipped ${svgSkipped} duplicates` : ""}`);
 				console.log(`Total icons after SVG processing: ${configData.icons.length}`);
 			}
 		} catch (error) {
@@ -363,7 +351,90 @@ function parseExtractedFiles(
 
 		// Remove the temporary file reference
 		delete configData.iconsSvgFile;
+	} else {
+		console.log("No icons.svg file found, will try PNG files");
 	}
+
+	// Fall back to PNG icons from icons/ directory if SVG extraction didn't find any
+	console.log("=== ICON EXTRACTION PHASE 2: PNG Files (Fallback) ===");
+	console.log(`Icons before PNG extraction: ${configData.icons.length}`);
+	if (hasPngIconsDirectory(tempFolder)) {
+		console.log("Found icons/ directory, extracting PNG icons");
+		try {
+			const pngIcons = extractPngIcons(tempFolder, configData.presets, onProgress);
+			console.log(`✓ Extracted ${pngIcons.length} PNG icons`);
+
+			if (pngIcons.length > 0) {
+				// Create a map of existing icon names to avoid duplicates
+				const existingIconNames = new Set<string>();
+				configData.icons.forEach((icon: { name: string }) => {
+					existingIconNames.add(icon.name);
+				});
+
+				if (existingIconNames.size > 0) {
+					console.log(`Existing icon names (SVG takes precedence): ${Array.from(existingIconNames).join(", ")}`);
+				}
+
+				// Add PNG icons that don't already exist (SVG icons take precedence)
+				let pngAdded = 0;
+				let pngSkipped = 0;
+				pngIcons.forEach(
+					(icon: { name: string; svg: string; id: string }) => {
+						if (!existingIconNames.has(icon.name)) {
+							configData.icons.push(icon);
+							existingIconNames.add(icon.name);
+							pngAdded++;
+							console.log(`  ✓ Added PNG icon: ${icon.name} (URL: ${icon.svg.substring(0, 50)}...)`);
+						} else {
+							pngSkipped++;
+							console.log(`  ⊘ Skipped PNG icon (SVG exists): ${icon.name}`);
+						}
+					},
+				);
+
+				console.log(`Added ${pngAdded} new PNG icons${pngSkipped > 0 ? `, skipped ${pngSkipped} (SVG priority)` : ""}`);
+				console.log(`Total icons after PNG extraction: ${configData.icons.length}`);
+			}
+		} catch (error) {
+			console.error("Error extracting PNG icons:", error);
+		}
+	} else {
+		console.log("No icons/ directory found, PNG extraction skipped");
+	}
+
+	// Check if PNG sprite was detected but not extracted
+	console.log("=== ICON EXTRACTION COMPLETE ===");
+	console.log(`Final icon count: ${configData.icons.length}`);
+
+	if (configData.icons.length === 0) {
+		if (configData.iconsPngFile) {
+			console.warn("⚠️ PNG SPRITE DETECTED BUT CANNOT BE EXTRACTED");
+			console.warn("   Google Apps Script cannot parse PNG sprites (icons.png)");
+			console.warn("   Reason: No image processing libraries available");
+			console.warn("");
+			console.warn("   Options:");
+			console.warn("   1. Use config with individual PNG files in icons/ directory");
+			console.warn("   2. Use config with SVG sprite (icons.svg)");
+			console.warn("   3. Contact support about external API for PNG extraction");
+
+			if (configData.iconsJsonFile) {
+				console.warn("   Note: icons.json metadata detected but unusable without PNG extraction");
+			}
+		} else {
+			console.warn("⚠️ NO ICONS FOUND IN CONFIGURATION");
+			console.warn("   Expected one of:");
+			console.warn("   - icons/ directory with individual PNG files");
+			console.warn("   - icons.svg sprite file");
+			console.warn("   Please check configuration file structure");
+		}
+	} else {
+		console.log(`✓ Successfully extracted ${configData.icons.length} icon(s)`);
+	}
+
+	// Clean up temporary file references
+	delete configData.iconsSvgFile;
+	delete configData.iconsPngFile;
+	delete configData.iconsJsonFile;
 
 	return configData;
 }
