@@ -9,9 +9,21 @@
 /**
  * Applies configuration data to the spreadsheet.
  * @param configData - Configuration data object
+ * @param onProgress - Optional progress callback function
  */
-function applyConfigurationToSpreadsheet(configData: any) {
+function applyConfigurationToSpreadsheet(
+  configData: any,
+  onProgress?: (update: { percent: number; stage: string; detail?: string }) => void,
+) {
   console.log("Applying configuration to spreadsheet...");
+
+  if (onProgress) {
+    onProgress({
+      percent: 70,
+      stage: "Updating spreadsheet",
+      detail: "Preparing sheets...",
+    });
+  }
 
   // First, clear all data validations from all sheets
   try {
@@ -37,11 +49,25 @@ function applyConfigurationToSpreadsheet(configData: any) {
 
   // Apply metadata
   if (configData.metadata) {
+    if (onProgress) {
+      onProgress({
+        percent: 75,
+        stage: "Updating spreadsheet",
+        detail: "Applying metadata...",
+      });
+    }
     applyMetadata(metadataSheet, configData.metadata);
   }
   console.log(configData);
   // Apply categories (presets)
   if (configData.presets && configData.presets.length > 0) {
+    if (onProgress) {
+      onProgress({
+        percent: 80,
+        stage: "Updating spreadsheet",
+        detail: "Applying categories...",
+      });
+    }
     applyCategories(
       categoriesSheet,
       configData.presets,
@@ -52,11 +78,25 @@ function applyConfigurationToSpreadsheet(configData: any) {
 
   // Apply details (fields)
   if (configData.fields && configData.fields.length > 0) {
+    if (onProgress) {
+      onProgress({
+        percent: 85,
+        stage: "Updating spreadsheet",
+        detail: "Applying field definitions...",
+      });
+    }
     applyFields(detailsSheet, configData.fields);
   }
 
   // Apply translations
   if (configData.messages && Object.keys(configData.messages).length > 0) {
+    if (onProgress) {
+      onProgress({
+        percent: 90,
+        stage: "Updating spreadsheet",
+        detail: "Applying translations...",
+      });
+    }
     applyTranslations(
       spreadsheet,
       configData.messages,

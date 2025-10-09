@@ -79,7 +79,9 @@ function addDetailsDropdown(): void {
       categoriesSheet
         .getRange(1, 3)
         .setNote(
-          "For multiple values, separate with commas. Multi-select chips will be enabled when Google Apps Script adds support.",
+          "Multiple selections: Separate field labels with commas (e.g., 'Name, Type, Notes').\n\n" +
+            "The dropdown validates against field labels from the Details sheet.\n\n" +
+            "Note: Multi-select chip display will be enabled when Google Apps Script adds official support.",
         );
 
       // Set up an installable onEdit trigger for comma-separated values
@@ -154,32 +156,61 @@ function handleMultiSelectEdit(e: GoogleAppsScript.Events.SheetsOnEdit): void {
     if (e.range.getColumn() !== 3 || e.range.getRow() <= 1) return;
 
     const value = e.range.getValue();
+    console.log(
+      `Details column edit detected: row=${e.range.getRow()}, value="${value}"`,
+    );
+
     if (!value || typeof value !== "string") return;
 
     // Get valid options from Details sheet
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const detailsSheet = ss.getSheetByName("Details");
-    if (!detailsSheet) return;
+    if (!detailsSheet) {
+      console.warn("Details sheet not found for validation");
+      return;
+    }
+
+    const lastRow = detailsSheet.getLastRow();
+    if (lastRow <= 1) {
+      console.warn("Details sheet is empty");
+      return;
+    }
 
     const validOptions = detailsSheet
-      .getRange("A2:A" + detailsSheet.getLastRow())
+      .getRange("A2:A" + lastRow)
       .getValues()
       .flat()
-      .filter((val) => val && typeof val === "string");
+      .filter((val) => val && typeof val === "string")
+      .map((val) => val.toString().trim());
+
+    console.log(`Valid options from Details sheet: ${validOptions.length} items`);
 
     if (validOptions.length === 0) return;
 
     // Process comma-separated values
     const selectedValues = value.split(",").map((v) => v.trim());
-    const validatedValues = selectedValues.filter((val) =>
-      validOptions.some(
-        (option) => option.toString().toLowerCase() === val.toLowerCase(),
-      ),
-    );
+    console.log(`Processing ${selectedValues.length} selected values`);
 
-    // Update the cell with validated values
-    if (validatedValues.length > 0 && validatedValues.join(", ") !== value) {
-      e.range.setValue(validatedValues.join(", "));
+    // Validate each value (case-insensitive)
+    const validatedValues = selectedValues.filter((val) => {
+      const isValid = validOptions.some(
+        (option) => option.toLowerCase() === val.toLowerCase(),
+      );
+      if (!isValid) {
+        console.warn(`Invalid value: "${val}" (not in Details sheet)`);
+      }
+      return isValid;
+    });
+
+    console.log(`Validated ${validatedValues.length} values`);
+
+    // Update the cell with validated values if changed
+    const newValue = validatedValues.join(", ");
+    if (validatedValues.length > 0 && newValue !== value) {
+      console.log(`Updating cell from "${value}" to "${newValue}"`);
+      e.range.setValue(newValue);
+    } else if (validatedValues.length === 0) {
+      console.warn(`All values invalid, keeping original: "${value}"`);
     }
   } catch (error) {
     console.error("Error in multi-select edit handler:", error);

@@ -34,6 +34,12 @@ function createImportCategoryHtml(): string {
     "    .upload-status { margin: 15px 0; text-align: center; }" +
     "    .success { color: #4CAF50; font-weight: bold; }" +
     "    .error { color: #F44336; font-weight: bold; }" +
+    "    .progress-container { margin: 20px auto; max-width: 400px; opacity: 0; animation: fadeIn 0.3s forwards; }" +
+    "    .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; color: #b0b0b0; font-size: 0.9em; }" +
+    "    .progress-bar-container { width: 100%; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }" +
+    "    .progress-bar { height: 100%; background: linear-gradient(90deg, #330B9E, #6d44d9, #8a67e8); border-radius: 12px; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(109, 68, 217, 0.5); width: 0%; }" +
+    "    .progress-detail { margin-top: 8px; text-align: center; color: #888; font-size: 0.85em; min-height: 20px; }" +
+    "    @keyframes fadeIn { to { opacity: 1; } }" +
     "  </style>" +
     "</head>" +
     "<body>" +
@@ -54,6 +60,16 @@ function createImportCategoryHtml(): string {
     '    <input type="file" id="file" name="file" accept=".comapeocat,.zip,.mapeosettings" style="display: none;" onchange="handleFileSelect()">' +
     "  </div>" +
     '  <div id="file-info" class="file-info"></div>' +
+    '  <div id="progress-container" class="progress-container" style="display: none;">' +
+    '    <div class="progress-header">' +
+    '      <span id="progress-stage">Processing...</span>' +
+    '      <span id="progress-percent">0%</span>' +
+    "    </div>" +
+    '    <div class="progress-bar-container">' +
+    '      <div id="progress-bar" class="progress-bar"></div>' +
+    "    </div>" +
+    '    <div id="progress-detail" class="progress-detail"></div>' +
+    "  </div>" +
     '  <div id="upload-status" class="upload-status"></div>' +
     "  " +
     "  <script>" +
@@ -61,11 +77,13 @@ function createImportCategoryHtml(): string {
     '      const fileInput = document.getElementById("file");' +
     '      const fileInfo = document.getElementById("file-info");' +
     '      const uploadStatus = document.getElementById("upload-status");' +
+    '      const progressContainer = document.getElementById("progress-container");' +
     "      " +
     "      if (fileInput.files.length > 0) {" +
     "        const file = fileInput.files[0];" +
     '        fileInfo.innerHTML = "<p>Selected file: " + file.name + " (" + (file.size / 1024).toFixed(2) + " KB)</p>";' +
-    '        uploadStatus.innerHTML = "<p>Processing file...</p>";' +
+    '        progressContainer.style.display = "block";' +
+    '        uploadStatus.innerHTML = "";' +
     "        " +
     "        // Read the file and convert to base64" +
     "        const reader = new FileReader();" +
@@ -74,15 +92,48 @@ function createImportCategoryHtml(): string {
     "          google.script.run" +
     "            .withSuccessHandler(onSuccess)" +
     "            .withFailureHandler(onFailure)" +
-    "            .processImportedCategoryFile(file.name, base64data);" +
+    "            .withUserObject({" +
+    '              progressBar: document.getElementById("progress-bar"),' +
+    '              progressStage: document.getElementById("progress-stage"),' +
+    '              progressPercent: document.getElementById("progress-percent"),' +
+    '              progressDetail: document.getElementById("progress-detail")' +
+    "            })" +
+    "            .processImportedCategoryFileWithProgress(file.name, base64data, onProgress);" +
     "        };" +
     "        reader.readAsDataURL(file);" +
     "      }" +
     "    }" +
     "    " +
+    "    function onProgress(progressData) {" +
+    "      const { progressBar, progressStage, progressPercent, progressDetail } = this;" +
+    "      " +
+    "      // Update progress bar width" +
+    "      progressBar.style.width = progressData.percent + '%';" +
+    "      " +
+    "      // Update text elements" +
+    "      progressStage.textContent = progressData.stage;" +
+    "      progressPercent.textContent = progressData.percent + '%';" +
+    "      " +
+    "      if (progressData.detail) {" +
+    "        progressDetail.textContent = progressData.detail;" +
+    "      }" +
+    "      " +
+    "      // Add counts if available" +
+    "      if (progressData.counts) {" +
+    "        const counts = Object.entries(progressData.counts)" +
+    "          .map(function(entry) { return entry[0] + ': ' + entry[1]; })" +
+    "          .join(', ');" +
+    "        progressDetail.textContent += ' (' + counts + ')';" +
+    "      }" +
+    "    }" +
+    "    " +
     "    function onSuccess(result) {" +
     '      const uploadStatus = document.getElementById("upload-status");' +
-    "      uploadStatus.innerHTML = \"<p class='success'>File imported successfully!</p>\";" +
+    '      const progressContainer = document.getElementById("progress-container");' +
+    "      " +
+    "      // Hide progress, show success" +
+    '      progressContainer.style.display = "none";' +
+    "      uploadStatus.innerHTML = \"<p class='success'>✓ Import successful!</p>\";" +
     "      setTimeout(function() {" +
     "        google.script.host.close();" +
     "      }, 2000);" +
@@ -90,7 +141,11 @@ function createImportCategoryHtml(): string {
     "    " +
     "    function onFailure(error) {" +
     '      const uploadStatus = document.getElementById("upload-status");' +
-    '      uploadStatus.innerHTML = "<p class=\'error\'>Error: " + error.message + "</p>";' +
+    '      const progressContainer = document.getElementById("progress-container");' +
+    "      " +
+    "      // Hide progress, show error" +
+    '      progressContainer.style.display = "none";' +
+    '      uploadStatus.innerHTML = "<p class=\'error\'>✗ Error: " + error.message + "</p>";' +
     "    }" +
     "  </script>" +
     "</body>" +

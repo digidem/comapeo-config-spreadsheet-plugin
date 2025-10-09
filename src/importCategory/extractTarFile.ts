@@ -4,6 +4,44 @@
  */
 
 /**
+ * Creates an SVG sprite from an array of icon objects.
+ * @param icons - Array of icon objects with name and svg properties
+ * @returns SVG sprite string
+ */
+function createIconSprite(icons: any[]): string {
+  console.log(`Creating SVG sprite from ${icons.length} icons`);
+
+  // Start with SVG root element
+  let sprite = '<svg xmlns="http://www.w3.org/2000/svg">\n';
+
+  for (const icon of icons) {
+    if (!icon.name || !icon.svg) {
+      console.warn(`Skipping icon without name or svg:`, icon);
+      continue;
+    }
+
+    // Extract SVG content (remove wrapping <svg> tags if present)
+    let svgContent = icon.svg;
+
+    // Try to extract content between <svg> tags
+    const svgMatch = svgContent.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+    if (svgMatch) {
+      svgContent = svgMatch[1];
+    }
+
+    // Create symbol element with icon content
+    sprite += `  <symbol id="${icon.name}">\n`;
+    sprite += `    ${svgContent.trim()}\n`;
+    sprite += `  </symbol>\n`;
+  }
+
+  sprite += "</svg>";
+
+  console.log(`Created sprite with ${icons.length} symbols`);
+  return sprite;
+}
+
+/**
  * Extracts a tar file and returns the extracted files.
  * @param blob - The tar file blob
  * @returns Extraction result with files and temp folder
@@ -87,6 +125,46 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob): {
             );
             extractFolder.createFile(translationsBlob);
             extractedFiles.push(translationsBlob);
+          }
+
+          // Handle icons.svg if present
+          if (jsonData.icons) {
+            console.log("Creating icons.svg from embedded data...");
+            try {
+              // Icons might be embedded as SVG string or base64
+              let iconsSvgContent = "";
+
+              if (typeof jsonData.icons === "string") {
+                // Direct SVG string
+                iconsSvgContent = jsonData.icons;
+              } else if (jsonData.icons.svg) {
+                // SVG in an object
+                iconsSvgContent = jsonData.icons.svg;
+              } else if (Array.isArray(jsonData.icons)) {
+                // Array of icon objects - need to create sprite
+                console.log(
+                  `Found ${jsonData.icons.length} icon objects, creating sprite...`,
+                );
+                iconsSvgContent = createIconSprite(jsonData.icons);
+              }
+
+              if (iconsSvgContent) {
+                const iconsSvgBlob = Utilities.newBlob(
+                  iconsSvgContent,
+                  "image/svg+xml",
+                  "icons.svg",
+                );
+                extractFolder.createFile(iconsSvgBlob);
+                extractedFiles.push(iconsSvgBlob);
+                console.log("Successfully created icons.svg");
+              } else {
+                console.warn("Icons data found but could not be converted to SVG");
+              }
+            } catch (iconError) {
+              console.error("Error processing embedded icons:", iconError);
+            }
+          } else {
+            console.warn("No icons data found in .mapeosettings JSON");
           }
 
           console.log("JSON extraction completed successfully");

@@ -518,27 +518,73 @@ function extractTarFile(
           `Found ${isDirectory ? "directory" : "file"}: ${fileName}, size: ${fileSize}`,
         );
 
-        // Only process metadata.json, presets.json, translations.json, and icons.svg
-        const isTargetFile =
+        // Process core config files and anything in icons/ directory
+        const isCoreFile =
           fileName === "metadata.json" ||
           fileName === "presets.json" ||
           fileName === "translations.json" ||
           fileName === "icons.svg";
 
-        if (!isDirectory && isTargetFile) {
+        // Check if file is in icons/ directory (handles both "icons/file.png" and "path/icons/file.png")
+        const isIconFile =
+          fileName.includes("/icons/") || fileName.startsWith("icons/");
+
+        const shouldExtract = isCoreFile || isIconFile;
+
+        if (!isDirectory && shouldExtract) {
           // Extract file data
           const fileData = bytes.slice(
             position + HEADER_SIZE,
             position + HEADER_SIZE + fileSize,
           );
 
-          // Create file blob with appropriate MIME type
-          const mimeType =
-            fileName === "icons.svg" ? "image/svg+xml" : "application/json";
+          // Determine MIME type based on file extension
+          let mimeType = "application/json";
+          if (fileName.endsWith(".svg")) {
+            mimeType = "image/svg+xml";
+          } else if (fileName.endsWith(".png")) {
+            mimeType = "image/png";
+          }
+
+          // Create file blob with full path preserved
           const fileBlob = Utilities.newBlob(fileData, mimeType, fileName);
 
-          // Save file to temp folder
-          tempFolder.createFile(fileBlob);
+          // For icon files, create nested folder structure
+          if (isIconFile && fileName.includes("/")) {
+            // Extract the directory path
+            const lastSlashIndex = fileName.lastIndexOf("/");
+            const dirPath = fileName.substring(0, lastSlashIndex);
+
+            console.log(`Creating nested folder structure: ${dirPath}`);
+
+            // Create nested folders if they don't exist
+            let currentFolder = tempFolder;
+            const parts = dirPath.split("/");
+
+            for (const part of parts) {
+              if (part) {
+                const subfolders = currentFolder.getFoldersByName(part);
+                if (subfolders.hasNext()) {
+                  currentFolder = subfolders.next();
+                } else {
+                  currentFolder = currentFolder.createFolder(part);
+                }
+              }
+            }
+
+            // Save file to the nested folder with just the filename
+            const justFileName = fileName.substring(lastSlashIndex + 1);
+            console.log(
+              `Saving icon file: ${justFileName} to folder: ${currentFolder.getName()}`,
+            );
+            currentFolder.createFile(
+              Utilities.newBlob(fileData, mimeType, justFileName),
+            );
+          } else {
+            // Save core files directly to temp folder
+            tempFolder.createFile(fileBlob);
+          }
+
           extractedFiles.push(fileBlob);
         }
 

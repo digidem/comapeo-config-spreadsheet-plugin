@@ -5,19 +5,58 @@
 /**
  * Processes an SVG sprite blob and extracts individual icons
  * @param tempFolder - The temporary folder to save the extracted icons
+ * @param iconsSvgBlob - Optional blob containing the icons.svg file
  * @returns An array of icon objects with name and URL
  */
 function processIconSpriteBlob(
   tempFolder: GoogleAppsScript.Drive.Folder,
+  iconsSvgBlob?: GoogleAppsScript.Base.Blob,
 ): { name: string; svg: string; id: string }[] {
   try {
     console.log("Processing icons.svg sprite blob");
 
-    // Create a temporary folder to store the icons.svg file
-    const iconsSvgFolder = tempFolder.createFolder("icons_svg_temp");
+    // Get permanent config folder for icon storage
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const parentFolder = DriveApp.getFileById(spreadsheet.getId())
+      .getParents()
+      .next();
+    const configFolderName = slugify(spreadsheet.getName());
 
-    // Create a folder for the extracted icons
+    console.log(`Looking for config folder: ${configFolderName}`);
+
+    // Find or create config folder
+    let configFolder: GoogleAppsScript.Drive.Folder;
+    const configFolders = parentFolder.getFoldersByName(configFolderName);
+    if (configFolders.hasNext()) {
+      configFolder = configFolders.next();
+      console.log(`Using existing config folder: ${configFolder.getName()}`);
+    } else {
+      configFolder = parentFolder.createFolder(configFolderName);
+      console.log(`Created new config folder: ${configFolder.getName()}`);
+    }
+
+    // Find or create permanent icons folder
+    let permanentIconsFolder: GoogleAppsScript.Drive.Folder;
+    const iconsFolders = configFolder.getFoldersByName("icons");
+    if (iconsFolders.hasNext()) {
+      permanentIconsFolder = iconsFolders.next();
+      console.log(`Using existing icons folder: ${permanentIconsFolder.getName()}`);
+    } else {
+      permanentIconsFolder = configFolder.createFolder("icons");
+      console.log(`Created new icons folder: ${permanentIconsFolder.getName()}`);
+    }
+
+    // Create temporary folders for extraction
+    const iconsSvgFolder = tempFolder.createFolder("icons_svg_temp");
     const iconsOutputFolder = tempFolder.createFolder("icons_output");
+
+    // If blob provided, save it to the iconsSvgFolder
+    if (iconsSvgBlob) {
+      console.log("Saving provided icons.svg blob to temp folder");
+      iconsSvgFolder.createFile(iconsSvgBlob);
+    } else {
+      console.log("No blob provided, checking for icons.svg in temp folder files");
+    }
 
     // Process the sprite
     const icons = deconstructSvgSprite(
@@ -26,7 +65,60 @@ function processIconSpriteBlob(
     );
 
     console.log(`Extracted ${icons.length} icons from sprite`);
-    return icons;
+
+    // Move icons to permanent folder and update URLs
+    const permanentIcons = icons.map((icon) => {
+      try {
+        // Find the icons subfolder in the temp output folder
+        const iconsSubfolders = iconsOutputFolder.getFoldersByName("icons");
+        if (!iconsSubfolders.hasNext()) {
+          console.warn(`No icons subfolder found for ${icon.name}`);
+          return icon;
+        }
+
+        const iconsSubfolder = iconsSubfolders.next();
+        const fileName = `${icon.name}.svg`;
+        const tempFiles = iconsSubfolder.getFilesByName(fileName);
+
+        if (!tempFiles.hasNext()) {
+          console.warn(`Icon file not found: ${fileName}`);
+          return icon;
+        }
+
+        const tempFile = tempFiles.next();
+        console.log(`Moving icon ${fileName} to permanent folder`);
+
+        // Check if file already exists in permanent folder
+        const existingFiles = permanentIconsFolder.getFilesByName(fileName);
+        let permanentFile;
+
+        if (existingFiles.hasNext()) {
+          // Update existing file content
+          permanentFile = existingFiles.next();
+          permanentFile.setContent(tempFile.getBlob().getDataAsString());
+          console.log(`Updated existing icon: ${fileName}`);
+        } else {
+          // Create new file in permanent folder
+          permanentFile = permanentIconsFolder.createFile(
+            tempFile.getBlob().setName(fileName),
+          );
+          console.log(`Created new icon: ${fileName}`);
+        }
+
+        // Return icon with permanent URL
+        return {
+          name: icon.name,
+          svg: permanentFile.getUrl(),
+          id: icon.id,
+        };
+      } catch (error) {
+        console.error(`Error moving icon ${icon.name} to permanent folder:`, error);
+        return icon;
+      }
+    });
+
+    console.log(`Successfully moved ${permanentIcons.length} icons to permanent folder`);
+    return permanentIcons;
   } catch (error) {
     console.error("Error processing icon sprite blob:", error);
     return [];

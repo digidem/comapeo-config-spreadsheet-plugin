@@ -91,7 +91,7 @@ function processImportedCategoryFileWithProgress(
     });
 
     const extractionResult = extractAndValidateFile(fileName, blob, {
-      onProgress: (stage, percent) => {
+      onProgress: (stage: string, percent: number) => {
         // Map extraction progress to 15-40% of overall progress
         const mappedPercent = 15 + Math.round(percent * 0.25);
         progressHandler({
@@ -115,26 +115,19 @@ function processImportedCategoryFileWithProgress(
       },
     });
 
-    // Extract configuration data
+    // Extract configuration data and parse files
     progressHandler({
       percent: 45,
       stage: "Processing configuration data",
       detail: "Parsing configuration files",
     });
 
-    const configData = extractConfigurationData(
+    const configData = parseExtractedFiles(
       extractionResult.files,
       extractionResult.tempFolder,
-      {
-        onProgress: (stage, percent) => {
-          // Map configuration extraction progress to 45-70% of overall progress
-          const mappedPercent = 45 + Math.round(percent * 0.25);
-          progressHandler({
-            percent: mappedPercent,
-            stage: "Processing configuration",
-            detail: stage,
-          });
-        },
+      (update) => {
+        // Pass through progress updates from parseExtractedFiles
+        progressHandler(update);
       },
     );
 
@@ -151,22 +144,9 @@ function processImportedCategoryFileWithProgress(
     });
 
     // Apply configuration to spreadsheet
-    progressHandler({
-      percent: 75,
-      stage: "Updating spreadsheet",
-      detail: "Applying configuration to sheets",
-    });
-
-    applyConfigurationToSpreadsheet(configData, {
-      onProgress: (stage, percent) => {
-        // Map spreadsheet update progress to 75-95% of overall progress
-        const mappedPercent = 75 + Math.round(percent * 0.2);
-        progressHandler({
-          percent: mappedPercent,
-          stage: "Updating spreadsheet",
-          detail: stage,
-        });
-      },
+    applyConfigurationToSpreadsheet(configData, (update) => {
+      // Pass through progress updates from applyConfigurationToSpreadsheet
+      progressHandler(update);
     });
 
     // Clean up

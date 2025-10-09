@@ -13,6 +13,13 @@ const importCategoryDialogTexts = {
       "Make sure you have a backup of your current configuration before proceeding.",
     ],
     buttonText: "Select File",
+    progressStages: {
+      extracting: "Extracting files",
+      parsing: "Processing configuration",
+      icons: "Extracting icons",
+      applying: "Updating spreadsheet",
+      finalizing: "Finalizing",
+    },
   },
   es: {
     title: "Importar Configuración de Categoría",
@@ -22,6 +29,13 @@ const importCategoryDialogTexts = {
       "Asegúrate de tener una copia de seguridad de tu configuración actual antes de continuar.",
     ],
     buttonText: "Seleccionar Archivo",
+    progressStages: {
+      extracting: "Extrayendo archivos",
+      parsing: "Procesando configuración",
+      icons: "Extrayendo iconos",
+      applying: "Actualizando hoja de cálculo",
+      finalizing: "Finalizando",
+    },
   },
   pt: {
     title: "Importar Configuração de Categoria",
@@ -31,5 +45,12 @@ const importCategoryDialogTexts = {
       "Certifique-se de ter um backup da sua configuração atual antes de prosseguir.",
     ],
     buttonText: "Selecionar Arquivo",
+    progressStages: {
+      extracting: "Extraindo arquivos",
+      parsing: "Processando configuração",
+      icons: "Extraindo ícones",
+      applying: "Atualizando planilha",
+      finalizing: "Finalizando",
+    },
   },
 };

@@ -6,14 +6,127 @@
  */
 
 /**
+ * Restructures flat translation keys into nested object structure.
+ * Converts flat format like "presets.water.name" to nested format like presets.presets.water.name
+ *
+ * @param flatMessages - Messages object with flat key structure
+ * @returns Messages object with nested structure
+ */
+function restructureTranslations(flatMessages: any): any {
+	if (!flatMessages || typeof flatMessages !== "object") {
+		console.warn("Invalid flatMessages object, returning empty structure");
+		return {};
+	}
+
+	const restructured: any = {};
+
+	for (const lang in flatMessages) {
+		if (!flatMessages.hasOwnProperty(lang)) continue;
+
+		// Initialize nested structure for this language
+		restructured[lang] = {
+			presets: {
+				presets: {},
+				fields: {},
+			},
+		};
+
+		const langMessages = flatMessages[lang];
+		if (!langMessages || typeof langMessages !== "object") {
+			console.warn(`Invalid messages for language: ${lang}`);
+			continue;
+		}
+
+		for (const key in langMessages) {
+			if (!langMessages.hasOwnProperty(key)) continue;
+
+			const value = langMessages[key];
+			const parts = key.split(".");
+
+			// Extract message value (handle both string and object formats)
+			const messageValue =
+				typeof value === "object" && value.message
+					? value.message
+					: value;
+
+			if (parts[0] === "presets" && parts.length >= 3) {
+				const itemId = parts[1];
+				const property = parts[2];
+
+				// Initialize preset object if needed
+				if (!restructured[lang].presets.presets[itemId]) {
+					restructured[lang].presets.presets[itemId] = {};
+				}
+
+				if (parts.length === 3) {
+					// Handle: presets.water.name
+					restructured[lang].presets.presets[itemId][property] =
+						messageValue;
+					console.log(
+						`Restructured preset ${lang}.${itemId}.${property}`,
+					);
+				} else if (parts[3] === "options" && parts.length >= 5) {
+					// Handle: presets.water.options.clean
+					if (!restructured[lang].presets.presets[itemId].options) {
+						restructured[lang].presets.presets[itemId].options = {};
+					}
+					const optionId = parts[4];
+					restructured[lang].presets.presets[itemId].options[
+						optionId
+					] = messageValue;
+					console.log(
+						`Restructured preset option ${lang}.${itemId}.options.${optionId}`,
+					);
+				}
+			} else if (parts[0] === "fields" && parts.length >= 3) {
+				const itemId = parts[1];
+				const property = parts[2];
+
+				// Initialize field object if needed
+				if (!restructured[lang].presets.fields[itemId]) {
+					restructured[lang].presets.fields[itemId] = {};
+				}
+
+				if (parts.length === 3) {
+					// Handle: fields.waterType.label, fields.waterType.helperText
+					restructured[lang].presets.fields[itemId][property] =
+						messageValue;
+					console.log(
+						`Restructured field ${lang}.${itemId}.${property}`,
+					);
+				} else if (parts[3] === "options" && parts.length >= 5) {
+					// Handle: fields.waterType.options.river
+					if (!restructured[lang].presets.fields[itemId].options) {
+						restructured[lang].presets.fields[itemId].options = {};
+					}
+					const optionId = parts[4];
+					restructured[lang].presets.fields[itemId].options[optionId] =
+						messageValue;
+					console.log(
+						`Restructured field option ${lang}.${itemId}.options.${optionId}`,
+					);
+				}
+			}
+		}
+	}
+
+	console.log(
+		`Restructured translations for ${Object.keys(restructured).length} languages`,
+	);
+	return restructured;
+}
+
+/**
  * Parses the extracted files to get configuration data.
  * @param files - Array of extracted file blobs
  * @param tempFolder - The temporary folder where files are extracted
+ * @param onProgress - Optional progress callback function
  * @returns Configuration data object
  */
 function parseExtractedFiles(
 	files: GoogleAppsScript.Base.Blob[] | undefined,
 	tempFolder: GoogleAppsScript.Drive.Folder,
+	onProgress?: (update: { percent: number; stage: string; detail?: string }) => void,
 ): any {
 	// Handle undefined or empty files array
 	if (!files || !Array.isArray(files)) {
@@ -95,10 +208,25 @@ function parseExtractedFiles(
 							let options = [];
 							if (field.options) {
 								if (Array.isArray(field.options)) {
-									options = field.options.map((opt: string) => ({
-										label: opt,
-										value: slugify(opt),
-									}));
+									// Handle array of strings or objects
+									options = field.options.map((opt: any) => {
+										if (typeof opt === "string") {
+											return {
+												label: opt,
+												value: slugify(opt),
+											};
+										} else if (typeof opt === "object" && opt !== null) {
+											// Option is already an object with label/value
+											return {
+												label: opt.label || opt.value || opt.name || String(opt),
+												value: opt.value || slugify(opt.label || opt.name || ""),
+											};
+										}
+										return {
+											label: String(opt),
+											value: slugify(String(opt)),
+										};
+									});
 								} else if (typeof field.options === "object") {
 									options = Object.entries(field.options).map(
 										([key, value]) => ({
@@ -114,7 +242,7 @@ function parseExtractedFiles(
 								tagKey: fieldId,
 								label: field.label || fieldId,
 								type: fieldType,
-								helperText: field.placeholder || "",
+								helperText: field.helperText || field.placeholder || "",
 								options: options,
 							});
 						}
@@ -129,9 +257,10 @@ function parseExtractedFiles(
 			// Parse translations.json
 			else if (fileName === "translations.json") {
 				const content = JSON.parse(file.getDataAsString());
-				configData.messages = content;
+				// Restructure flat translation keys to nested format
+				configData.messages = restructureTranslations(content);
 				console.log(
-					`Parsed translations.json: ${Object.keys(content).length} languages`,
+					`Parsed and restructured translations.json: ${Object.keys(content).length} languages`,
 				);
 			}
 
@@ -164,13 +293,50 @@ function parseExtractedFiles(
 		}
 	});
 
-	// Process icons.svg if it was found
+	// Try to extract PNG icons first (preferred format for spreadsheet import)
+	console.log("Checking for PNG icons in icons/ directory...");
+	if (hasPngIconsDirectory(tempFolder)) {
+		console.log("Found icons/ directory, extracting PNG icons");
+		try {
+			const pngIcons = extractPngIcons(tempFolder, configData.presets, onProgress);
+			console.log(`Extracted ${pngIcons.length} PNG icons`);
+
+			if (pngIcons.length > 0) {
+				// Create a map of existing icon names to avoid duplicates
+				const existingIconNames = new Set<string>();
+				configData.icons.forEach((icon: { name: string }) => {
+					existingIconNames.add(icon.name);
+				});
+
+				// Add PNG icons (they take precedence over SVG)
+				pngIcons.forEach(
+					(icon: { name: string; svg: string; id: string }) => {
+						if (!existingIconNames.has(icon.name)) {
+							configData.icons.push(icon);
+							existingIconNames.add(icon.name);
+						}
+					},
+				);
+
+				console.log(`Total icons after PNG extraction: ${configData.icons.length}`);
+			}
+		} catch (error) {
+			console.error("Error extracting PNG icons:", error);
+		}
+	} else {
+		console.log("No icons/ directory found, will try SVG sprite");
+	}
+
+	// Fall back to SVG sprite processing if available
 	if (configData.iconsSvgFile) {
 		console.log("Processing icons.svg sprite file");
 		try {
 			// Process the SVG sprite and get icon objects with URLs
-			const extractedIcons = processIconSpriteBlob(tempFolder);
-			console.log(`Extracted ${extractedIcons.length} icons from sprite`);
+			const extractedIcons = processIconSpriteBlob(
+				tempFolder,
+				configData.iconsSvgFile,
+			);
+			console.log(`Extracted ${extractedIcons.length} icons from SVG sprite`);
 
 			// Add the extracted icons to the configData.icons array
 			if (extractedIcons.length > 0) {
@@ -180,7 +346,7 @@ function parseExtractedFiles(
 					existingIconNames.add(icon.name);
 				});
 
-				// Add new icons that don't already exist
+				// Add SVG icons that don't already exist (PNG icons take precedence)
 				extractedIcons.forEach(
 					(icon: { name: string; svg: string; id: string }) => {
 						if (!existingIconNames.has(icon.name)) {
@@ -189,7 +355,7 @@ function parseExtractedFiles(
 					},
 				);
 
-				console.log(`Total icons after processing: ${configData.icons.length}`);
+				console.log(`Total icons after SVG processing: ${configData.icons.length}`);
 			}
 		} catch (error) {
 			console.error("Error processing icons.svg:", error);

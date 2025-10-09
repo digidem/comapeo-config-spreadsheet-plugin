@@ -31,7 +31,15 @@ function applyFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: any[]) {
     let optionsStr = "";
     if (field.options && field.options.length > 0) {
       optionsStr = field.options
-        .map((opt: any) => opt.label || opt.value)
+        .map((opt: any) => {
+          // Handle both string and object formats
+          if (typeof opt === "string") return opt;
+          if (typeof opt === "object" && opt !== null) {
+            return opt.label || opt.value || opt.name || "";
+          }
+          return "";
+        })
+        .filter(Boolean) // Remove empty strings
         .join(", ");
     }
 
