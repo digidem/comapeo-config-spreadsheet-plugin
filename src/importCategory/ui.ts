@@ -133,10 +133,33 @@ function createImportCategoryHtml(): string {
     "      " +
     "      // Hide progress, show success" +
     '      progressContainer.style.display = "none";' +
-    "      uploadStatus.innerHTML = \"<p class='success'>✓ Import successful!</p>\";" +
+    "      " +
+    "      // Get success message from dialog texts" +
+    "      const successMsg = " + JSON.stringify(importCategoryDialogTexts) + "['" + locale + "'].successMessage;" +
+    "      " +
+    "      // Build detailed success message" +
+    "      let message = \"<div style='text-align: left; max-width: 600px; margin: 0 auto;'>\";" +
+    "      message += \"<p class='success' style='text-align: center; font-size: 1.2em; margin-bottom: 20px;'>✓ \" + successMsg.title + \"</p>\";" +
+    "      message += \"<div style='background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; font-size: 0.9em; line-height: 1.6;'>\";" +
+    "      successMsg.dropdownInfo.forEach(function(line) {" +
+    "        if (line === '') {" +
+    "          message += \"<br>\";" +
+    "        } else {" +
+    "          message += \"<p style='margin: 5px 0;'>\" + line + \"</p>\";" +
+    "        }" +
+    "      });" +
+    "      message += \"</div>\";" +
+    "      message += \"<div style='text-align: center; margin-top: 20px;'>\";" +
+    "      message += \"<button onclick='google.script.host.close()' style='padding: 10px 24px; background: linear-gradient(45deg, #330B9E, #6d44d9); color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 1em; transition: all 0.3s ease;' onmouseover='this.style.background=\\\"linear-gradient(45deg, #4A0ED6, #8a67e8)\\\"' onmouseout='this.style.background=\\\"linear-gradient(45deg, #330B9E, #6d44d9)\\\">Close</button>\";" +
+    "      message += \"<p style='color: #888; font-size: 0.85em; margin-top: 10px;'>Auto-closing in 90 seconds...</p>\";" +
+    "      message += \"</div>\";" +
+    "      message += \"</div>\";" +
+    "      " +
+    "      uploadStatus.innerHTML = message;" +
+    "      " +
     "      setTimeout(function() {" +
     "        google.script.host.close();" +
-    "      }, 2000);" +
+    "      }, 90000);" +
     "    }" +
     "    " +
     "    function onFailure(error) {" +
