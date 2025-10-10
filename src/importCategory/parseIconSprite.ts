@@ -3,6 +3,30 @@
  */
 
 /**
+ * Safe debug logger that falls back to Logger if debugLog is not available
+ */
+function safeDebugLog(message: string, forceFlush = false) {
+  // Try debug logger first
+  try {
+    if (typeof debugLog === "function") {
+      debugLog(message, forceFlush);
+      return;
+    }
+  } catch (e) {
+    // Fall through to Logger
+  }
+
+  // Fall back to standard logger
+  try {
+    Logger.log(message);
+    console.log(message);
+  } catch (e) {
+    // Last resort
+    console.log(message);
+  }
+}
+
+/**
  * Processes an SVG sprite blob and extracts individual icons
  * @param tempFolder - The temporary folder to save the extracted icons
  * @param iconsSvgBlob - Optional blob containing the icons.svg file
@@ -150,7 +174,7 @@ function deconstructSvgSprite(
   outputFolderId: string,
 ): { name: string; svg: string; id: string }[] {
   try {
-    Logger.log(
+    safeDebugLog(
       `Deconstructing SVG sprite from ${configFolderId} to ${outputFolderId}`,
     );
 
@@ -160,7 +184,7 @@ function deconstructSvgSprite(
     // Check if icons.svg exists
     const files = configFolder.getFilesByName("icons.svg");
     if (!files.hasNext()) {
-      Logger.log(
+      safeDebugLog(
         "No icons.svg found in folder, skipping SVG sprite deconstruction",
       );
       return [];
@@ -168,26 +192,26 @@ function deconstructSvgSprite(
 
     const iconsFile = files.next();
     const fileBlob = iconsFile.getBlob();
-    Logger.log(
+    safeDebugLog(
       `Processing SVG file: ${iconsFile.getName()} (${fileBlob.getContentType()})`,
     );
 
     const svgContent = fileBlob.getDataAsString();
-    Logger.log(`SVG content length: ${svgContent.length} characters`);
-    Logger.log(`SVG content preview: ${svgContent.substring(0, 200)}...`);
+    safeDebugLog(`SVG content length: ${svgContent.length} characters`);
+    safeDebugLog(`SVG content preview: ${svgContent.substring(0, 200)}...`);
 
     const xml = XmlService.parse(svgContent);
     const svgRoot = xml.getRootElement();
-    Logger.log(
+    safeDebugLog(
       `SVG root element name: ${svgRoot.getName()}, namespace: ${svgRoot.getNamespace().getURI()}`,
     );
 
     // Get all children to see what's available
     const allChildren = svgRoot.getChildren();
-    Logger.log(
+    safeDebugLog(
       `SVG root has ${allChildren.length} total children of various types`,
     );
-    Logger.log(
+    safeDebugLog(
       `SVG root children types: ${allChildren.map((child) => child.getName()).join(", ")}`,
     );
 
@@ -198,28 +222,28 @@ function deconstructSvgSprite(
       symbols = svgRoot
         .getChildren()
         .filter((child) => child.getName() === "symbol");
-      Logger.log(
+      safeDebugLog(
         `Found ${symbols.length} symbols using alternative filter approach`,
       );
     }
 
-    Logger.log(`Found ${symbols.length} symbols in SVG sprite`);
+    safeDebugLog(`Found ${symbols.length} symbols in SVG sprite`);
 
     if (!symbols || symbols.length === 0) {
-      Logger.log("No <symbol> children in SVG");
+      safeDebugLog("No <symbol> children in SVG");
       return [];
     }
 
     // Log first few symbols if they exist
     if (symbols.length > 0) {
       const sampleSymbol = symbols[0];
-      Logger.log(
+      safeDebugLog(
         `First symbol ID: ${sampleSymbol.getAttribute("id")?.getValue() || "no id"}`,
       );
-      Logger.log(
+      safeDebugLog(
         `First symbol children count: ${sampleSymbol.getChildren().length}`,
       );
-      Logger.log(
+      safeDebugLog(
         `First symbol children types: ${sampleSymbol
           .getChildren()
           .map((c) => c.getName())
@@ -232,156 +256,179 @@ function deconstructSvgSprite(
     const subfolders = outputFolder.getFoldersByName("icons");
     if (subfolders.hasNext()) {
       iconsSubfolder = subfolders.next();
-      Logger.log(`Using existing icons subfolder: ${iconsSubfolder.getName()}`);
+      safeDebugLog(`Using existing icons subfolder: ${iconsSubfolder.getName()}`);
     } else {
       iconsSubfolder = outputFolder.createFolder("icons");
-      Logger.log(`Created new icons subfolder: ${iconsSubfolder.getName()}`);
+      safeDebugLog(`Created new icons subfolder: ${iconsSubfolder.getName()}`);
     }
 
     // Process each icon
     const iconObjects: { name: string; svg: string; id: string }[] = [];
 
+    // Track failed symbols for diagnostics
+    const failedSymbols: { id: string; error: string }[] = [];
+
+    safeDebugLog(`\n=== SVG ICON EXTRACTION (${symbols.length} symbols) ===`);
+
     for (let i = 0; i < symbols.length; i++) {
-      const symbol = symbols[i];
-      const id = symbol.getAttribute("id").getValue();
-      const baseName = id.split("-")[0]; // Just use the first part of the ID as the base name
+      try {
+        const symbol = symbols[i];
+        const idAttr = symbol.getAttribute("id");
 
-      Logger.log(`Processing symbol #${i + 1}: id=${id}, baseName=${baseName}`);
-      Logger.log(`Symbol children count: ${symbol.getChildren().length}`);
-      Logger.log(
-        `Symbol children types: ${symbol
-          .getChildren()
-          .map((c) => c.getName())
-          .join(", ")}`,
-      );
-
-      // Build new SVG root with a single symbol's content
-      // CRITICAL: Create SVG element with proper namespace
-      const svgNamespace = svgRoot.getNamespace();
-      const newSvg = XmlService.createElement("svg", svgNamespace);
-      Logger.log(`Created new SVG with namespace: ${svgNamespace.getURI()}`);
-
-      // Copy all attributes from root <svg> to new <svg>
-      const attrs = svgRoot.getAttributes();
-      for (let k = 0; k < attrs.length; k++) {
-        const attr = attrs[k];
-        newSvg.setAttribute(attr.getName(), attr.getValue());
-      }
-
-      // Use symbol's viewBox if available, otherwise use root or default
-      const symbolViewBox = symbol.getAttribute("viewBox");
-      if (symbolViewBox) {
-        newSvg.setAttribute("viewBox", symbolViewBox.getValue());
-        Logger.log(`Using symbol's viewBox: ${symbolViewBox.getValue()}`);
-      } else if (svgRoot.getAttribute("viewBox")) {
-        newSvg.setAttribute("viewBox", svgRoot.getAttribute("viewBox").getValue());
-        Logger.log(`Using root SVG viewBox: ${svgRoot.getAttribute("viewBox").getValue()}`);
-      } else {
-        newSvg.setAttribute("viewBox", "0 0 24 24");
-        Logger.log(`Using default viewBox: 0 0 24 24`);
-      }
-
-      // Get ALL child elements from the symbol (path, rect, circle, etc.)
-      const children = symbol.getChildren();
-      Logger.log(`Symbol ${id} has ${children.length} child element(s)`);
-
-      // Clone each child element with all its attributes and content
-      for (let c = 0; c < children.length; c++) {
-        const child = children[c];
-        const childName = child.getName();
-        Logger.log(`  - Processing child element #${c + 1}: <${childName}>`);
-
-        // Create new element with same name and namespace
-        const newChild = XmlService.createElement(childName, child.getNamespace());
-
-        // Copy all attributes
-        const childAttrs = child.getAttributes();
-        Logger.log(`    - Has ${childAttrs.length} attribute(s)`);
-        for (let a = 0; a < childAttrs.length; a++) {
-          const attr = childAttrs[a];
-          newChild.setAttribute(attr.getName(), attr.getValue());
-          Logger.log(`      - ${attr.getName()}="${attr.getValue()}"`);
+        if (!idAttr) {
+          safeDebugLog(`⚠️  Symbol #${i + 1}: No id attribute, skipping`);
+          failedSymbols.push({ id: `symbol-${i + 1}`, error: "Missing id attribute" });
+          continue;
         }
 
-        // Copy text content if any
-        const textContent = child.getText();
-        if (textContent) {
-          newChild.setText(textContent);
+        const id = idAttr.getValue();
+
+        safeDebugLog(`Processing symbol #${i + 1}: id=${id}`);
+        safeDebugLog(`Symbol children count: ${symbol.getChildren().length}`);
+        safeDebugLog(
+          `Symbol children types: ${symbol
+            .getChildren()
+            .map((c) => c.getName())
+            .join(", ")}`,
+        );
+
+        // Build new SVG root with a single symbol's content
+        // CRITICAL: Create SVG element with proper namespace
+        const svgNamespace = svgRoot.getNamespace();
+        const newSvg = XmlService.createElement("svg", svgNamespace);
+        safeDebugLog(`Created new SVG with namespace: ${svgNamespace.getURI()}`);
+
+        // Copy all attributes from root <svg> to new <svg>
+        const attrs = svgRoot.getAttributes();
+        for (let k = 0; k < attrs.length; k++) {
+          const attr = attrs[k];
+          newSvg.setAttribute(attr.getName(), attr.getValue());
         }
 
-        // Recursively copy nested children if any
-        const nestedChildren = child.getChildren();
-        if (nestedChildren.length > 0) {
-          Logger.log(`    - Has ${nestedChildren.length} nested child(ren)`);
-          // For nested children, we'll use detach since they're less common
-          for (let n = 0; n < nestedChildren.length; n++) {
-            newChild.addContent(nestedChildren[n].detach());
+        // Use symbol's viewBox if available, otherwise use root or default
+        const symbolViewBox = symbol.getAttribute("viewBox");
+        if (symbolViewBox) {
+          newSvg.setAttribute("viewBox", symbolViewBox.getValue());
+          safeDebugLog(`Using symbol's viewBox: ${symbolViewBox.getValue()}`);
+        } else if (svgRoot.getAttribute("viewBox")) {
+          newSvg.setAttribute("viewBox", svgRoot.getAttribute("viewBox").getValue());
+          safeDebugLog(`Using root SVG viewBox: ${svgRoot.getAttribute("viewBox").getValue()}`);
+        } else {
+          newSvg.setAttribute("viewBox", "0 0 24 24");
+          safeDebugLog(`Using default viewBox: 0 0 24 24`);
+        }
+
+        // Get ALL child elements from the symbol (path, rect, circle, etc.)
+        const children = symbol.getChildren();
+        safeDebugLog(`Symbol ${id} has ${children.length} child element(s)`);
+
+        // Clone each child element with all its attributes and content
+        for (let c = 0; c < children.length; c++) {
+          const child = children[c];
+          const childName = child.getName();
+          safeDebugLog(`  - Processing child element #${c + 1}: <${childName}>`);
+
+          // Create new element with same name and namespace
+          const newChild = XmlService.createElement(childName, child.getNamespace());
+
+          // Copy all attributes
+          const childAttrs = child.getAttributes();
+          safeDebugLog(`    - Has ${childAttrs.length} attribute(s)`);
+          for (let a = 0; a < childAttrs.length; a++) {
+            const attr = childAttrs[a];
+            newChild.setAttribute(attr.getName(), attr.getValue());
+            safeDebugLog(`      - ${attr.getName()}="${attr.getValue()}"`);
           }
+
+          // Copy text content if any
+          const textContent = child.getText();
+          if (textContent) {
+            newChild.setText(textContent);
+          }
+
+          // Recursively copy nested children if any
+          const nestedChildren = child.getChildren();
+          if (nestedChildren.length > 0) {
+            safeDebugLog(`    - Has ${nestedChildren.length} nested child(ren)`);
+            // For nested children, we'll use detach since they're less common
+            for (let n = 0; n < nestedChildren.length; n++) {
+              newChild.addContent(nestedChildren[n].detach());
+            }
+          }
+
+          // Add the cloned child to the new SVG
+          newSvg.addContent(newChild);
         }
 
-        // Add the cloned child to the new SVG
-        newSvg.addContent(newChild);
-      }
+        const newDoc = XmlService.createDocument(newSvg);
+        const newXmlString = XmlService.getPrettyFormat().format(newDoc);
 
-      const newDoc = XmlService.createDocument(newSvg);
-      const newXmlString = XmlService.getPrettyFormat().format(newDoc);
+        // Debug log to check what's being created
+        safeDebugLog(`Generated SVG XML for ${id}:`);
+        if (newXmlString.length <= 500) {
+          safeDebugLog(newXmlString); // Log full content if small
+        } else {
+          safeDebugLog(newXmlString.substring(0, 500) + "..."); // Log first 500 chars
+        }
 
-      // Debug log to check what's being created
-      Logger.log(`Generated SVG XML for ${id} (${baseName}):`);
-      if (newXmlString.length <= 500) {
-        Logger.log(newXmlString); // Log full content if small
-      } else {
-        Logger.log(newXmlString.substring(0, 500) + "..."); // Log first 500 chars
-      }
+        // Verify namespace is present in output
+        if (newXmlString.indexOf('xmlns=') !== -1) {
+          safeDebugLog(`✓ Namespace present in generated SVG`);
+        } else {
+          safeDebugLog(`✗ WARNING: Namespace missing in generated SVG!`);
+          failedSymbols.push({ id, error: "Missing namespace in generated SVG" });
+          continue;
+        }
 
-      // Verify namespace is present in output
-      if (newXmlString.indexOf('xmlns=') !== -1) {
-        Logger.log(`✓ Namespace present in generated SVG`);
-      } else {
-        Logger.log(`✗ WARNING: Namespace missing in generated SVG!`);
-      }
+        // Create a single file with format {id}.svg using full symbol ID
+        const fileName = `${id}.svg`;
 
-      // Create a single file with format {name}.svg
-      const fileName = `${baseName}.svg`;
-
-      // Write the file if it doesn't exist
-      if (!fileExistsInFolder(iconsSubfolder, fileName)) {
+        // Write the file (overwrite if exists since we're using full IDs now)
         const iconFile = iconsSubfolder.createFile(
           fileName,
           newXmlString,
           MimeType.SVG,
         );
-        Logger.log(`Wrote ${fileName}`);
+        safeDebugLog(`✓ Wrote ${fileName} successfully`);
 
-        // Add to icon objects
+        // Add to icon objects using full ID
         iconObjects.push({
-          name: baseName,
+          name: id,
           svg: iconFile.getUrl(),
-          id: baseName,
+          id: id,
         });
-      } else {
-        // If file exists, create a v2 version
-        const v2FileName = `${baseName}-v2.svg`;
-        const iconFile = iconsSubfolder.createFile(
-          v2FileName,
-          newXmlString,
-          MimeType.SVG,
-        );
-        Logger.log(`File ${fileName} already exists, created ${v2FileName} instead`);
-
-        // Add to icon objects
-        iconObjects.push({
-          name: baseName,
-          svg: iconFile.getUrl(),
-          id: baseName,
-        });
+      } catch (error) {
+        // Isolate failures to prevent one bad symbol from breaking all icons
+        const symbolId = i < symbols.length && symbols[i].getAttribute("id")
+          ? symbols[i].getAttribute("id").getValue()
+          : `symbol-${i + 1}`;
+        safeDebugLog(`❌ ERROR processing symbol #${i + 1} (${symbolId}): ${error}`);
+        safeDebugLog(`   Stack: ${error.stack || "No stack trace"}`);
+        console.error(`Failed to process symbol ${symbolId}:`, error);
+        failedSymbols.push({ id: symbolId, error: String(error) });
+        // Continue processing other symbols
+        continue;
       }
     }
 
-    Logger.log(`Processed ${iconObjects.length} icons successfully`);
+    // Report extraction results
+    safeDebugLog(`\n=== SVG EXTRACTION RESULTS ===`);
+    safeDebugLog(`✓ Successfully extracted: ${iconObjects.length}/${symbols.length} icons`);
+
+    if (failedSymbols.length > 0) {
+      safeDebugLog(`❌ Failed to extract: ${failedSymbols.length}/${symbols.length} icons`);
+      safeDebugLog(`\n=== FAILED SYMBOLS ===`);
+      failedSymbols.forEach((failed, index) => {
+        safeDebugLog(`  ${index + 1}. Symbol "${failed.id}": ${failed.error}`);
+      });
+      safeDebugLog(`These icons will fall back to PNG extraction if available.`);
+      safeDebugLog(`=== END FAILED SYMBOLS ===`);
+    }
+    safeDebugLog(`=== END SVG EXTRACTION ===\n`);
+
     return iconObjects;
   } catch (error) {
-    Logger.log(`Error in deconstructSvgSprite: ${error}`);
+    safeDebugLog(`Error in deconstructSvgSprite: ${error}`);
     console.error(`SVG sprite processing error: ${error}`);
     return [];
   }
