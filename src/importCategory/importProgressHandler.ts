@@ -56,6 +56,16 @@ function processImportedCategoryFileWithProgress(
   const startTime = Date.now();
   const progressHandler = createProgressHandler(progressCallback);
 
+  // Initialize debug logging
+  try {
+    if (typeof initDebugLogging === "function") {
+      initDebugLogging();
+      debugLog(`=== IMPORT STARTED: ${fileName} ===`);
+    }
+  } catch (error) {
+    console.warn("Failed to initialize debug logging:", error);
+  }
+
   try {
     // Update progress: Starting
     progressHandler({
@@ -170,6 +180,18 @@ function processImportedCategoryFileWithProgress(
       detail: `Completed in ${(processingTime / 1000).toFixed(2)} seconds`,
     });
 
+    // Finalize debug logging
+    try {
+      if (typeof finalizeDebugLogging === "function") {
+        debugLog(`=== IMPORT COMPLETED SUCCESSFULLY: ${fileName} ===`);
+        debugLog(`Processing time: ${(processingTime / 1000).toFixed(2)} seconds`);
+        debugLog(`Categories: ${configData.presets.length}, Fields: ${configData.fields.length}, Icons: ${configData.icons.length}`);
+        finalizeDebugLogging();
+      }
+    } catch (error) {
+      console.warn("Failed to finalize debug logging:", error);
+    }
+
     return {
       success: true,
       message: "Configuration file imported successfully",
@@ -184,6 +206,18 @@ function processImportedCategoryFileWithProgress(
     };
   } catch (error) {
     console.error("Error in processImportedCategoryFileWithProgress:", error);
+
+    // Report error and finalize debug logging
+    try {
+      if (typeof debugError === "function") {
+        debugError("Import failed", error);
+      }
+      if (typeof finalizeDebugLogging === "function") {
+        finalizeDebugLogging();
+      }
+    } catch (logError) {
+      console.warn("Failed to log error to debug sheet:", logError);
+    }
 
     // Report error
     progressHandler({
