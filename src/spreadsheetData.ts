@@ -204,7 +204,14 @@ function getAvailableTargetLanguages(): Record<string, string> {
   for (const sheetName of translationSheets) {
     const sheet = spreadsheet.getSheetByName(sheetName);
     if (sheet) {
-      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const lastColumn = sheet.getLastColumn();
+
+      // Skip empty sheets (no columns)
+      if (lastColumn === 0) {
+        continue;
+      }
+
+      const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
       // Look for custom language headers (format: "Language Name - ISO")
       headers.forEach((header, index) => {
         if (index > 2 && header && typeof header === "string" && header.includes(" - ")) {

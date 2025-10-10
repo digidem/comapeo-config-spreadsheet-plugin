@@ -20,7 +20,6 @@ function applyTranslations(
 ) {
   // Get language codes (excluding primary language)
   const langCodes = Object.keys(messages);
-  if (langCodes.length === 0) return;
 
   // Create translation sheets if they don't exist
   const translationSheets = [
@@ -41,8 +40,8 @@ function applyTranslations(
     const sheet = spreadsheet.getSheetByName(sheetName);
     if (!sheet) return null;
 
-    // Set headers
-    const headers = ["English", ...langCodes];
+    // Set headers (English for primary language + any additional languages)
+    const headers = langCodes.length > 0 ? ["English", ...langCodes] : ["English"];
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
 
@@ -56,14 +55,14 @@ function applyTranslations(
     getNameFn: (item: any) => string,
     getTranslationFn: (item: any, langCode: string) => string,
   ) {
-    // Set up headers
-    const headers = ["English", ...langCodes];
+    // Set up headers (English for primary language + any additional languages)
+    const headers = langCodes.length > 0 ? ["English", ...langCodes] : ["English"];
 
     // Prepare translation rows
     const rows = items.map((item) => {
       const row = [getNameFn(item)];
 
-      // Add translations for each language
+      // Add translations for each language (if any)
       langCodes.forEach((langCode) => {
         row.push(getTranslationFn(item, langCode));
       });
@@ -109,5 +108,63 @@ function applyTranslations(
         return "";
       },
     );
+  }
+
+  // Apply field helper text translations
+  const helperTextSheet = setupTranslationSheet("Detail Helper Text Translations");
+  if (helperTextSheet && fields.length > 0) {
+    applyTranslationsToSheet(
+      helperTextSheet,
+      fields,
+      (field) => field.placeholder || "",
+      (field, langCode) => {
+        const langMessages = messages[langCode];
+        if (langMessages?.presets?.fields?.[field.id]?.placeholder) {
+          return langMessages.presets.fields[field.id].placeholder;
+        }
+        return "";
+      },
+    );
+  }
+
+  // Apply field option translations
+  const optionSheet = setupTranslationSheet("Detail Option Translations");
+  if (optionSheet && fields.length > 0) {
+    // For options, we need to handle fields that have options
+    const fieldsWithOptions = fields.filter((field) => field.options && field.options.length > 0);
+
+    if (fieldsWithOptions.length > 0) {
+      const rows = fieldsWithOptions.map((field) => {
+        // Start with field label in primary language
+        const primaryOptions = field.options
+          .map((opt: any) => opt.label || opt.value)
+          .join(", ");
+        const row = [primaryOptions];
+
+        // Add options for each additional language (if any)
+        langCodes.forEach((langCode) => {
+          const langMessages = messages[langCode];
+          if (langMessages?.presets?.fields?.[field.id]?.options) {
+            const options = field.options
+              .map((opt: any) => {
+                const optionTranslation = langMessages.presets.fields[field.id].options?.[opt.value];
+                return optionTranslation?.label || opt.label;
+              })
+              .join(", ");
+            row.push(options);
+          } else {
+            row.push("");
+          }
+        });
+
+        return row;
+      });
+
+      // Add rows if we have any
+      if (rows.length > 0) {
+        const headers = langCodes.length > 0 ? ["English", ...langCodes] : ["English"];
+        optionSheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+      }
+    }
   }
 }

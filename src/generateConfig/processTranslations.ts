@@ -9,8 +9,22 @@ function processTranslations(data, fields, presets) {
   let targetLanguages: string[] = [];
 
   if (sheet) {
+    const lastColumn = sheet.getLastColumn();
+
+    // Guard: Skip if sheet is empty or has no columns
+    if (lastColumn === 0) {
+      console.warn("⏭️  Category Translations sheet is empty - using only primary language");
+      const primaryLanguage = getPrimaryLanguage();
+      targetLanguages = [primaryLanguage.code];
+
+      const messages: CoMapeoTranslations = Object.fromEntries(
+        targetLanguages.map((lang) => [lang, {}]),
+      );
+      return messages;
+    }
+
     const headerRow = sheet
-      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getRange(1, 1, 1, lastColumn)
       .getValues()[0];
 
     // Extract language codes from header columns
@@ -95,21 +109,21 @@ function processTranslations(data, fields, presets) {
         switch (sheetName) {
           case "Category Translations":
             messages[lang][`${messageType}.${key}.name`] = {
-              message: translation[langIndex + 1],
+              message: translation[langIndex],
               description: `Name for preset '${key}'`,
             };
             console.log(`Added category translation for ${key}`);
             break;
           case "Detail Label Translations":
             messages[lang][`${messageType}.${key}.label`] = {
-              message: translation[langIndex + 1],
+              message: translation[langIndex],
               description: `Label for field '${key}'`,
             };
             console.log(`Added label translation for ${key}`);
             break;
           case "Detail Helper Text Translations":
             messages[lang][`${messageType}.${key}.helperText`] = {
-              message: translation[langIndex + 1],
+              message: translation[langIndex],
               description: `Helper text for field '${key}'`,
             };
             console.log(`Added helper text translation for ${key}`);
@@ -121,9 +135,10 @@ function processTranslations(data, fields, presets) {
             if (
               fieldType !== "number" &&
               fieldType !== "text" &&
-              translation[1].trim()
+              translation[langIndex] &&
+              translation[langIndex].trim()
             ) {
-              const options = translation[1]
+              const options = translation[langIndex]
                 .split(",")
                 .map((opt) => opt.trim());
               console.log(`Found ${options.length} options to process`);
