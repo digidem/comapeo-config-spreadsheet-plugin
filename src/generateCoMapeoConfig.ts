@@ -44,7 +44,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
       console.log("[PIPELINE] ✅ All pre-flight checks passed");
     }
 
-    // Step 1: Initialize (merges validation, linting, and data reading)
+    // Step 1: Initialize (merges validation and linting)
     showProcessingModalDialog(processingDialogTexts[0][locale]);
     console.log("[PIPELINE] Step 1: Initializing...");
     console.log("[PIPELINE] Selected languages:", selectedLanguages);
@@ -54,11 +54,6 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     console.log("[PIPELINE] Linting sheets...");
     lintAllSheets(false); // Pass false to prevent UI alerts
     console.log("[PIPELINE] ✅ Linting completed");
-
-    // Read spreadsheet data
-    console.log("[PIPELINE] Reading spreadsheet data...");
-    const data = getSpreadsheetData();
-    console.log("[PIPELINE] ✅ Spreadsheet data retrieved");
 
     // Step 2: Auto translate (conditional - only if languages selected)
     if (selectedLanguages.length > 0) {
@@ -70,6 +65,11 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     } else {
       console.log("[TRANSLATION] ⏭️  SKIPPING TRANSLATION - No languages selected");
     }
+
+    // Read spreadsheet data AFTER translation to include any new columns
+    console.log("[PIPELINE] Reading spreadsheet data (after translation)...");
+    const data = getSpreadsheetData();
+    console.log("[PIPELINE] ✅ Spreadsheet data retrieved");
 
     // Step 3: Process data
     showProcessingModalDialog(processingDialogTexts[2][locale]);
