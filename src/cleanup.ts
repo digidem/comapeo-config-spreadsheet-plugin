@@ -1,5 +1,5 @@
 function removeTranslationAndMetadataSheets(): void {
-  const sheetsToRemove = [...sheets(true), "Metadata"];
+  const sheetsToRemove = [...sheets(true), "Metadata", "Debug Logs"];
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
