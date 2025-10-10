@@ -268,9 +268,17 @@ function deconstructSvgSprite(
         newSvg.setAttribute(attr.getName(), attr.getValue());
       }
 
-      // Add viewBox attribute if not present
-      if (!newSvg.getAttribute("viewBox")) {
+      // Use symbol's viewBox if available, otherwise use root or default
+      const symbolViewBox = symbol.getAttribute("viewBox");
+      if (symbolViewBox) {
+        newSvg.setAttribute("viewBox", symbolViewBox.getValue());
+        Logger.log(`Using symbol's viewBox: ${symbolViewBox.getValue()}`);
+      } else if (svgRoot.getAttribute("viewBox")) {
+        newSvg.setAttribute("viewBox", svgRoot.getAttribute("viewBox").getValue());
+        Logger.log(`Using root SVG viewBox: ${svgRoot.getAttribute("viewBox").getValue()}`);
+      } else {
         newSvg.setAttribute("viewBox", "0 0 24 24");
+        Logger.log(`Using default viewBox: 0 0 24 24`);
       }
 
       // Get ALL child elements from the symbol (path, rect, circle, etc.)
