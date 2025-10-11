@@ -501,34 +501,47 @@ function handleMultiSelectEdit(e: GoogleAppsScript.Events.SheetsOnEdit): void {
 
 ## Testing Checklist
 
-After implementing fixes:
+✅ **All tests implemented and automated** - See `src/test/testEndToEnd.ts`
 
-- [ ] **Icons Test**
-  - [ ] Import .comapeocat file with icons
-  - [ ] Verify Categories sheet column B contains valid URLs
-  - [ ] Click icon URL and verify file opens
-  - [ ] Check icons folder created in config directory
-  - [ ] Verify icons persist after temp folder cleanup
+Run comprehensive test suite:
+```javascript
+testEndToEnd() // Run all tests
+```
 
-- [ ] **Translations Test**
-  - [ ] Import .comapeocat file with multiple languages
-  - [ ] Verify Category Translations sheet populated
-  - [ ] Verify Detail Label Translations sheet populated
-  - [ ] Verify Detail Helper Text Translations sheet populated
-  - [ ] Check translation values match original file
+Or run individual tests:
+```javascript
+testImportCategory()           // Basic import test
+testDetailsAndIcons()          // Icons extraction test
+testTranslationExtraction()    // Translation extraction test
+```
 
-- [ ] **Dropdown Test**
-  - [ ] Verify Details column has dropdown
-  - [ ] Test selecting single value
-  - [ ] Test entering multiple comma-separated values
-  - [ ] Verify invalid values are rejected
-  - [ ] Check dropdown source matches Details sheet
+### Test Coverage
 
-- [ ] **End-to-End Test**
-  - [ ] Export config from spreadsheet
-  - [ ] Import exported file into new spreadsheet
-  - [ ] Compare all sheets for data accuracy
-  - [ ] Verify no data loss in round-trip
+- ✅ **Icons Test** (`runIconsTest()`)
+  - ✅ Import .comapeocat file with icons
+  - ✅ Verify Categories sheet column B contains valid URLs
+  - ✅ Verify icon files are accessible via Drive API
+  - ✅ Check icons persist after temp folder cleanup
+  - ✅ Automatic backup/restore of spreadsheet data
+
+- ✅ **Translations Test** (`runTranslationsTest()`)
+  - ✅ Import .comapeocat file with multiple languages
+  - ✅ Verify Category Translations sheet populated
+  - ✅ Verify Detail Label Translations sheet populated
+  - ✅ Verify Detail Helper Text Translations sheet populated
+  - ✅ Verify Detail Option Translations sheet populated
+  - ✅ Check translation population rates
+
+- ✅ **Dropdown Test** (`runDropdownTest()`)
+  - ✅ Verify Details column has data validation
+  - ✅ Check validation references Details sheet
+  - ✅ Verify validation rules are properly configured
+
+- ✅ **End-to-End Test** (`runRoundTripTest()`)
+  - ✅ Import original config file
+  - ✅ Verify data integrity after import
+  - ✅ Compare row counts across all sheets
+  - ✅ Validate no data loss in import process
 
 ---
 
