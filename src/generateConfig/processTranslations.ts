@@ -1,84 +1,107 @@
+/**
+ * Build column-to-language mapping for a specific translation sheet.
+ * This function reads the header row of a sheet and maps column indexes to language codes.
+ *
+ * @param sheetName - Name of the translation sheet to process
+ * @returns Object with targetLanguages array and columnToLanguageMap record
+ */
+function buildColumnMapForSheet(sheetName: string): {
+  targetLanguages: string[];
+  columnToLanguageMap: Record<number, string>;
+} {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+
+  if (!sheet) {
+    console.warn(`⏭️  Sheet "${sheetName}" not found - using only primary language`);
+    const primaryLanguage = getPrimaryLanguage();
+    return {
+      targetLanguages: [primaryLanguage.code],
+      columnToLanguageMap: { 0: primaryLanguage.code },
+    };
+  }
+
+  const lastColumn = sheet.getLastColumn();
+
+  // Guard: Skip if sheet is empty or has no columns
+  if (lastColumn === 0) {
+    console.warn(`⏭️  Sheet "${sheetName}" is empty - using only primary language`);
+    const primaryLanguage = getPrimaryLanguage();
+    return {
+      targetLanguages: [primaryLanguage.code],
+      columnToLanguageMap: { 0: primaryLanguage.code },
+    };
+  }
+
+  const headerRow = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const targetLanguages: string[] = [];
+  const columnToLanguageMap: Record<number, string> = {};
+
+  // Extract language codes from header columns with explicit column index mapping
+  const allLanguages = getAllLanguages();
+
+  for (let i = 0; i < headerRow.length; i++) {
+    const header = headerRow[i]?.toString().trim();
+    if (!header) {
+      console.warn(`⚠️  Empty header at column ${i + 1} in "${sheetName}" - skipping`);
+      continue;
+    }
+
+    // Check if it's a standard language name
+    const langCode = Object.entries(allLanguages).find(
+      ([code, name]) => name === header
+    )?.[0];
+
+    if (langCode) {
+      targetLanguages.push(langCode);
+      columnToLanguageMap[i] = langCode;
+      console.log(`[${sheetName}] Column ${i} (${header}) → ${langCode}`);
+    } else {
+      // Check for custom language format: "Language Name - ISO"
+      const match = header.match(/.*\s*-\s*(\w+)/);
+      if (match) {
+        const customLangCode = match[1].trim();
+        targetLanguages.push(customLangCode);
+        columnToLanguageMap[i] = customLangCode;
+        console.log(`[${sheetName}] Column ${i} (${header}) → ${customLangCode} (custom format)`);
+      } else {
+        console.warn(`⚠️  Could not parse language from header "${header}" at column ${i + 1} in "${sheetName}"`);
+      }
+    }
+  }
+
+  console.log(`[${sheetName}] Found ${targetLanguages.length} languages:`, targetLanguages);
+  console.log(`[${sheetName}] Column mapping:`, columnToLanguageMap);
+
+  return { targetLanguages, columnToLanguageMap };
+}
+
 function processTranslations(data, fields, presets) {
   console.log("Starting processTranslations...");
 
-  // Get languages that actually have translation columns (not all 223 possible languages!)
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-    "Category Translations",
-  );
+  // Build initial column map from Category Translations to determine available languages
+  const initialMapping = buildColumnMapForSheet("Category Translations");
 
-  let targetLanguages: string[] = [];
-  let columnToLanguageMap: Record<number, string> = {}; // Maps column index to language code (shared across all sheets)
-
-  if (sheet) {
-    const lastColumn = sheet.getLastColumn();
-
-    // Guard: Skip if sheet is empty or has no columns
-    if (lastColumn === 0) {
+  // Early return if Category Translations is empty
+  if (initialMapping.targetLanguages.length === 1 &&
+      initialMapping.targetLanguages[0] === getPrimaryLanguage().code) {
+    const categorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Category Translations");
+    if (!categorySheet || categorySheet.getLastColumn() === 0) {
       console.warn("⏭️  Category Translations sheet is empty - using only primary language");
-      const primaryLanguage = getPrimaryLanguage();
-      targetLanguages = [primaryLanguage.code];
-
       const messages: CoMapeoTranslations = Object.fromEntries(
-        targetLanguages.map((lang) => [lang, {}]),
+        initialMapping.targetLanguages.map((lang) => [lang, {}]),
       );
       return messages;
     }
-
-    const headerRow = sheet
-      .getRange(1, 1, 1, lastColumn)
-      .getValues()[0];
-
-    // Extract language codes from header columns with explicit column index mapping
-    // Column A is primary language, columns B onwards are translations
-    const allLanguages = getAllLanguages();
-    const primaryLanguage = getPrimaryLanguage();
-
-    for (let i = 0; i < headerRow.length; i++) {
-      const header = headerRow[i]?.toString().trim();
-      if (!header) {
-        console.warn(`⚠️  Empty header at column ${i + 1} - skipping`);
-        continue;
-      }
-
-      // Check if it's a standard language name
-      const langCode = Object.entries(allLanguages).find(
-        ([code, name]) => name === header
-      )?.[0];
-
-      if (langCode) {
-        targetLanguages.push(langCode);
-        columnToLanguageMap[i] = langCode;
-        console.log(`Column ${i} (${header}) → ${langCode}`);
-      } else {
-        // Check for custom language format: "Language Name - ISO"
-        const match = header.match(/.*\s*-\s*(\w+)/);
-        if (match) {
-          const customLangCode = match[1].trim();
-          targetLanguages.push(customLangCode);
-          columnToLanguageMap[i] = customLangCode;
-          console.log(`Column ${i} (${header}) → ${customLangCode} (custom format)`);
-        } else {
-          console.warn(`⚠️  Could not parse language from header "${header}" at column ${i + 1}`);
-        }
-      }
-    }
-
-    console.log(`Found ${targetLanguages.length} languages in translation sheet headers:`, targetLanguages);
-    console.log(`Column to language mapping:`, columnToLanguageMap);
-  } else {
-    // No translation sheet exists - only include primary language
-    const primaryLanguage = getPrimaryLanguage();
-    targetLanguages = [primaryLanguage.code];
-    columnToLanguageMap[0] = primaryLanguage.code; // Primary language is in column 0
-    console.warn("⏭️  Category Translations sheet not found - using only primary language:", primaryLanguage.code);
   }
 
+  // Initialize messages object for all detected languages
   const messages: CoMapeoTranslations = Object.fromEntries(
-    targetLanguages.map((lang) => [lang, {}]),
+    initialMapping.targetLanguages.map((lang) => [lang, {}]),
   );
 
   const translationSheets = sheets(true);
   console.log("Processing translation sheets:", translationSheets);
+
   for (const sheetName of translationSheets) {
     console.log(`\nProcessing sheet: ${sheetName}`);
 
@@ -88,21 +111,36 @@ function processTranslations(data, fields, presets) {
       continue;
     }
 
+    // Build column map for THIS specific sheet (defense against manual edits)
+    const { targetLanguages, columnToLanguageMap } = buildColumnMapForSheet(sheetName);
+
     const translations = data[sheetName].slice(1);
     console.log(`Found ${translations.length} translations`);
 
     // Validation: Check that data columns match expected language count
     if (translations.length > 0) {
       const firstRowColumnCount = translations[0].length;
-      if (firstRowColumnCount !== targetLanguages.length) {
-        console.error(`❌ COLUMN MISMATCH in "${sheetName}":`, {
-          expectedColumns: targetLanguages.length,
+
+      // Missing columns is an ERROR - translations will be incomplete
+      if (firstRowColumnCount < targetLanguages.length) {
+        console.error(`❌ MISSING COLUMNS in "${sheetName}":`, {
+          expectedLanguages: targetLanguages.length,
           actualColumns: firstRowColumnCount,
+          missingColumns: targetLanguages.length - firstRowColumnCount,
           targetLanguages: targetLanguages,
           firstRow: translations[0]
         });
-        console.warn(`⚠️  Data has ${firstRowColumnCount} columns but ${targetLanguages.length} languages were detected from headers.`);
-        console.warn(`⚠️  This may cause translation data to be assigned to wrong languages!`);
+        console.error(`⚠️  Translation data incomplete - ${targetLanguages.length - firstRowColumnCount} language(s) missing!`);
+        console.error(`⚠️  Missing languages will have no translations for this sheet.`);
+      }
+      // Extra columns is just INFO - likely metadata columns, will be ignored
+      else if (firstRowColumnCount > targetLanguages.length) {
+        console.log(`ℹ️  Extra columns detected in "${sheetName}":`, {
+          expectedLanguages: targetLanguages.length,
+          actualColumns: firstRowColumnCount,
+          extraColumns: firstRowColumnCount - targetLanguages.length,
+        });
+        console.log(`ℹ️  Extra columns will be ignored (likely metadata). Translation processing continues normally.`);
       }
     }
 
