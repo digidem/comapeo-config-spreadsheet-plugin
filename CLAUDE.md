@@ -156,3 +156,26 @@ The spreadsheet must follow specific structure:
 - Icons are fetched from external API and stored as SVG strings
 - Translation uses Google's LanguageApp API (free, built into Apps Script)
 - Final configuration is sent to external API endpoint for packaging
+
+## Context Documentation
+
+The `context/` directory contains **contextual documentation** for AI assistants and developers:
+
+**Purpose**: Preserves implementation details, decisions, and problem-solving approaches from completed work.
+
+**When to reference**:
+- Debugging icon import/export issues → See `context/ICON_IMPORT_FIX.md`, `context/ICON_PARSING_FIX.md`
+- Performance optimization work → See `context/PERFORMANCE_FIX_SUMMARY.md`
+- Translation processing questions → See `context/COMAPEO_CATEGORY_GENERATION_REVIEW.md`
+- UX/progress indicator work → See `context/PROGRESS_UX_IMPLEMENTATION.md`
+
+**Key files**:
+- `context/ICON_IMPORT_FIX.md` - TAR extraction and PNG icon handling
+- `context/ICON_PARSING_FIX.md` - XML namespace fixes for SVG parsing
+- `context/PERFORMANCE_FIX_SUMMARY.md` - File indexing optimization (O(n×m) → O(n+m))
+- `context/PROGRESS_UX_IMPLEMENTATION.md` - Real-time progress bar implementation
+- `context/SVG_PRIORITY_CHANGE.md` - SVG-first extraction priority
+- `context/PNG_SPRITE_LIMITATIONS.md` - Known limitations in Apps Script
+- `context/COMAPEO_CATEGORY_GENERATION_REVIEW.md` - Translation processing review
+
+See `context/README.md` for complete index and usage guidelines.
