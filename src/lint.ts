@@ -102,6 +102,211 @@ function checkForDuplicates(
   });
 }
 
+// Additional validation functions
+
+/**
+ * Check for unreferenced details (details that no category uses)
+ */
+function checkUnreferencedDetails(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  const detailsSheet = spreadsheet.getSheetByName("Details");
+
+  if (!categoriesSheet || !detailsSheet) {
+    return;
+  }
+
+  try {
+    // Get all detail names from Details sheet
+    const detailsLastRow = detailsSheet.getLastRow();
+    if (detailsLastRow <= 1) return; // No details to check
+
+    const detailNames = detailsSheet
+      .getRange(2, 1, detailsLastRow - 1, 1)
+      .getValues()
+      .map((row) => slugify(String(row[0])))
+      .filter((name) => name);
+
+    // Get all field references from Categories sheet (column 3)
+    const categoriesLastRow = categoriesSheet.getLastRow();
+    if (categoriesLastRow <= 1) {
+      // No categories exist, so all details are unreferenced
+      console.log("No categories exist - all details are unreferenced");
+      for (let i = 2; i <= detailsLastRow; i++) {
+        detailsSheet.getRange(i, 1).setBackground("#FFFFCC"); // Light yellow for warning
+      }
+      return;
+    }
+
+    const categoryFields = categoriesSheet
+      .getRange(2, 3, categoriesLastRow - 1, 1)
+      .getValues()
+      .map((row) => String(row[0] || ""))
+      .filter((fields) => fields.trim() !== "");
+
+    // Build set of all referenced field names
+    const referencedFields = new Set<string>();
+    for (const fieldsStr of categoryFields) {
+      const fields = fieldsStr
+        .split(",")
+        .map((f) => slugify(f.trim()))
+        .filter((f) => f);
+      for (const field of fields) {
+        referencedFields.add(field);
+      }
+    }
+
+    // Check each detail to see if it's referenced
+    for (let i = 0; i < detailNames.length; i++) {
+      const detailName = detailNames[i];
+      if (!referencedFields.has(detailName)) {
+        const row = i + 2; // +2 because of header row and 0-indexed
+        console.log(`Unreferenced detail: "${detailName}" at row ${row}`);
+        detailsSheet.getRange(row, 1).setBackground("#FFFFCC"); // Light yellow for warning
+      }
+    }
+  } catch (error) {
+    console.error("Error checking unreferenced details:", error);
+  }
+}
+
+/**
+ * Validate Universal flag column (should be TRUE, FALSE, or blank)
+ */
+function validateUniversalFlag(
+  value: string,
+  row: number,
+  col: number,
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+): void {
+  if (isEmptyOrWhitespace(value)) return; // Blank is allowed
+
+  const upperValue = value.toString().trim().toUpperCase();
+  if (upperValue !== "TRUE" && upperValue !== "FALSE") {
+    console.log(
+      `Invalid Universal flag value "${value}" at row ${row} - must be TRUE, FALSE, or blank`,
+    );
+    setInvalidCellBackground(sheet, row, col, "#FFC7CE"); // Light red for invalid
+  }
+}
+
+/**
+ * Check for duplicate slugs in translation sheets that would cause conflicts
+ */
+function checkDuplicateTranslationSlugs(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const translationSheets = sheets(true);
+
+  for (const sheetName of translationSheets) {
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) continue;
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) continue;
+
+    try {
+      // Get all translated values and check for duplicate slugs
+      const lastCol = sheet.getLastColumn();
+      if (lastCol < 4) continue; // Need at least Name, ISO, Source, and one translation
+
+      // Check each translation column (starting from column 4)
+      for (let col = 4; col <= lastCol; col++) {
+        const values = sheet
+          .getRange(2, col, lastRow - 1, 1)
+          .getValues()
+          .map((row) => String(row[0] || "").trim())
+          .filter((v) => v !== "");
+
+        // Build slug frequency map
+        const slugCounts = new Map<string, number[]>();
+        for (let i = 0; i < values.length; i++) {
+          const value = values[i];
+          const slug = slugify(value);
+          if (!slug) continue;
+
+          if (!slugCounts.has(slug)) {
+            slugCounts.set(slug, [i + 2]); // +2 for header and 0-index
+          } else {
+            slugCounts.get(slug)?.push(i + 2);
+          }
+        }
+
+        // Highlight cells with duplicate slugs
+        for (const [slug, rows] of slugCounts.entries()) {
+          if (rows.length > 1) {
+            console.log(
+              `Duplicate slug "${slug}" in ${sheetName} column ${col} at rows: ${rows.join(", ")}`,
+            );
+            for (const row of rows) {
+              sheet.getRange(row, col).setBackground("#FFEB9C"); // Light orange for duplicate warning
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking duplicate slugs in ${sheetName}:`, error);
+    }
+  }
+}
+
+/**
+ * Validate translation headers are valid language codes or "Name - ISO" format
+ */
+function validateTranslationHeaders(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const translationSheets = sheets(true);
+  const allLanguages = getAllLanguages();
+  const validLanguageCodes = Object.keys(allLanguages);
+
+  for (const sheetName of translationSheets) {
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) continue;
+
+    try {
+      const lastCol = sheet.getLastColumn();
+      if (lastCol < 4) continue; // Need at least Name, ISO, Source columns
+
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+      // Check language columns (starting from column 4, index 3)
+      for (let i = 3; i < headers.length; i++) {
+        const header = String(headers[i] || "").trim();
+        if (!header) continue;
+
+        // Check if it's a valid language code or "Name - ISO" format
+        const isValidCode = validLanguageCodes.some(
+          (code) => code.toLowerCase() === header.toLowerCase(),
+        );
+
+        const isValidNameIsoFormat = header.includes(" - ");
+
+        if (!isValidCode && !isValidNameIsoFormat) {
+          console.log(
+            `Invalid translation header "${header}" in ${sheetName} column ${i + 1} - should be language code or "Name - ISO" format`,
+          );
+          sheet.getRange(1, i + 1).setBackground("#FFC7CE"); // Light red for invalid
+        } else if (isValidNameIsoFormat) {
+          // Validate the ISO part
+          const parts = header.split(" - ");
+          const isoCode = parts[parts.length - 1].trim();
+          const isValidIso = validLanguageCodes.some(
+            (code) => code.toLowerCase() === isoCode.toLowerCase(),
+          );
+
+          if (!isValidIso) {
+            console.log(
+              `Invalid ISO code "${isoCode}" in header "${header}" in ${sheetName} column ${i + 1}`,
+            );
+            sheet.getRange(1, i + 1).setBackground("#FFEB9C"); // Light orange for warning
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error validating headers in ${sheetName}:`, error);
+    }
+  }
+}
+
 // Generic linting function
 function lintSheet(
   sheetName: string,
@@ -303,6 +508,9 @@ function lintDetailsSheet(): void {
     return;
   }
 
+  // Check for unreferenced details (details not used by any category)
+  checkUnreferencedDetails();
+
   const detailsValidations = [
     // Rule 1: Capitalize the first letter of the detail name
     (value, row, col) => {
@@ -448,6 +656,14 @@ function lintDetailsSheet(): void {
         );
       }
     },
+    // Rule 5: Placeholder for column 5 (no validation needed)
+    () => {
+      // Column 5 - no validation
+    },
+    // Rule 6: Validate Universal flag column (TRUE, FALSE, or blank only)
+    (value, row, col) => {
+      validateUniversalFlag(value, row, col, sheet);
+    },
   ];
 
   // Detail name and type are required fields
@@ -455,6 +671,14 @@ function lintDetailsSheet(): void {
 }
 
 function lintTranslationSheets(): void {
+  // First validate translation headers
+  console.log("Validating translation headers...");
+  validateTranslationHeaders();
+
+  // Then check for duplicate slugs
+  console.log("Checking for duplicate translation slugs...");
+  checkDuplicateTranslationSlugs();
+
   const translationSheets = sheets(true);
   translationSheets.forEach((sheetName) => {
     const sheet =
@@ -696,10 +920,11 @@ function lintAllSheets(showAlerts: boolean = true): void {
       ui.alert(
         "Linting Complete",
         "All sheets have been linted. Please check for:\n" +
-          "- Yellow highlighted cells: Required fields that are missing or translation row count mismatches\n" +
-          "- Red highlighted cells: Invalid values, missing icons, or missing select field options\n" +
+          "- Yellow highlighted cells: Required fields missing, unreferenced details, or translation row mismatches\n" +
+          "- Red highlighted cells: Invalid values, missing icons, missing options, invalid Universal flags, or invalid translation headers\n" +
           "- Red text: Invalid URLs\n" +
-          "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches in translations",
+          "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches\n" +
+          "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes",
         ui.ButtonSet.OK,
       );
     }
