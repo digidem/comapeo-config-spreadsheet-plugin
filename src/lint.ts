@@ -205,24 +205,33 @@ function lintCategoriesSheet(): void {
         }
       }
     },
-    // Rule 2: Validate URL format and highlight invalid URLs
+    // Rule 2: Validate icon URL - must not be empty/whitespace and must be valid Google Drive URL
     (value, row, col) => {
-      if (isEmptyOrWhitespace(value)) return;
-
-      function getIdFromUrl(url: string): string | null {
-        const match = url.match(/[-\w]{25,}/);
-        return match ? match[0] : null;
-      }
-      const isValidGoogleDriveUrl = (url: string): boolean => {
-        return (
-          url.startsWith("https://drive.google.com/") &&
-          getIdFromUrl(url) !== null
-        );
-      };
-
       try {
+        // Check if icon is missing or whitespace-only
+        if (isEmptyOrWhitespace(value)) {
+          console.log("Missing icon at row " + row);
+          SpreadsheetApp.getActiveSpreadsheet()
+            .getSheetByName("Categories")
+            ?.getRange(row, col)
+            .setBackground("#FFC7CE"); // Light red for missing required icon
+          return;
+        }
+
+        // Validate URL format
+        function getIdFromUrl(url: string): string | null {
+          const match = url.match(/[-\w]{25,}/);
+          return match ? match[0] : null;
+        }
+        const isValidGoogleDriveUrl = (url: string): boolean => {
+          return (
+            url.startsWith("https://drive.google.com/") &&
+            getIdFromUrl(url) !== null
+          );
+        };
+
         if (!isValidGoogleDriveUrl(value)) {
-          console.log("Invalid URL: " + value);
+          console.log("Invalid icon URL: " + value);
           SpreadsheetApp.getActiveSpreadsheet()
             .getSheetByName("Categories")
             ?.getRange(row, col)
@@ -230,7 +239,7 @@ function lintCategoriesSheet(): void {
         }
       } catch (error) {
         console.error(
-          "Error validating URL in Categories sheet at row " +
+          "Error validating icon URL in Categories sheet at row " +
             row +
             ", col " +
             col +
@@ -283,11 +292,17 @@ function lintCategoriesSheet(): void {
     },
   ];
 
-  // Category name is required
-  lintSheet("Categories", categoriesValidations, [0]);
+  // Category name and icon are required
+  lintSheet("Categories", categoriesValidations, [0, 1]);
 }
 
 function lintDetailsSheet(): void {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details");
+  if (!sheet) {
+    console.log("Details sheet not found");
+    return;
+  }
+
   const detailsValidations = [
     // Rule 1: Capitalize the first letter of the detail name
     (value, row, col) => {
@@ -335,31 +350,27 @@ function lintDetailsSheet(): void {
         }
       }
     },
-    // Rule 3: Validate the type column (t, n, or m)
+    // Rule 3: Validate the type column (t, n, m, blank, s, or select* are valid)
     (value, row, col) => {
+      // Type column validation logic:
+      // - blank/empty → selectOne (valid)
+      // - "s*" (select, single, etc.) → selectOne (valid)
+      // - "m*" (multi, multiple, etc.) → selectMultiple (valid)
+      // - "n*" (number, numeric, etc.) → number (valid)
+      // - "t*" (text, textual, etc.) → text (valid)
+      // - Any other value → invalid
+
+      // Empty/blank is valid (defaults to selectOne)
       if (isEmptyOrWhitespace(value)) {
-        try {
-          setInvalidCellBackground(
-            SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!,
-            row,
-            col,
-            "#FFF2CC",
-          ); // Light yellow for missing required field
-        } catch (error) {
-          console.error(
-            "Error highlighting missing type at row " +
-              row +
-              ", col " +
-              col +
-              ":",
-            error,
-          );
-        }
         return;
       }
 
-      if (!["t", "n", "m"].includes(value.toLowerCase().charAt(0))) {
+      const firstChar = value.toLowerCase().charAt(0);
+      const validTypes = ["t", "n", "m", "s"];
+
+      if (!validTypes.includes(firstChar)) {
         try {
+          console.log("Invalid type '" + value + "' at row " + row);
           setInvalidCellBackground(
             SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details")!,
             row,
@@ -378,21 +389,61 @@ function lintDetailsSheet(): void {
         }
       }
     },
-    // Rule 4: Capitalize and format the comma-separated option list
+    // Rule 4: Validate options column
     (value, row, col) => {
-      if (isEmptyOrWhitespace(value)) return;
-
       try {
-        const capitalizedList = validateAndCapitalizeCommaList(value);
-        if (capitalizedList !== value) {
-          SpreadsheetApp.getActiveSpreadsheet()
-            .getSheetByName("Details")
-            ?.getRange(row, col)
-            .setValue(capitalizedList);
+        // Get the type from column 3 (index 2) to determine if options are required
+        const typeValue = sheet.getRange(row, 3).getValue();
+        const typeStr = String(typeValue || "").trim();
+
+        // Determine if this is a select field (requires options)
+        const isSelectField = (() => {
+          if (isEmptyOrWhitespace(typeStr)) return true; // blank → selectOne
+          const firstChar = typeStr.toLowerCase().charAt(0);
+          return firstChar === "s" || firstChar === "m"; // s* → selectOne, m* → selectMultiple
+        })();
+
+        if (isSelectField) {
+          // Select fields MUST have options
+          if (isEmptyOrWhitespace(value)) {
+            console.log(
+              "Select field at row " + row + " is missing required options",
+            );
+            setInvalidCellBackground(sheet, row, col, "#FFC7CE"); // Light red for missing options
+            return;
+          }
+
+          // Validate that options are non-empty after trimming
+          const options = value
+            .split(",")
+            .map((opt) => opt.trim())
+            .filter((opt) => opt !== "");
+
+          if (options.length === 0) {
+            console.log(
+              "Select field at row " + row + " has empty options after trimming",
+            );
+            setInvalidCellBackground(sheet, row, col, "#FFC7CE"); // Light red for empty options
+            return;
+          }
+
+          // Capitalize and format the options
+          const capitalizedList = validateAndCapitalizeCommaList(value);
+          if (capitalizedList !== value) {
+            sheet.getRange(row, col).setValue(capitalizedList);
+          }
+        } else {
+          // For number/text fields, just capitalize if options are provided (optional warning could be added here)
+          if (!isEmptyOrWhitespace(value)) {
+            const capitalizedList = validateAndCapitalizeCommaList(value);
+            if (capitalizedList !== value) {
+              sheet.getRange(row, col).setValue(capitalizedList);
+            }
+          }
         }
       } catch (error) {
         console.error(
-          "Error formatting options list at row " + row + ", col " + col + ":",
+          "Error validating options at row " + row + ", col " + col + ":",
           error,
         );
       }
@@ -446,6 +497,177 @@ function lintTranslationSheets(): void {
       );
     }
   });
+
+  // After basic linting, validate translation sheet consistency
+  validateTranslationSheetConsistency();
+}
+
+/**
+ * Validates that translation sheets have consistent headers and row counts with their source sheets.
+ */
+function validateTranslationSheetConsistency(): void {
+  console.log("Validating translation sheet consistency...");
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  try {
+    // Validate Category Translations
+    const categoriesSheet = spreadsheet.getSheetByName("Categories");
+    const categoryTranslationsSheet = spreadsheet.getSheetByName(
+      "Category Translations",
+    );
+
+    if (categoriesSheet && categoryTranslationsSheet) {
+      validateSheetConsistency(
+        categoriesSheet,
+        categoryTranslationsSheet,
+        "Category Translations",
+        false,
+      );
+    }
+
+    // Validate Detail translations
+    const detailsSheet = spreadsheet.getSheetByName("Details");
+
+    if (detailsSheet) {
+      const detailLabelTranslations = spreadsheet.getSheetByName(
+        "Detail Label Translations",
+      );
+      const detailHelperTranslations = spreadsheet.getSheetByName(
+        "Detail Helper Text Translations",
+      );
+      const detailOptionTranslations = spreadsheet.getSheetByName(
+        "Detail Option Translations",
+      );
+
+      if (detailLabelTranslations) {
+        validateSheetConsistency(
+          detailsSheet,
+          detailLabelTranslations,
+          "Detail Label Translations",
+          false,
+        );
+      }
+
+      if (detailHelperTranslations) {
+        validateSheetConsistency(
+          detailsSheet,
+          detailHelperTranslations,
+          "Detail Helper Text Translations",
+          false,
+        );
+      }
+
+      if (detailOptionTranslations) {
+        validateSheetConsistency(
+          detailsSheet,
+          detailOptionTranslations,
+          "Detail Option Translations",
+          true, // Special handling for option count validation
+        );
+      }
+    }
+
+    console.log("Translation sheet consistency validation complete");
+  } catch (error) {
+    console.error("Error validating translation sheet consistency:", error);
+  }
+}
+
+/**
+ * Validates consistency between a source sheet and its translation sheet.
+ *
+ * @param sourceSheet - The source sheet (Categories or Details)
+ * @param translationSheet - The translation sheet to validate
+ * @param translationSheetName - Name for logging
+ * @param validateOptionCounts - Whether to validate option counts (for Detail Option Translations)
+ */
+function validateSheetConsistency(
+  sourceSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  translationSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  translationSheetName: string,
+  validateOptionCounts: boolean,
+): void {
+  console.log(
+    `Validating consistency for ${translationSheetName} against ${sourceSheet.getName()}`,
+  );
+
+  try {
+    // Check row count consistency (excluding header)
+    const sourceRowCount = sourceSheet.getLastRow();
+    const translationRowCount = translationSheet.getLastRow();
+
+    if (sourceRowCount !== translationRowCount) {
+      console.warn(
+        `Row count mismatch in ${translationSheetName}: ` +
+          `Source has ${sourceRowCount} rows, translation has ${translationRowCount} rows`,
+      );
+
+      // Highlight the discrepancy in the translation sheet
+      const lastRow = translationSheet.getLastRow();
+      if (lastRow > 0) {
+        translationSheet
+          .getRange(1, 1, Math.min(lastRow, 1), 1)
+          .setBackground("#FFF2CC"); // Light yellow warning
+      }
+    }
+
+    // Validate option counts for Detail Option Translations
+    if (validateOptionCounts && sourceRowCount > 1) {
+      const detailsSheet =
+        SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details");
+      if (!detailsSheet) return;
+
+      // Get the options column (column 4) from Details sheet
+      const detailsData = detailsSheet
+        .getRange(2, 4, sourceRowCount - 1, 1)
+        .getValues();
+
+      // Get all translation data
+      const translationData = translationSheet
+        .getRange(2, 1, translationRowCount - 1, translationSheet.getLastColumn())
+        .getValues();
+
+      // Validate each row
+      for (let i = 0; i < Math.min(detailsData.length, translationData.length); i++) {
+        const sourceOptions = String(detailsData[i][0] || "").trim();
+        if (!sourceOptions) continue; // Skip if no options in source
+
+        const sourceOptionCount = sourceOptions
+          .split(",")
+          .map((opt) => opt.trim())
+          .filter((opt) => opt !== "").length;
+
+        // Check each translation column (starting from column 4, after Name, ISO, Source columns)
+        for (let col = 3; col < translationData[i].length; col++) {
+          const translatedOptions = String(translationData[i][col] || "").trim();
+          if (!translatedOptions) continue;
+
+          const translatedOptionCount = translatedOptions
+            .split(",")
+            .map((opt) => opt.trim())
+            .filter((opt) => opt !== "").length;
+
+          if (sourceOptionCount !== translatedOptionCount) {
+            console.warn(
+              `Option count mismatch in ${translationSheetName} at row ${i + 2}, column ${col + 1}: ` +
+                `Expected ${sourceOptionCount} options, found ${translatedOptionCount}`,
+            );
+
+            // Highlight the mismatched cell
+            translationSheet
+              .getRange(i + 2, col + 1)
+              .setBackground("#FFC7CE"); // Light red for mismatch
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Error validating ${translationSheetName} consistency:`,
+      error,
+    );
+  }
 }
 
 /**
@@ -474,10 +696,10 @@ function lintAllSheets(showAlerts: boolean = true): void {
       ui.alert(
         "Linting Complete",
         "All sheets have been linted. Please check for:\n" +
-          "- Yellow highlighted cells: Required fields that are missing\n" +
-          "- Red highlighted cells: Invalid values\n" +
+          "- Yellow highlighted cells: Required fields that are missing or translation row count mismatches\n" +
+          "- Red highlighted cells: Invalid values, missing icons, or missing select field options\n" +
           "- Red text: Invalid URLs\n" +
-          "- Pink highlighted cells: Duplicate values or invalid references",
+          "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches in translations",
         ui.ButtonSet.OK,
       );
     }
