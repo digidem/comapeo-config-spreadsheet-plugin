@@ -157,19 +157,62 @@ The spreadsheet must follow specific structure:
 - Translation uses Google's LanguageApp API (free, built into Apps Script)
 - Final configuration is sent to external API endpoint for packaging
 
-## Context Documentation
+## Documentation Structure
 
-The `context/` directory contains **essential reference documentation** for AI assistants and developers:
+All technical documentation lives in the **`context/`** directory. Reference these files for comprehensive information:
 
-**Purpose**: Documents system constraints and proven optimization patterns (not implementation details).
+### Architecture & System Design
+- **[`context/ARCHITECTURE.md`](./context/ARCHITECTURE.md)** - Complete system architecture, data flow, and module organization
+  - 9-stage pipeline for config generation
+  - File structure and responsibilities
+  - External API dependencies
+  - **Use when**: Understanding system design, onboarding, or planning major features
 
-**Files**:
-1. **`PNG_SPRITE_LIMITATIONS.md`** - PNG sprite parsing limitations in Google Apps Script
-   - Use when: Planning icon features or debugging import issues
-   - Key insight: Apps Script can't parse PNG sprites (no image manipulation APIs)
+### Feature Documentation
+- **[`context/CAT_GEN.md`](./context/CAT_GEN.md)** - Category generation process details
+  - Stage-by-stage analysis of export pipeline
+  - Debugging strategies and test functions
+  - Performance benchmarks
+  - **Use when**: Working on export functionality or troubleshooting generation issues
 
-2. **`PERFORMANCE_FIX_SUMMARY.md`** - File indexing optimization pattern
-   - Use when: Optimizing file operations or similar search patterns
-   - Key insight: Batch file lookups with Map index (O(n×m) → O(n+m))
+- **[`context/IMPORT_CAT.md`](./context/IMPORT_CAT.md)** - Import category feature documentation
+  - Reverse engineering process for .comapeocat files
+  - Icon extraction strategies
+  - Translation structure handling
+  - **Use when**: Working on import functionality or debugging imports
 
-See `context/README.md` for detailed guidance on when to reference these files.
+### File Formats & Data Structures
+- **[`context/COMAPEOCAT_FORMAT.md`](./context/COMAPEOCAT_FORMAT.md)** - .comapeocat file format specification
+  - ZIP archive structure (197 files)
+  - Icon variants and naming conventions
+  - Performance considerations for large icon sets
+  - **Use when**: Understanding or debugging file format issues
+
+- **[`context/spreadsheet-format.md`](./context/spreadsheet-format.md)** - Spreadsheet data structure rules
+  - Categories and Details sheet structure
+  - Field types and validation rules
+  - Translation sheet format
+  - **Use when**: Validating spreadsheet data or building features that read/write sheets
+
+### User Documentation
+- **[`context/USER_GUIDE.md`](./context/USER_GUIDE.md)** - End-user documentation
+  - Creating new configurations
+  - Exporting and importing workflows
+  - Translation management
+  - Troubleshooting common issues
+  - **Use when**: Understanding user workflows or writing user-facing features
+
+### Technical Constraints & Patterns
+- **[`context/PNG_SPRITE_LIMITATIONS.md`](./context/PNG_SPRITE_LIMITATIONS.md)** - PNG sprite parsing limitations
+  - Why PNG sprites can't be parsed in Apps Script
+  - Supported alternatives (individual PNGs, SVG sprites)
+  - Workarounds and solutions
+  - **Use when**: Planning icon features or debugging import issues
+
+- **[`context/PERFORMANCE_FIX_SUMMARY.md`](./context/PERFORMANCE_FIX_SUMMARY.md)** - File indexing optimization pattern
+  - O(n×m) → O(n+m) optimization using Map indexing
+  - Before/after comparison with performance gains
+  - **Use when**: Optimizing file operations or similar search patterns
+
+### Navigation
+See **[`context/README.md`](./context/README.md)** for a complete overview and guidance on when to reference each file.

@@ -1,6 +1,9 @@
-# CoMapeo Config Spreadsheet Plugin: How It Works
+# CoMapeo Config Spreadsheet Plugin: Architecture
 
-This document provides a detailed explanation of the CoMapeo Config Spreadsheet Plugin, including its purpose, architecture, and workflow.
+This document provides a comprehensive technical reference for the CoMapeo Config Spreadsheet Plugin architecture, including system design, data flow, and module organization.
+
+**Audience**: Developers, AI assistants, and technical contributors
+**For Users**: See [USER_GUIDE.md](../USER_GUIDE.md) for end-user documentation
 
 ## Overview
 
