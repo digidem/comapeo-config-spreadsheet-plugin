@@ -1,0 +1,1323 @@
+[
+  {
+    "id": "agrobiodiversidade",
+    "name": "Agrobiodiversidade",
+    "tagKey": "agrobiodiversidade",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual(is) alimento(s) faz(em) parte dessa agrobiodiversidade?",
+    "options": [
+      {
+        "label": "Mandioca",
+        "value": "mandioca"
+      },
+      {
+        "label": "Macaxera",
+        "value": "macaxera"
+      },
+      {
+        "label": "Caxiri",
+        "value": "caxiri"
+      },
+      {
+        "label": "Batata",
+        "value": "batata"
+      },
+      {
+        "label": "Cana-de-açúcar",
+        "value": "cana-de-acar"
+      },
+      {
+        "label": "Cará",
+        "value": "car"
+      },
+      {
+        "label": "Banana",
+        "value": "banana"
+      },
+      {
+        "label": "Melancia",
+        "value": "melancia"
+      },
+      {
+        "label": "Abacaxi",
+        "value": "abacaxi"
+      },
+      {
+        "label": "Pimenta",
+        "value": "pimenta"
+      },
+      {
+        "label": "Algodão",
+        "value": "algodo"
+      },
+      {
+        "label": "Milho",
+        "value": "milho"
+      },
+      {
+        "label": "Abobora",
+        "value": "abobora"
+      },
+      {
+        "label": "Café",
+        "value": "caf"
+      },
+      {
+        "label": "Cabaça",
+        "value": "cabaa"
+      },
+      {
+        "label": "Mamão",
+        "value": "mamo"
+      },
+      {
+        "label": "Jerimum",
+        "value": "jerimum"
+      },
+      {
+        "label": "Melância",
+        "value": "melncia"
+      },
+      {
+        "label": "Amendoim",
+        "value": "amendoim"
+      },
+      {
+        "label": "Maracujá",
+        "value": "maracuj"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "altura",
+    "name": "Altura",
+    "tagKey": "altura",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual a altura?",
+    "options": []
+  },
+  {
+    "id": "circunferncia-na-altura-do-peito",
+    "name": "Circunferência na Altura do Peito",
+    "tagKey": "circunferncia-na-altura-do-peito",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual a medida da circunferência?",
+    "options": []
+  },
+  {
+    "id": "condies",
+    "name": "Condições",
+    "tagKey": "condies",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Quais as condições essa estrutura apresenta?",
+    "options": [
+      {
+        "label": "Boa",
+        "value": "boa"
+      },
+      {
+        "label": "Regular",
+        "value": "regular"
+      },
+      {
+        "label": "Ruim",
+        "value": "ruim"
+      }
+    ]
+  },
+  {
+    "id": "cor",
+    "name": "Cor",
+    "tagKey": "cor",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual a cor?",
+    "options": [
+      {
+        "label": "Amarelo",
+        "value": "amarelo"
+      },
+      {
+        "label": "Vermelho",
+        "value": "vermelho"
+      },
+      {
+        "label": "Branco",
+        "value": "branco"
+      },
+      {
+        "label": "Verde",
+        "value": "verde"
+      },
+      {
+        "label": "Preto",
+        "value": "preto"
+      }
+    ]
+  },
+  {
+    "id": "especie-caa",
+    "name": "Especie Caça",
+    "tagKey": "especie-caa",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual espécie de animal?",
+    "options": [
+      {
+        "label": "Anta",
+        "value": "anta"
+      },
+      {
+        "label": "Veado",
+        "value": "veado"
+      },
+      {
+        "label": "Macaco",
+        "value": "macaco"
+      },
+      {
+        "label": "Jacaré",
+        "value": "jacar"
+      },
+      {
+        "label": "Paca",
+        "value": "paca"
+      },
+      {
+        "label": "Cutia",
+        "value": "cutia"
+      },
+      {
+        "label": "Porcão",
+        "value": "porco"
+      },
+      {
+        "label": "Capivara",
+        "value": "capivara"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "especie-abelha",
+    "name": "Especie Abelha",
+    "tagKey": "especie-abelha",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual espécie de abelha?",
+    "options": [
+      {
+        "label": "Nohpoano",
+        "value": "nohpoano"
+      },
+      {
+        "label": "Kaikuiano",
+        "value": "kaikuiano"
+      },
+      {
+        "label": "Kuxikuxiano",
+        "value": "kuxikuxiano"
+      },
+      {
+        "label": "Maxipuriano",
+        "value": "maxipuriano"
+      },
+      {
+        "label": "Okomo",
+        "value": "okomo"
+      },
+      {
+        "label": "Anoimo",
+        "value": "anoimo"
+      },
+      {
+        "label": "Arãta-ano",
+        "value": "arta-ano"
+      },
+      {
+        "label": "Omy-ano",
+        "value": "omy-ano"
+      },
+      {
+        "label": "Pirixi-ano",
+        "value": "pirixi-ano"
+      },
+      {
+        "label": "Mamizari-ano",
+        "value": "mamizari-ano"
+      },
+      {
+        "label": "Kãkue-ano",
+        "value": "kkue-ano"
+      },
+      {
+        "label": "Poxi-ano",
+        "value": "poxi-ano"
+      },
+      {
+        "label": "Iniki-ano",
+        "value": "iniki-ano"
+      },
+      {
+        "label": "Rapaxi-ano",
+        "value": "rapaxi-ano"
+      },
+      {
+        "label": "Pxaxi-ano",
+        "value": "pxaxi-ano"
+      },
+      {
+        "label": "Onu-ano",
+        "value": "onu-ano"
+      },
+      {
+        "label": "Arama-ano",
+        "value": "arama-ano"
+      },
+      {
+        "label": "Nohpo-ano",
+        "value": "nohpo-ano"
+      },
+      {
+        "label": "Ëkëmnek",
+        "value": "kmnek"
+      },
+      {
+        "label": "Waniïmë",
+        "value": "wanim"
+      },
+      {
+        "label": "Alawatawan",
+        "value": "alawatawan"
+      },
+      {
+        "label": "Ëmïnwan",
+        "value": "mnwan"
+      },
+      {
+        "label": "Pilixiwan",
+        "value": "pilixiwan"
+      },
+      {
+        "label": "Mamhaliwan",
+        "value": "mamhaliwan"
+      },
+      {
+        "label": "Kïjapokwan",
+        "value": "kjapokwan"
+      },
+      {
+        "label": "Poxiwan",
+        "value": "poxiwan"
+      },
+      {
+        "label": "Menikwan",
+        "value": "menikwan"
+      },
+      {
+        "label": "Kapoxiwan",
+        "value": "kapoxiwan"
+      },
+      {
+        "label": "Pïjaiwan",
+        "value": "pjaiwan"
+      },
+      {
+        "label": "Pëmuwan",
+        "value": "pmuwan"
+      },
+      {
+        "label": "Alamawan",
+        "value": "alamawan"
+      },
+      {
+        "label": "Kopiko",
+        "value": "kopiko"
+      },
+      {
+        "label": "Wanëimë",
+        "value": "wanim"
+      },
+      {
+        "label": "Arawata Wanë",
+        "value": "arawata-wan"
+      },
+      {
+        "label": "Ënpatari wanë",
+        "value": "npatari-wan"
+      },
+      {
+        "label": "Kïrikïri wane",
+        "value": "krikri-wane"
+      },
+      {
+        "label": "Notïpë Wanë",
+        "value": "notp-wan"
+      },
+      {
+        "label": "Mamí Wanë",
+        "value": "mam-wan"
+      },
+      {
+        "label": "Kïyapoko Wanë",
+        "value": "kyapoko-wan"
+      },
+      {
+        "label": "Pëyi Wanë",
+        "value": "pyi-wan"
+      },
+      {
+        "label": "Werewere Wanë",
+        "value": "werewere-wan"
+      },
+      {
+        "label": "Kapai Wanë",
+        "value": "kapai-wan"
+      },
+      {
+        "label": "Pïyai Wanë",
+        "value": "pyai-wan"
+      },
+      {
+        "label": "Simomo Wanë",
+        "value": "simomo-wan"
+      },
+      {
+        "label": "Arama Wanë",
+        "value": "arama-wan"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "epoca",
+    "name": "Epoca",
+    "tagKey": "epoca",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual estação do ano?",
+    "options": [
+      {
+        "label": "Primavera",
+        "value": "primavera"
+      },
+      {
+        "label": "Verão",
+        "value": "vero"
+      },
+      {
+        "label": "Inverno",
+        "value": "inverno"
+      },
+      {
+        "label": "Outono",
+        "value": "outono"
+      }
+    ]
+  },
+  {
+    "id": "especie-reptis",
+    "name": "Especie Reptéis",
+    "tagKey": "especie-reptis",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual espécie?",
+    "options": [
+      {
+        "label": "Anfibio",
+        "value": "anfibio"
+      },
+      {
+        "label": "Répiteis",
+        "value": "rpiteis"
+      }
+    ]
+  },
+  {
+    "id": "habitate-animal",
+    "name": "Habitate Animal",
+    "tagKey": "habitate-animal",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Onde esse animal vive?",
+    "options": [
+      {
+        "label": "Terrestre",
+        "value": "terrestre"
+      },
+      {
+        "label": "Rio",
+        "value": "rio"
+      },
+      {
+        "label": "Aereo",
+        "value": "aereo"
+      }
+    ]
+  },
+  {
+    "id": "nome",
+    "name": "Nome",
+    "tagKey": "nome",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual o nome?",
+    "options": []
+  },
+  {
+    "id": "especie-pesca",
+    "name": "Especie Pesca",
+    "tagKey": "especie-pesca",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual espécie de peixe?",
+    "options": [
+      {
+        "label": "Akari",
+        "value": "akari"
+      },
+      {
+        "label": "Suruí",
+        "value": "suru"
+      },
+      {
+        "label": "Pacu",
+        "value": "pacu"
+      },
+      {
+        "label": "Aimara",
+        "value": "aimara"
+      },
+      {
+        "label": "Trairão",
+        "value": "trairo"
+      },
+      {
+        "label": "Pirarara",
+        "value": "pirarara"
+      },
+      {
+        "label": "Manué",
+        "value": "manu"
+      },
+      {
+        "label": "Poné",
+        "value": "pon"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "numero-caixas",
+    "name": "Numero Caixas",
+    "tagKey": "numero-caixas",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual a quantidade de caixas?",
+    "options": []
+  },
+  {
+    "id": "planta-de-construo",
+    "name": "Planta de Construção",
+    "tagKey": "planta-de-construo",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual planta para construção?",
+    "options": [
+      {
+        "label": "Ubim",
+        "value": "ubim"
+      },
+      {
+        "label": "Mamiri",
+        "value": "mamiri"
+      },
+      {
+        "label": "Wakapu",
+        "value": "wakapu"
+      },
+      {
+        "label": "Kunawa",
+        "value": "kunawa"
+      },
+      {
+        "label": "Mirimi",
+        "value": "mirimi"
+      },
+      {
+        "label": "Alawatak",
+        "value": "alawatak"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "planta-de-comer",
+    "name": "Planta de Comer",
+    "tagKey": "planta-de-comer",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual planta de coleta?",
+    "options": [
+      {
+        "label": "Bacuri",
+        "value": "bacuri"
+      },
+      {
+        "label": "Açaí",
+        "value": "aa"
+      },
+      {
+        "label": "Bacaba",
+        "value": "bacaba"
+      },
+      {
+        "label": "Buriti",
+        "value": "buriti"
+      },
+      {
+        "label": "Tapereba",
+        "value": "tapereba"
+      },
+      {
+        "label": "Uxi",
+        "value": "uxi"
+      },
+      {
+        "label": "Cará",
+        "value": "car"
+      },
+      {
+        "label": "Ingá",
+        "value": "ing"
+      },
+      {
+        "label": "Goiaba",
+        "value": "goiaba"
+      },
+      {
+        "label": "Inajá",
+        "value": "inaj"
+      },
+      {
+        "label": "Babaçu",
+        "value": "babau"
+      },
+      {
+        "label": "Caju",
+        "value": "caju"
+      },
+      {
+        "label": "Cacau",
+        "value": "cacau"
+      },
+      {
+        "label": "Cupuaçu",
+        "value": "cupuau"
+      },
+      {
+        "label": "Jatobá",
+        "value": "jatob"
+      },
+      {
+        "label": "Pequiá",
+        "value": "pequi"
+      },
+      {
+        "label": "Tucumã",
+        "value": "tucum"
+      },
+      {
+        "label": "Pupunha",
+        "value": "pupunha"
+      },
+      {
+        "label": "Laranja",
+        "value": "laranja"
+      },
+      {
+        "label": "Manga",
+        "value": "manga"
+      },
+      {
+        "label": "Limão",
+        "value": "limo"
+      },
+      {
+        "label": "Maracujá",
+        "value": "maracuj"
+      },
+      {
+        "label": "Castanha",
+        "value": "castanha"
+      },
+      {
+        "label": "Coco",
+        "value": "coco"
+      },
+      {
+        "label": "Caramiri",
+        "value": "caramiri"
+      },
+      {
+        "label": "Tëpukuremy",
+        "value": "tpukuremy"
+      },
+      {
+        "label": "Atakamaraimo",
+        "value": "atakamaraimo"
+      },
+      {
+        "label": "Nana",
+        "value": "nana"
+      },
+      {
+        "label": "Paruruimo",
+        "value": "paruruimo"
+      },
+      {
+        "label": "Oroxiarai",
+        "value": "oroxiarai"
+      },
+      {
+        "label": "Parahta",
+        "value": "parahta"
+      },
+      {
+        "label": "Mapakauru",
+        "value": "mapakauru"
+      },
+      {
+        "label": "Mamasuhsuru",
+        "value": "mamasuhsuru"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "planta-medicinal",
+    "name": "Planta Medicinal",
+    "tagKey": "planta-medicinal",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual a planta medicinal?",
+    "options": []
+  },
+  {
+    "id": "planta-para-talhar",
+    "name": "Planta para Talhar",
+    "tagKey": "planta-para-talhar",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual planta para talhar?",
+    "options": [
+      {
+        "label": "Kanawa",
+        "value": "kanawa"
+      },
+      {
+        "label": "Apuruita",
+        "value": "apuruita"
+      },
+      {
+        "label": "Taky",
+        "value": "taky"
+      },
+      {
+        "label": "Kaparu",
+        "value": "kaparu"
+      },
+      {
+        "label": "Wywy Epuru",
+        "value": "wywy-epuru"
+      },
+      {
+        "label": "Epehtopo",
+        "value": "epehtopo"
+      },
+      {
+        "label": "Taxika",
+        "value": "taxika"
+      },
+      {
+        "label": "Muzere",
+        "value": "muzere"
+      },
+      {
+        "label": "Warata",
+        "value": "warata"
+      },
+      {
+        "label": "Maruana",
+        "value": "maruana"
+      },
+      {
+        "label": "Sorope Epuru",
+        "value": "sorope-epuru"
+      },
+      {
+        "label": "Mate Epuru",
+        "value": "mate-epuru"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "planta-pra-artesanato",
+    "name": "Planta pra Artesanato",
+    "tagKey": "planta-pra-artesanato",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual planta para artesanato?",
+    "options": [
+      {
+        "label": "Aruma",
+        "value": "aruma"
+      },
+      {
+        "label": "Mamiri",
+        "value": "mamiri"
+      },
+      {
+        "label": "Airiki Amuru",
+        "value": "airiki-amuru"
+      },
+      {
+        "label": "Kurua Amuru",
+        "value": "kurua-amuru"
+      },
+      {
+        "label": "Apu Ary",
+        "value": "apu-ary"
+      },
+      {
+        "label": "Wai Amuru",
+        "value": "wai-amuru"
+      }
+    ]
+  },
+  {
+    "id": "qualidade-gua",
+    "name": "Qualidade água",
+    "tagKey": "qualidade-gua",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qualidade da água?",
+    "options": [
+      {
+        "label": "Limpa",
+        "value": "limpa"
+      },
+      {
+        "label": "Suja",
+        "value": "suja"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "quantidade-coletada",
+    "name": "Quantidade coletada",
+    "tagKey": "quantidade-coletada",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual foi a quantidade coletada?",
+    "options": []
+  },
+  {
+    "id": "tamanho-em-metros",
+    "name": "Tamanho em Metros",
+    "tagKey": "tamanho-em-metros",
+    "type": "text",
+    "universal": false,
+    "helperText": "Qual o tamanho em metros?",
+    "options": []
+  },
+  {
+    "id": "tcnica-de-caa",
+    "name": "Técnica de caça",
+    "tagKey": "tcnica-de-caa",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual técnica usada na caça?",
+    "options": [
+      {
+        "label": "Arco e Flecha",
+        "value": "arco-e-flecha"
+      },
+      {
+        "label": "Arma de Fogo",
+        "value": "arma-de-fogo"
+      },
+      {
+        "label": "Armadilha",
+        "value": "armadilha"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "tipo-abelha",
+    "name": "Tipo Abelha",
+    "tagKey": "tipo-abelha",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual tipo de abelha é essa?",
+    "options": [
+      {
+        "label": "Apicultura",
+        "value": "apicultura"
+      },
+      {
+        "label": "Meliponicultura",
+        "value": "meliponicultura"
+      }
+    ]
+  },
+  {
+    "id": "tcnica-de-pesca",
+    "name": "Técnica de pesca",
+    "tagKey": "tcnica-de-pesca",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual técnica usada nessa pesca?",
+    "options": [
+      {
+        "label": "Linha & Anzol",
+        "value": "linha-anzol"
+      },
+      {
+        "label": "Rede",
+        "value": "rede"
+      },
+      {
+        "label": "Tarrafa",
+        "value": "tarrafa"
+      },
+      {
+        "label": "Arco & Flecha",
+        "value": "arco-flecha"
+      },
+      {
+        "label": "Armadilha",
+        "value": "armadilha"
+      }
+    ]
+  },
+  {
+    "id": "tipo-aldeia",
+    "name": "Tipo Aldeia",
+    "tagKey": "tipo-aldeia",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Que tipo de aldeia é essa?",
+    "options": [
+      {
+        "label": "Aldeia",
+        "value": "aldeia"
+      },
+      {
+        "label": "Aldeia Antiga",
+        "value": "aldeia-antiga"
+      }
+    ]
+  },
+  {
+    "id": "tipo-coleta",
+    "name": "Tipo Coleta",
+    "tagKey": "tipo-coleta",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "O que foi coletado?",
+    "options": [
+      {
+        "label": "Madeira",
+        "value": "madeira"
+      },
+      {
+        "label": "Semente",
+        "value": "semente"
+      },
+      {
+        "label": "Folha",
+        "value": "folha"
+      },
+      {
+        "label": "Casca",
+        "value": "casca"
+      },
+      {
+        "label": "Cipó",
+        "value": "cip"
+      },
+      {
+        "label": "Raiz",
+        "value": "raiz"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "tipo-de-abelha",
+    "name": "Tipo de Abelha",
+    "tagKey": "tipo-de-abelha",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual o tipo de abelha?",
+    "options": [
+      {
+        "label": "Caixa",
+        "value": "caixa"
+      },
+      {
+        "label": "Tronco",
+        "value": "tronco"
+      }
+    ]
+  },
+  {
+    "id": "tipo-estrutura",
+    "name": "Tipo Estrutura",
+    "tagKey": "tipo-estrutura",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual estrutura é essa?",
+    "options": [
+      {
+        "label": "Casa de farinha",
+        "value": "casa-de-farinha"
+      },
+      {
+        "label": "Posto de Saúde",
+        "value": "posto-de-sade"
+      },
+      {
+        "label": "Escola",
+        "value": "escola"
+      },
+      {
+        "label": "Casa de fogo",
+        "value": "casa-de-fogo"
+      },
+      {
+        "label": "Prefeitura",
+        "value": "prefeitura"
+      },
+      {
+        "label": "Casa de manutenção de rabeta",
+        "value": "casa-de-manuteno-de-rabeta"
+      },
+      {
+        "label": "Gerador de energia (potencia)",
+        "value": "gerador-de-energia-potencia"
+      },
+      {
+        "label": "Energia solar (potencia)",
+        "value": "energia-solar-potencia"
+      },
+      {
+        "label": "Ponto de Internet (senha)",
+        "value": "ponto-de-internet-senha"
+      },
+      {
+        "label": "Ponto de Rádio (saúde",
+        "value": "ponto-de-rdio-sade"
+      },
+      {
+        "label": "Funai",
+        "value": "funai"
+      },
+      {
+        "label": "Comunitário)",
+        "value": "comunitrio"
+      },
+      {
+        "label": "Alojamento",
+        "value": "alojamento"
+      },
+      {
+        "label": "Igreja (catolica",
+        "value": "igreja-catolica"
+      },
+      {
+        "label": "Evangelica",
+        "value": "evangelica"
+      },
+      {
+        "label": "Tarano)",
+        "value": "tarano"
+      },
+      {
+        "label": "Casa do mel",
+        "value": "casa-do-mel"
+      },
+      {
+        "label": "Casa de informatica",
+        "value": "casa-de-informatica"
+      },
+      {
+        "label": "Casa (familia ou proprietario)",
+        "value": "casa-familia-ou-proprietario"
+      },
+      {
+        "label": "Campo de futebol",
+        "value": "campo-de-futebol"
+      },
+      {
+        "label": "Casa cacique",
+        "value": "casa-cacique"
+      },
+      {
+        "label": "Cemitério",
+        "value": "cemitrio"
+      }
+    ]
+  },
+  {
+    "id": "tipo-hidricos",
+    "name": "Tipo Hidricos",
+    "tagKey": "tipo-hidricos",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual o tipo de água?",
+    "options": [
+      {
+        "label": "Poção",
+        "value": "poo"
+      },
+      {
+        "label": "Praia",
+        "value": "praia"
+      },
+      {
+        "label": "Cachoeira",
+        "value": "cachoeira"
+      },
+      {
+        "label": "Nascente de água",
+        "value": "nascente-de-gua"
+      },
+      {
+        "label": "Ilha",
+        "value": "ilha"
+      },
+      {
+        "label": "Igarapé",
+        "value": "igarap"
+      },
+      {
+        "label": "Rio",
+        "value": "rio"
+      },
+      {
+        "label": "Lago",
+        "value": "lago"
+      },
+      {
+        "label": "Poço artesiano",
+        "value": "poo-artesiano"
+      },
+      {
+        "label": "Hidroeletrica",
+        "value": "hidroeletrica"
+      }
+    ]
+  },
+  {
+    "id": "tipo-de-perigo",
+    "name": "Tipo de Perigo",
+    "tagKey": "tipo-de-perigo",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "",
+    "options": [
+      {
+        "label": "Onça",
+        "value": "ona"
+      },
+      {
+        "label": "Anaconda",
+        "value": "anaconda"
+      }
+    ]
+  },
+  {
+    "id": "tipo-de-paisagem",
+    "name": "Tipo de Paisagem",
+    "tagKey": "tipo-de-paisagem",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Que tipo de paisagem é essa?",
+    "options": [
+      {
+        "label": "Cerrado",
+        "value": "cerrado"
+      },
+      {
+        "label": "Terra firme",
+        "value": "terra-firme"
+      },
+      {
+        "label": "Campo de aldeia",
+        "value": "campo-de-aldeia"
+      },
+      {
+        "label": "Terra alagada",
+        "value": "terra-alagada"
+      },
+      {
+        "label": "Igapo",
+        "value": "igapo"
+      },
+      {
+        "label": "Roça antiga",
+        "value": "roa-antiga"
+      },
+      {
+        "label": "Piçarra",
+        "value": "piarra"
+      },
+      {
+        "label": "Capoeira",
+        "value": "capoeira"
+      },
+      {
+        "label": "Encosta e topo morro",
+        "value": "encosta-e-topo-morro"
+      },
+      {
+        "label": "Pedra",
+        "value": "pedra"
+      },
+      {
+        "label": "Montanha",
+        "value": "montanha"
+      }
+    ]
+  },
+  {
+    "id": "tipo-invaso",
+    "name": "Tipo Invasão",
+    "tagKey": "tipo-invaso",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual ameaça encontrada?",
+    "options": [
+      {
+        "label": "Garimpo",
+        "value": "garimpo"
+      },
+      {
+        "label": "Invasão",
+        "value": "invaso"
+      },
+      {
+        "label": "Desmatamento",
+        "value": "desmatamento"
+      },
+      {
+        "label": "Sobrevôo",
+        "value": "sobrevo"
+      },
+      {
+        "label": "Trafico",
+        "value": "trafico"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  },
+  {
+    "id": "tipo-roa",
+    "name": "Tipo Roça",
+    "tagKey": "tipo-roa",
+    "type": "selectOne",
+    "universal": false,
+    "helperText": "Qual o tipo de roça?",
+    "options": [
+      {
+        "label": "Roça nova",
+        "value": "roa-nova"
+      },
+      {
+        "label": "Roça produtiva",
+        "value": "roa-produtiva"
+      },
+      {
+        "label": "Roça futura",
+        "value": "roa-futura"
+      },
+      {
+        "label": "Roça antiga",
+        "value": "roa-antiga"
+      }
+    ]
+  },
+  {
+    "id": "yana",
+    "name": "Yana",
+    "tagKey": "yana",
+    "type": "selectMultiple",
+    "universal": false,
+    "helperText": "Qual etnia?",
+    "options": [
+      {
+        "label": "Tiriyó",
+        "value": "tiriy"
+      },
+      {
+        "label": "Kaxuyana",
+        "value": "kaxuyana"
+      },
+      {
+        "label": "Apalai",
+        "value": "apalai"
+      },
+      {
+        "label": "Wayana",
+        "value": "wayana"
+      },
+      {
+        "label": "Outro",
+        "value": "outro"
+      }
+    ]
+  }
+]

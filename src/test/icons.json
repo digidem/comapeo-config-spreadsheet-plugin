@@ -1,0 +1,149 @@
+{
+  "abelha-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "aldeia-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 100,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "caa-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 0,
+    "y": 100,
+    "pixelRatio": 1
+  },
+  "estrutura-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 100,
+    "y": 100,
+    "pixelRatio": 1
+  },
+  "invaso-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 200,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "local-de-argila-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 300,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "local-de-desova-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 200,
+    "y": 100,
+    "pixelRatio": 1
+  },
+  "local-perigoso-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 300,
+    "y": 100,
+    "pixelRatio": 1
+  },
+  "lugar-historico-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 0,
+    "y": 200,
+    "pixelRatio": 1
+  },
+  "paisagem-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 100,
+    "y": 200,
+    "pixelRatio": 1
+  },
+  "pesca-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 200,
+    "y": 200,
+    "pixelRatio": 1
+  },
+  "planta-para-artesanato-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 300,
+    "y": 200,
+    "pixelRatio": 1
+  },
+  "planta-para-comer-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 0,
+    "y": 300,
+    "pixelRatio": 1
+  },
+  "planta-para-construo-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 100,
+    "y": 300,
+    "pixelRatio": 1
+  },
+  "planta-para-talhar-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 200,
+    "y": 300,
+    "pixelRatio": 1
+  },
+  "ponto-de-lixo-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 300,
+    "y": 300,
+    "pixelRatio": 1
+  },
+  "porto-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 400,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "recursos-hdricos-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 500,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "remdio-tradicional-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 600,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "roa-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 700,
+    "y": 0,
+    "pixelRatio": 1
+  },
+  "vestgios-de-isolado-100px": {
+    "width": 100,
+    "height": 100,
+    "x": 400,
+    "y": 100,
+    "pixelRatio": 1
+  }
+}

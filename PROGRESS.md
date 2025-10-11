@@ -59,22 +59,16 @@ This document tracks the status of all documentation and implementation work in 
 | [FIX_PROGRESS.md](./FIX_PROGRESS.md) | Translation processing fixes tracking | ✅ Active |
 | [IMPORT_CAT.md](./IMPORT_CAT.md) | Import feature investigation & testing | ⚠️ Needs Testing |
 
-### Historical Documentation (Completed Work - Can Archive)
+### Context Documentation
 
-These files document **completed** implementation work. They can be archived or removed as the work is done:
+Essential reference files preserved in `context/` directory:
 
-| File | What Was Completed | Commit References |
-|------|-------------------|-------------------|
-| [ICON_IMPORT_FIX.md](./ICON_IMPORT_FIX.md) | ✅ TAR extraction enhancement, PNG icon extractor | `34761dd`, `6ae0e39` |
-| [ICON_PARSING_FIX.md](./ICON_PARSING_FIX.md) | ✅ XML namespace fix, element extraction improvements | `6ec9bfe` |
-| [PERFORMANCE_FIX_SUMMARY.md](./PERFORMANCE_FIX_SUMMARY.md) | ✅ File indexing optimization (O(n×m) → O(n+m)) | Multiple commits |
-| [PROGRESS_UX_IMPLEMENTATION.md](./PROGRESS_UX_IMPLEMENTATION.md) | ✅ Real-time progress bar, 8-stage updates | `9e914f6`, `4a9af5b` |
-| [SVG_PRIORITY_CHANGE.md](./SVG_PRIORITY_CHANGE.md) | ✅ SVG-first extraction priority | `984f61c` |
-| [UX_IMPROVEMENT_PLAN.md](./UX_IMPROVEMENT_PLAN.md) | ✅ Progress UX planning (implemented) | Covered by PROGRESS_UX |
-| [PNG_SPRITE_LIMITATIONS.md](./PNG_SPRITE_LIMITATIONS.md) | ℹ️ Documentation of known limitation | N/A (reference) |
-| [COMAPEO_CATEGORY_GENERATION_REVIEW.md](./COMAPEO_CATEGORY_GENERATION_REVIEW.md) | ✅ Review leading to FIX_PROGRESS.md work | `bf56ded` |
+| File | Purpose | When to Reference |
+|------|---------|-------------------|
+| [PNG_SPRITE_LIMITATIONS.md](./context/PNG_SPRITE_LIMITATIONS.md) | Documents PNG sprite parsing limitations | Icon handling features, import debugging |
+| [PERFORMANCE_FIX_SUMMARY.md](./context/PERFORMANCE_FIX_SUMMARY.md) | File indexing optimization pattern (O(n×m) → O(n+m)) | File operation optimization work |
 
-**Recommendation**: Move to `context/` to preserve as contextual documentation for AI assistants and team knowledge.
+**Note**: Implementation details have been removed from context/. They exist in code, commits, and JSDoc comments.
 
 ---
 
@@ -82,23 +76,7 @@ These files document **completed** implementation work. They can be archived or 
 
 ### Suggested Cleanup
 
-```bash
-# Create context directory
-mkdir -p context
-
-# Move completed work documentation to context
-mv ICON_IMPORT_FIX.md context/
-mv ICON_PARSING_FIX.md context/
-mv PERFORMANCE_FIX_SUMMARY.md context/
-mv PROGRESS_UX_IMPLEMENTATION.md context/
-mv SVG_PRIORITY_CHANGE.md context/
-mv UX_IMPROVEMENT_PLAN.md context/
-mv PNG_SPRITE_LIMITATIONS.md context/
-mv COMAPEO_CATEGORY_GENERATION_REVIEW.md context/
-
-# Stage documentation
-git add FIX_PROGRESS.md IMPORT_CAT.md CAT_GEN.md COMAPEOCAT_FORMAT.md PROGRESS.md context/
-```
+Context directory is already set up with essential reference documentation. No action needed.
 
 ### Keep in Root
 
@@ -158,34 +136,27 @@ git add FIX_PROGRESS.md IMPORT_CAT.md CAT_GEN.md COMAPEOCAT_FORMAT.md PROGRESS.m
 
 ## 📝 Notes
 
-### Why Keep Completed Work Docs as Context?
+### Context Directory Philosophy
 
-These files provide valuable context for future work:
-- **AI Assistant Context**: Helps Claude Code understand past decisions and patterns
-- **Implementation Patterns**: Documents successful approaches to similar problems
-- **Gotchas and Solutions**: Preserves knowledge about pitfalls encountered
-- **Historical Reference**: Maintains institutional knowledge for the team
+**What belongs in `context/`**:
+- 🚫 **Limitations**: Architectural constraints (what can't be done)
+- ⚡ **Patterns**: Proven optimization approaches
+- 🧠 **Gotchas**: Important considerations for similar work
 
-### Context Files vs Documentation
+**What doesn't belong**:
+- ❌ Implementation details (→ code + JSDoc)
+- ❌ Completed task summaries (→ git history)
+- ❌ Process documentation (→ active docs in root)
 
-**Context Files** (`context/` directory):
-- Implementation details and decisions
-- Problem-solving approaches
-- Performance considerations
-- Integration patterns
-- Primarily for AI assistants and developers
-
-**Active Documentation** (root directory):
-- Current project status
-- Active work tracking
-- Feature specifications
-- Process documentation
+Current context files (2):
+1. `PNG_SPRITE_LIMITATIONS.md` - System constraint
+2. `PERFORMANCE_FIX_SUMMARY.md` - Optimization pattern
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Immediate**: Move completed documentation to context/ folder
+1. **Immediate**: ✅ Context cleanup complete
 2. **Short-term**: Complete import feature testing (IMPORT_CAT.md)
 3. **Medium-term**: Consider adding automated integration tests
 4. **Long-term**: User-facing documentation for import/export workflows

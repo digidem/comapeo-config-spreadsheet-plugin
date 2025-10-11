@@ -1,75 +1,64 @@
 # Context Documentation
 
-This directory contains **contextual documentation** for understanding completed work and architectural decisions in the CoMapeo Config Spreadsheet Plugin.
+This directory contains **essential reference documentation** that preserves knowledge about system constraints and proven optimization patterns.
 
 ## Purpose
 
-These files provide context for:
-1. ✅ Completed implementation work and rationale
-2. 🔍 Historical decisions and trade-offs
-3. 📚 Reference material for related features
-4. 🐛 Troubleshooting guides for specific issues
+Context files document:
+- 🚫 **Limitations**: What the system cannot do (architectural constraints)
+- ⚡ **Patterns**: Proven optimization approaches for similar problems
+- 🧠 **Gotchas**: Important considerations for future work
 
-## Why Keep Context Files?
-
-- **AI Assistant Context**: Helps Claude Code understand project history and decisions
-- **Implementation Details**: Documents "why" behind architectural choices
-- **Problem Solving**: Reference for similar issues in the future
-- **Onboarding**: Helps new developers understand project evolution
-- **Knowledge Preservation**: Maintains institutional knowledge
-
-## Files in This Context
-
-### Icon Handling Improvements
-- **ICON_IMPORT_FIX.md** - TAR extraction enhancement and PNG icon extractor implementation
-- **ICON_PARSING_FIX.md** - XML namespace fix and SVG element extraction improvements
-- **SVG_PRIORITY_CHANGE.md** - Change to prioritize SVG over PNG in icon extraction
-
-### Performance Optimizations
-- **PERFORMANCE_FIX_SUMMARY.md** - File indexing optimization reducing complexity from O(n×m) to O(n+m)
-
-### UX/UI Enhancements
-- **PROGRESS_UX_IMPLEMENTATION.md** - Real-time progress bar implementation
-- **UX_IMPROVEMENT_PLAN.md** - Original planning document for progress UX
-
-### Analysis & Reviews
-- **COMAPEO_CATEGORY_GENERATION_REVIEW.md** - Code review that led to translation processing improvements
-- **PNG_SPRITE_LIMITATIONS.md** - Documentation of known PNG sprite parsing limitations in Apps Script
-
-## Active Documentation
-
-For current project status and active work, see:
-- [PROGRESS.md](../PROGRESS.md) - Overall project status and documentation index
-- [FIX_PROGRESS.md](../FIX_PROGRESS.md) - Active translation processing improvements
-- [IMPORT_CAT.md](../IMPORT_CAT.md) - Import feature with testing checklist
-
-## Accessing Context Information
-
-All implementation details from these documents are also available in:
-1. **Git commit history** - Commit messages reference these documents
-2. **Source code** - Implementation is in the actual code
-3. **Code comments** - JSDoc and inline comments explain behavior
-
-To find related commits:
-```bash
-git log --all --grep="icon\|translation\|import\|performance\|UX"
-```
-
-## For AI Assistants
-
-When working on related features, these context files provide:
-- **Implementation patterns** used successfully
-- **Gotchas and pitfalls** to avoid
-- **Performance considerations** for similar operations
-- **Integration points** with existing systems
-
-Prefer reading these files when:
-- Debugging icon import/export issues
-- Optimizing file operations
-- Implementing progress indicators
-- Reviewing translation processing changes
+**Note**: Implementation details live in code, commits, and JSDoc comments. Context files focus on **why** and **constraints**, not **how**.
 
 ---
 
-**Created**: 2025-10-11
-**Purpose**: Context preservation for AI-assisted development and team knowledge sharing
+## Files in This Context
+
+### System Limitations
+**[PNG_SPRITE_LIMITATIONS.md](./PNG_SPRITE_LIMITATIONS.md)**
+- Documents PNG sprite parsing limitations in Google Apps Script
+- Explains why PNG sprites can't be parsed (no image manipulation APIs)
+- Describes supported alternatives (individual PNG files, SVG sprites)
+- **Use when**: Planning icon handling features or debugging import issues
+
+### Optimization Patterns
+**[PERFORMANCE_FIX_SUMMARY.md](./PERFORMANCE_FIX_SUMMARY.md)**
+- Documents file indexing optimization: O(n×m) → O(n+m)
+- Explains batching pattern for file operations
+- Shows problem-solving approach with before/after comparison
+- **Use when**: Optimizing file operations or similar search patterns
+
+---
+
+## Active Documentation
+
+For current work and active features:
+- **[PROGRESS.md](../PROGRESS.md)** - Overall project status and index
+- **[FIX_PROGRESS.md](../FIX_PROGRESS.md)** - Translation processing improvements
+- **[IMPORT_CAT.md](../IMPORT_CAT.md)** - Import feature testing
+- **[CAT_GEN.md](../CAT_GEN.md)** - Category generation process
+- **[COMAPEOCAT_FORMAT.md](../COMAPEOCAT_FORMAT.md)** - File format specification
+
+---
+
+## For AI Assistants
+
+**When to reference context files:**
+
+1. **Icon-related work** → Check PNG_SPRITE_LIMITATIONS.md first
+   - Understand what's technically feasible
+   - Avoid re-implementing impossible features
+
+2. **File operation optimization** → Reference PERFORMANCE_FIX_SUMMARY.md
+   - Apply proven indexing pattern
+   - Avoid N×M complexity anti-patterns
+
+3. **General development** → Check git history and code comments
+   - Implementation details are in the code
+   - Context files only for constraints and patterns
+
+---
+
+**Last Updated**: 2025-10-11
+**Cleanup**: Removed 6 redundant implementation summaries; kept only essential references

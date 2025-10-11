@@ -159,23 +159,17 @@ The spreadsheet must follow specific structure:
 
 ## Context Documentation
 
-The `context/` directory contains **contextual documentation** for AI assistants and developers:
+The `context/` directory contains **essential reference documentation** for AI assistants and developers:
 
-**Purpose**: Preserves implementation details, decisions, and problem-solving approaches from completed work.
+**Purpose**: Documents system constraints and proven optimization patterns (not implementation details).
 
-**When to reference**:
-- Debugging icon import/export issues → See `context/ICON_IMPORT_FIX.md`, `context/ICON_PARSING_FIX.md`
-- Performance optimization work → See `context/PERFORMANCE_FIX_SUMMARY.md`
-- Translation processing questions → See `context/COMAPEO_CATEGORY_GENERATION_REVIEW.md`
-- UX/progress indicator work → See `context/PROGRESS_UX_IMPLEMENTATION.md`
+**Files**:
+1. **`PNG_SPRITE_LIMITATIONS.md`** - PNG sprite parsing limitations in Google Apps Script
+   - Use when: Planning icon features or debugging import issues
+   - Key insight: Apps Script can't parse PNG sprites (no image manipulation APIs)
 
-**Key files**:
-- `context/ICON_IMPORT_FIX.md` - TAR extraction and PNG icon handling
-- `context/ICON_PARSING_FIX.md` - XML namespace fixes for SVG parsing
-- `context/PERFORMANCE_FIX_SUMMARY.md` - File indexing optimization (O(n×m) → O(n+m))
-- `context/PROGRESS_UX_IMPLEMENTATION.md` - Real-time progress bar implementation
-- `context/SVG_PRIORITY_CHANGE.md` - SVG-first extraction priority
-- `context/PNG_SPRITE_LIMITATIONS.md` - Known limitations in Apps Script
-- `context/COMAPEO_CATEGORY_GENERATION_REVIEW.md` - Translation processing review
+2. **`PERFORMANCE_FIX_SUMMARY.md`** - File indexing optimization pattern
+   - Use when: Optimizing file operations or similar search patterns
+   - Key insight: Batch file lookups with Map index (O(n×m) → O(n+m))
 
-See `context/README.md` for complete index and usage guidelines.
+See `context/README.md` for detailed guidance on when to reference these files.

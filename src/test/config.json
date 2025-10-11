@@ -1,0 +1,2695 @@
+{
+  "metadata": {
+    "dataset_id": "comapeo-tumucumaque-categorias-comapeo",
+    "name": "config-tumucumaque-categorias-comapeo",
+    "version": "25.04.10",
+    "fileVersion": "1.0",
+    "buildDate": "2025-04-10T20:03:17.464Z"
+  },
+  "fields": {
+    "agrobiodiversidade": {
+      "tagKey": "agrobiodiversidade",
+      "type": "selectMultiple",
+      "label": "Agrobiodiversidade",
+      "helperText": "Qual(is) alimento(s) faz(em) parte dessa agrobiodiversidade?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Mandioca",
+          "value": "mandioca"
+        },
+        {
+          "label": "Macaxera",
+          "value": "macaxera"
+        },
+        {
+          "label": "Caxiri",
+          "value": "caxiri"
+        },
+        {
+          "label": "Batata",
+          "value": "batata"
+        },
+        {
+          "label": "Cana-de-açúcar",
+          "value": "cana-de-acar"
+        },
+        {
+          "label": "Cará",
+          "value": "car"
+        },
+        {
+          "label": "Banana",
+          "value": "banana"
+        },
+        {
+          "label": "Melancia",
+          "value": "melancia"
+        },
+        {
+          "label": "Abacaxi",
+          "value": "abacaxi"
+        },
+        {
+          "label": "Pimenta",
+          "value": "pimenta"
+        },
+        {
+          "label": "Algodão",
+          "value": "algodo"
+        },
+        {
+          "label": "Milho",
+          "value": "milho"
+        },
+        {
+          "label": "Abobora",
+          "value": "abobora"
+        },
+        {
+          "label": "Café",
+          "value": "caf"
+        },
+        {
+          "label": "Cabaça",
+          "value": "cabaa"
+        },
+        {
+          "label": "Mamão",
+          "value": "mamo"
+        },
+        {
+          "label": "Jerimum",
+          "value": "jerimum"
+        },
+        {
+          "label": "Melância",
+          "value": "melncia"
+        },
+        {
+          "label": "Amendoim",
+          "value": "amendoim"
+        },
+        {
+          "label": "Maracujá",
+          "value": "maracuj"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "altura": {
+      "tagKey": "altura",
+      "type": "text",
+      "label": "Altura",
+      "helperText": "Qual a altura?",
+      "universal": false,
+      "options": []
+    },
+    "circunferncia-na-altura-do-peito": {
+      "tagKey": "circunferncia-na-altura-do-peito",
+      "type": "text",
+      "label": "Circunferência na Altura do Peito",
+      "helperText": "Qual a medida da circunferência?",
+      "universal": false,
+      "options": []
+    },
+    "condies": {
+      "tagKey": "condies",
+      "type": "selectOne",
+      "label": "Condições",
+      "helperText": "Quais as condições essa estrutura apresenta?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Boa",
+          "value": "boa"
+        },
+        {
+          "label": "Regular",
+          "value": "regular"
+        },
+        {
+          "label": "Ruim",
+          "value": "ruim"
+        }
+      ]
+    },
+    "cor": {
+      "tagKey": "cor",
+      "type": "selectOne",
+      "label": "Cor",
+      "helperText": "Qual a cor?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Amarelo",
+          "value": "amarelo"
+        },
+        {
+          "label": "Vermelho",
+          "value": "vermelho"
+        },
+        {
+          "label": "Branco",
+          "value": "branco"
+        },
+        {
+          "label": "Verde",
+          "value": "verde"
+        },
+        {
+          "label": "Preto",
+          "value": "preto"
+        }
+      ]
+    },
+    "especie-caa": {
+      "tagKey": "especie-caa",
+      "type": "selectMultiple",
+      "label": "Especie Caça",
+      "helperText": "Qual espécie de animal?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Anta",
+          "value": "anta"
+        },
+        {
+          "label": "Veado",
+          "value": "veado"
+        },
+        {
+          "label": "Macaco",
+          "value": "macaco"
+        },
+        {
+          "label": "Jacaré",
+          "value": "jacar"
+        },
+        {
+          "label": "Paca",
+          "value": "paca"
+        },
+        {
+          "label": "Cutia",
+          "value": "cutia"
+        },
+        {
+          "label": "Porcão",
+          "value": "porco"
+        },
+        {
+          "label": "Capivara",
+          "value": "capivara"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "especie-abelha": {
+      "tagKey": "especie-abelha",
+      "type": "selectOne",
+      "label": "Especie Abelha",
+      "helperText": "Qual espécie de abelha?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Nohpoano",
+          "value": "nohpoano"
+        },
+        {
+          "label": "Kaikuiano",
+          "value": "kaikuiano"
+        },
+        {
+          "label": "Kuxikuxiano",
+          "value": "kuxikuxiano"
+        },
+        {
+          "label": "Maxipuriano",
+          "value": "maxipuriano"
+        },
+        {
+          "label": "Okomo",
+          "value": "okomo"
+        },
+        {
+          "label": "Anoimo",
+          "value": "anoimo"
+        },
+        {
+          "label": "Arãta-ano",
+          "value": "arta-ano"
+        },
+        {
+          "label": "Omy-ano",
+          "value": "omy-ano"
+        },
+        {
+          "label": "Pirixi-ano",
+          "value": "pirixi-ano"
+        },
+        {
+          "label": "Mamizari-ano",
+          "value": "mamizari-ano"
+        },
+        {
+          "label": "Kãkue-ano",
+          "value": "kkue-ano"
+        },
+        {
+          "label": "Poxi-ano",
+          "value": "poxi-ano"
+        },
+        {
+          "label": "Iniki-ano",
+          "value": "iniki-ano"
+        },
+        {
+          "label": "Rapaxi-ano",
+          "value": "rapaxi-ano"
+        },
+        {
+          "label": "Pxaxi-ano",
+          "value": "pxaxi-ano"
+        },
+        {
+          "label": "Onu-ano",
+          "value": "onu-ano"
+        },
+        {
+          "label": "Arama-ano",
+          "value": "arama-ano"
+        },
+        {
+          "label": "Nohpo-ano",
+          "value": "nohpo-ano"
+        },
+        {
+          "label": "Ëkëmnek",
+          "value": "kmnek"
+        },
+        {
+          "label": "Waniïmë",
+          "value": "wanim"
+        },
+        {
+          "label": "Alawatawan",
+          "value": "alawatawan"
+        },
+        {
+          "label": "Ëmïnwan",
+          "value": "mnwan"
+        },
+        {
+          "label": "Pilixiwan",
+          "value": "pilixiwan"
+        },
+        {
+          "label": "Mamhaliwan",
+          "value": "mamhaliwan"
+        },
+        {
+          "label": "Kïjapokwan",
+          "value": "kjapokwan"
+        },
+        {
+          "label": "Poxiwan",
+          "value": "poxiwan"
+        },
+        {
+          "label": "Menikwan",
+          "value": "menikwan"
+        },
+        {
+          "label": "Kapoxiwan",
+          "value": "kapoxiwan"
+        },
+        {
+          "label": "Pïjaiwan",
+          "value": "pjaiwan"
+        },
+        {
+          "label": "Pëmuwan",
+          "value": "pmuwan"
+        },
+        {
+          "label": "Alamawan",
+          "value": "alamawan"
+        },
+        {
+          "label": "Kopiko",
+          "value": "kopiko"
+        },
+        {
+          "label": "Wanëimë",
+          "value": "wanim"
+        },
+        {
+          "label": "Arawata Wanë",
+          "value": "arawata-wan"
+        },
+        {
+          "label": "Ënpatari wanë",
+          "value": "npatari-wan"
+        },
+        {
+          "label": "Kïrikïri wane",
+          "value": "krikri-wane"
+        },
+        {
+          "label": "Notïpë Wanë",
+          "value": "notp-wan"
+        },
+        {
+          "label": "Mamí Wanë",
+          "value": "mam-wan"
+        },
+        {
+          "label": "Kïyapoko Wanë",
+          "value": "kyapoko-wan"
+        },
+        {
+          "label": "Pëyi Wanë",
+          "value": "pyi-wan"
+        },
+        {
+          "label": "Werewere Wanë",
+          "value": "werewere-wan"
+        },
+        {
+          "label": "Kapai Wanë",
+          "value": "kapai-wan"
+        },
+        {
+          "label": "Pïyai Wanë",
+          "value": "pyai-wan"
+        },
+        {
+          "label": "Simomo Wanë",
+          "value": "simomo-wan"
+        },
+        {
+          "label": "Arama Wanë",
+          "value": "arama-wan"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "epoca": {
+      "tagKey": "epoca",
+      "type": "selectOne",
+      "label": "Epoca",
+      "helperText": "Qual estação do ano?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Primavera",
+          "value": "primavera"
+        },
+        {
+          "label": "Verão",
+          "value": "vero"
+        },
+        {
+          "label": "Inverno",
+          "value": "inverno"
+        },
+        {
+          "label": "Outono",
+          "value": "outono"
+        }
+      ]
+    },
+    "especie-reptis": {
+      "tagKey": "especie-reptis",
+      "type": "selectOne",
+      "label": "Especie Reptéis",
+      "helperText": "Qual espécie?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Anfibio",
+          "value": "anfibio"
+        },
+        {
+          "label": "Répiteis",
+          "value": "rpiteis"
+        }
+      ]
+    },
+    "habitate-animal": {
+      "tagKey": "habitate-animal",
+      "type": "selectOne",
+      "label": "Habitate Animal",
+      "helperText": "Onde esse animal vive?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Terrestre",
+          "value": "terrestre"
+        },
+        {
+          "label": "Rio",
+          "value": "rio"
+        },
+        {
+          "label": "Aereo",
+          "value": "aereo"
+        }
+      ]
+    },
+    "nome": {
+      "tagKey": "nome",
+      "type": "text",
+      "label": "Nome",
+      "helperText": "Qual o nome?",
+      "universal": false,
+      "options": []
+    },
+    "especie-pesca": {
+      "tagKey": "especie-pesca",
+      "type": "selectMultiple",
+      "label": "Especie Pesca",
+      "helperText": "Qual espécie de peixe?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Akari",
+          "value": "akari"
+        },
+        {
+          "label": "Suruí",
+          "value": "suru"
+        },
+        {
+          "label": "Pacu",
+          "value": "pacu"
+        },
+        {
+          "label": "Aimara",
+          "value": "aimara"
+        },
+        {
+          "label": "Trairão",
+          "value": "trairo"
+        },
+        {
+          "label": "Pirarara",
+          "value": "pirarara"
+        },
+        {
+          "label": "Manué",
+          "value": "manu"
+        },
+        {
+          "label": "Poné",
+          "value": "pon"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "numero-caixas": {
+      "tagKey": "numero-caixas",
+      "type": "text",
+      "label": "Numero Caixas",
+      "helperText": "Qual a quantidade de caixas?",
+      "universal": false,
+      "options": []
+    },
+    "planta-de-construo": {
+      "tagKey": "planta-de-construo",
+      "type": "selectOne",
+      "label": "Planta de Construção",
+      "helperText": "Qual planta para construção?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Ubim",
+          "value": "ubim"
+        },
+        {
+          "label": "Mamiri",
+          "value": "mamiri"
+        },
+        {
+          "label": "Wakapu",
+          "value": "wakapu"
+        },
+        {
+          "label": "Kunawa",
+          "value": "kunawa"
+        },
+        {
+          "label": "Mirimi",
+          "value": "mirimi"
+        },
+        {
+          "label": "Alawatak",
+          "value": "alawatak"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "planta-de-comer": {
+      "tagKey": "planta-de-comer",
+      "type": "selectOne",
+      "label": "Planta de Comer",
+      "helperText": "Qual planta de coleta?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Bacuri",
+          "value": "bacuri"
+        },
+        {
+          "label": "Açaí",
+          "value": "aa"
+        },
+        {
+          "label": "Bacaba",
+          "value": "bacaba"
+        },
+        {
+          "label": "Buriti",
+          "value": "buriti"
+        },
+        {
+          "label": "Tapereba",
+          "value": "tapereba"
+        },
+        {
+          "label": "Uxi",
+          "value": "uxi"
+        },
+        {
+          "label": "Cará",
+          "value": "car"
+        },
+        {
+          "label": "Ingá",
+          "value": "ing"
+        },
+        {
+          "label": "Goiaba",
+          "value": "goiaba"
+        },
+        {
+          "label": "Inajá",
+          "value": "inaj"
+        },
+        {
+          "label": "Babaçu",
+          "value": "babau"
+        },
+        {
+          "label": "Caju",
+          "value": "caju"
+        },
+        {
+          "label": "Cacau",
+          "value": "cacau"
+        },
+        {
+          "label": "Cupuaçu",
+          "value": "cupuau"
+        },
+        {
+          "label": "Jatobá",
+          "value": "jatob"
+        },
+        {
+          "label": "Pequiá",
+          "value": "pequi"
+        },
+        {
+          "label": "Tucumã",
+          "value": "tucum"
+        },
+        {
+          "label": "Pupunha",
+          "value": "pupunha"
+        },
+        {
+          "label": "Laranja",
+          "value": "laranja"
+        },
+        {
+          "label": "Manga",
+          "value": "manga"
+        },
+        {
+          "label": "Limão",
+          "value": "limo"
+        },
+        {
+          "label": "Maracujá",
+          "value": "maracuj"
+        },
+        {
+          "label": "Castanha",
+          "value": "castanha"
+        },
+        {
+          "label": "Coco",
+          "value": "coco"
+        },
+        {
+          "label": "Caramiri",
+          "value": "caramiri"
+        },
+        {
+          "label": "Tëpukuremy",
+          "value": "tpukuremy"
+        },
+        {
+          "label": "Atakamaraimo",
+          "value": "atakamaraimo"
+        },
+        {
+          "label": "Nana",
+          "value": "nana"
+        },
+        {
+          "label": "Paruruimo",
+          "value": "paruruimo"
+        },
+        {
+          "label": "Oroxiarai",
+          "value": "oroxiarai"
+        },
+        {
+          "label": "Parahta",
+          "value": "parahta"
+        },
+        {
+          "label": "Mapakauru",
+          "value": "mapakauru"
+        },
+        {
+          "label": "Mamasuhsuru",
+          "value": "mamasuhsuru"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "planta-medicinal": {
+      "tagKey": "planta-medicinal",
+      "type": "selectOne",
+      "label": "Planta Medicinal",
+      "helperText": "Qual a planta medicinal?",
+      "universal": false,
+      "options": []
+    },
+    "planta-para-talhar": {
+      "tagKey": "planta-para-talhar",
+      "type": "selectOne",
+      "label": "Planta para Talhar",
+      "helperText": "Qual planta para talhar?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Kanawa",
+          "value": "kanawa"
+        },
+        {
+          "label": "Apuruita",
+          "value": "apuruita"
+        },
+        {
+          "label": "Taky",
+          "value": "taky"
+        },
+        {
+          "label": "Kaparu",
+          "value": "kaparu"
+        },
+        {
+          "label": "Wywy Epuru",
+          "value": "wywy-epuru"
+        },
+        {
+          "label": "Epehtopo",
+          "value": "epehtopo"
+        },
+        {
+          "label": "Taxika",
+          "value": "taxika"
+        },
+        {
+          "label": "Muzere",
+          "value": "muzere"
+        },
+        {
+          "label": "Warata",
+          "value": "warata"
+        },
+        {
+          "label": "Maruana",
+          "value": "maruana"
+        },
+        {
+          "label": "Sorope Epuru",
+          "value": "sorope-epuru"
+        },
+        {
+          "label": "Mate Epuru",
+          "value": "mate-epuru"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "planta-pra-artesanato": {
+      "tagKey": "planta-pra-artesanato",
+      "type": "selectOne",
+      "label": "Planta pra Artesanato",
+      "helperText": "Qual planta para artesanato?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Aruma",
+          "value": "aruma"
+        },
+        {
+          "label": "Mamiri",
+          "value": "mamiri"
+        },
+        {
+          "label": "Airiki Amuru",
+          "value": "airiki-amuru"
+        },
+        {
+          "label": "Kurua Amuru",
+          "value": "kurua-amuru"
+        },
+        {
+          "label": "Apu Ary",
+          "value": "apu-ary"
+        },
+        {
+          "label": "Wai Amuru",
+          "value": "wai-amuru"
+        }
+      ]
+    },
+    "qualidade-gua": {
+      "tagKey": "qualidade-gua",
+      "type": "selectMultiple",
+      "label": "Qualidade água",
+      "helperText": "Qualidade da água?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Limpa",
+          "value": "limpa"
+        },
+        {
+          "label": "Suja",
+          "value": "suja"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "quantidade-coletada": {
+      "tagKey": "quantidade-coletada",
+      "type": "text",
+      "label": "Quantidade coletada",
+      "helperText": "Qual foi a quantidade coletada?",
+      "universal": false,
+      "options": []
+    },
+    "tamanho-em-metros": {
+      "tagKey": "tamanho-em-metros",
+      "type": "text",
+      "label": "Tamanho em Metros",
+      "helperText": "Qual o tamanho em metros?",
+      "universal": false,
+      "options": []
+    },
+    "tcnica-de-caa": {
+      "tagKey": "tcnica-de-caa",
+      "type": "selectMultiple",
+      "label": "Técnica de caça",
+      "helperText": "Qual técnica usada na caça?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Arco e Flecha",
+          "value": "arco-e-flecha"
+        },
+        {
+          "label": "Arma de Fogo",
+          "value": "arma-de-fogo"
+        },
+        {
+          "label": "Armadilha",
+          "value": "armadilha"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "tipo-abelha": {
+      "tagKey": "tipo-abelha",
+      "type": "selectMultiple",
+      "label": "Tipo Abelha",
+      "helperText": "Qual tipo de abelha é essa?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Apicultura",
+          "value": "apicultura"
+        },
+        {
+          "label": "Meliponicultura",
+          "value": "meliponicultura"
+        }
+      ]
+    },
+    "tcnica-de-pesca": {
+      "tagKey": "tcnica-de-pesca",
+      "type": "selectMultiple",
+      "label": "Técnica de pesca",
+      "helperText": "Qual técnica usada nessa pesca?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Linha & Anzol",
+          "value": "linha-anzol"
+        },
+        {
+          "label": "Rede",
+          "value": "rede"
+        },
+        {
+          "label": "Tarrafa",
+          "value": "tarrafa"
+        },
+        {
+          "label": "Arco & Flecha",
+          "value": "arco-flecha"
+        },
+        {
+          "label": "Armadilha",
+          "value": "armadilha"
+        }
+      ]
+    },
+    "tipo-aldeia": {
+      "tagKey": "tipo-aldeia",
+      "type": "selectOne",
+      "label": "Tipo Aldeia",
+      "helperText": "Que tipo de aldeia é essa?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Aldeia",
+          "value": "aldeia"
+        },
+        {
+          "label": "Aldeia Antiga",
+          "value": "aldeia-antiga"
+        }
+      ]
+    },
+    "tipo-coleta": {
+      "tagKey": "tipo-coleta",
+      "type": "selectMultiple",
+      "label": "Tipo Coleta",
+      "helperText": "O que foi coletado?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Madeira",
+          "value": "madeira"
+        },
+        {
+          "label": "Semente",
+          "value": "semente"
+        },
+        {
+          "label": "Folha",
+          "value": "folha"
+        },
+        {
+          "label": "Casca",
+          "value": "casca"
+        },
+        {
+          "label": "Cipó",
+          "value": "cip"
+        },
+        {
+          "label": "Raiz",
+          "value": "raiz"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "tipo-de-abelha": {
+      "tagKey": "tipo-de-abelha",
+      "type": "selectOne",
+      "label": "Tipo de Abelha",
+      "helperText": "Qual o tipo de abelha?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Caixa",
+          "value": "caixa"
+        },
+        {
+          "label": "Tronco",
+          "value": "tronco"
+        }
+      ]
+    },
+    "tipo-estrutura": {
+      "tagKey": "tipo-estrutura",
+      "type": "selectOne",
+      "label": "Tipo Estrutura",
+      "helperText": "Qual estrutura é essa?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Casa de farinha",
+          "value": "casa-de-farinha"
+        },
+        {
+          "label": "Posto de Saúde",
+          "value": "posto-de-sade"
+        },
+        {
+          "label": "Escola",
+          "value": "escola"
+        },
+        {
+          "label": "Casa de fogo",
+          "value": "casa-de-fogo"
+        },
+        {
+          "label": "Prefeitura",
+          "value": "prefeitura"
+        },
+        {
+          "label": "Casa de manutenção de rabeta",
+          "value": "casa-de-manuteno-de-rabeta"
+        },
+        {
+          "label": "Gerador de energia (potencia)",
+          "value": "gerador-de-energia-potencia"
+        },
+        {
+          "label": "Energia solar (potencia)",
+          "value": "energia-solar-potencia"
+        },
+        {
+          "label": "Ponto de Internet (senha)",
+          "value": "ponto-de-internet-senha"
+        },
+        {
+          "label": "Ponto de Rádio (saúde",
+          "value": "ponto-de-rdio-sade"
+        },
+        {
+          "label": "Funai",
+          "value": "funai"
+        },
+        {
+          "label": "Comunitário)",
+          "value": "comunitrio"
+        },
+        {
+          "label": "Alojamento",
+          "value": "alojamento"
+        },
+        {
+          "label": "Igreja (catolica",
+          "value": "igreja-catolica"
+        },
+        {
+          "label": "Evangelica",
+          "value": "evangelica"
+        },
+        {
+          "label": "Tarano)",
+          "value": "tarano"
+        },
+        {
+          "label": "Casa do mel",
+          "value": "casa-do-mel"
+        },
+        {
+          "label": "Casa de informatica",
+          "value": "casa-de-informatica"
+        },
+        {
+          "label": "Casa (familia ou proprietario)",
+          "value": "casa-familia-ou-proprietario"
+        },
+        {
+          "label": "Campo de futebol",
+          "value": "campo-de-futebol"
+        },
+        {
+          "label": "Casa cacique",
+          "value": "casa-cacique"
+        },
+        {
+          "label": "Cemitério",
+          "value": "cemitrio"
+        }
+      ]
+    },
+    "tipo-hidricos": {
+      "tagKey": "tipo-hidricos",
+      "type": "selectOne",
+      "label": "Tipo Hidricos",
+      "helperText": "Qual o tipo de água?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Poção",
+          "value": "poo"
+        },
+        {
+          "label": "Praia",
+          "value": "praia"
+        },
+        {
+          "label": "Cachoeira",
+          "value": "cachoeira"
+        },
+        {
+          "label": "Nascente de água",
+          "value": "nascente-de-gua"
+        },
+        {
+          "label": "Ilha",
+          "value": "ilha"
+        },
+        {
+          "label": "Igarapé",
+          "value": "igarap"
+        },
+        {
+          "label": "Rio",
+          "value": "rio"
+        },
+        {
+          "label": "Lago",
+          "value": "lago"
+        },
+        {
+          "label": "Poço artesiano",
+          "value": "poo-artesiano"
+        },
+        {
+          "label": "Hidroeletrica",
+          "value": "hidroeletrica"
+        }
+      ]
+    },
+    "tipo-de-perigo": {
+      "tagKey": "tipo-de-perigo",
+      "type": "selectOne",
+      "label": "Tipo de Perigo",
+      "helperText": "",
+      "universal": false,
+      "options": [
+        {
+          "label": "Onça",
+          "value": "ona"
+        },
+        {
+          "label": "Anaconda",
+          "value": "anaconda"
+        }
+      ]
+    },
+    "tipo-de-paisagem": {
+      "tagKey": "tipo-de-paisagem",
+      "type": "selectOne",
+      "label": "Tipo de Paisagem",
+      "helperText": "Que tipo de paisagem é essa?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Cerrado",
+          "value": "cerrado"
+        },
+        {
+          "label": "Terra firme",
+          "value": "terra-firme"
+        },
+        {
+          "label": "Campo de aldeia",
+          "value": "campo-de-aldeia"
+        },
+        {
+          "label": "Terra alagada",
+          "value": "terra-alagada"
+        },
+        {
+          "label": "Igapo",
+          "value": "igapo"
+        },
+        {
+          "label": "Roça antiga",
+          "value": "roa-antiga"
+        },
+        {
+          "label": "Piçarra",
+          "value": "piarra"
+        },
+        {
+          "label": "Capoeira",
+          "value": "capoeira"
+        },
+        {
+          "label": "Encosta e topo morro",
+          "value": "encosta-e-topo-morro"
+        },
+        {
+          "label": "Pedra",
+          "value": "pedra"
+        },
+        {
+          "label": "Montanha",
+          "value": "montanha"
+        }
+      ]
+    },
+    "tipo-invaso": {
+      "tagKey": "tipo-invaso",
+      "type": "selectOne",
+      "label": "Tipo Invasão",
+      "helperText": "Qual ameaça encontrada?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Garimpo",
+          "value": "garimpo"
+        },
+        {
+          "label": "Invasão",
+          "value": "invaso"
+        },
+        {
+          "label": "Desmatamento",
+          "value": "desmatamento"
+        },
+        {
+          "label": "Sobrevôo",
+          "value": "sobrevo"
+        },
+        {
+          "label": "Trafico",
+          "value": "trafico"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    },
+    "tipo-roa": {
+      "tagKey": "tipo-roa",
+      "type": "selectOne",
+      "label": "Tipo Roça",
+      "helperText": "Qual o tipo de roça?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Roça nova",
+          "value": "roa-nova"
+        },
+        {
+          "label": "Roça produtiva",
+          "value": "roa-produtiva"
+        },
+        {
+          "label": "Roça futura",
+          "value": "roa-futura"
+        },
+        {
+          "label": "Roça antiga",
+          "value": "roa-antiga"
+        }
+      ]
+    },
+    "yana": {
+      "tagKey": "yana",
+      "type": "selectMultiple",
+      "label": "Yana",
+      "helperText": "Qual etnia?",
+      "universal": false,
+      "options": [
+        {
+          "label": "Tiriyó",
+          "value": "tiriy"
+        },
+        {
+          "label": "Kaxuyana",
+          "value": "kaxuyana"
+        },
+        {
+          "label": "Apalai",
+          "value": "apalai"
+        },
+        {
+          "label": "Wayana",
+          "value": "wayana"
+        },
+        {
+          "label": "Outro",
+          "value": "outro"
+        }
+      ]
+    }
+  },
+  "presets": {
+    "abelha": {
+      "name": "Abelha Zangão",
+      "tags": {
+        "abelha": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "abelha",
+      "fields": [
+        "nome",
+        "especie-abelha",
+        "quantidade-coletada",
+        "cor"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "aldeia": {
+      "name": "Aldeia",
+      "tags": {
+        "aldeia": "yes"
+      },
+      "color": "#cc4125",
+      "icon": "aldeia",
+      "fields": [
+        "nome",
+        "tipo-aldeia"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "caa": {
+      "name": "Caça ",
+      "tags": {
+        "caa": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "caa",
+      "fields": [
+        "nome",
+        "especie-caa",
+        "quantidade-coletada",
+        "tcnica-de-caa",
+        "habitate-animal"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "estrutura": {
+      "name": "Estrutura",
+      "tags": {
+        "estrutura": "yes"
+      },
+      "color": "#cc4125",
+      "icon": "estrutura",
+      "fields": [
+        "condies",
+        "tipo-estrutura"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "invaso": {
+      "name": "Invasão",
+      "tags": {
+        "invaso": "yes"
+      },
+      "color": "#e06666",
+      "icon": "invaso",
+      "fields": [
+        "nome",
+        "tipo-invaso"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "local-de-desova": {
+      "name": "Local de desova",
+      "tags": {
+        "local-de-desova": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "local-de-desova",
+      "fields": [
+        "nome",
+        "especie-reptis",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "local-de-argila": {
+      "name": "Local de argila",
+      "tags": {
+        "local-de-argila": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "local-de-argila",
+      "fields": [
+        "nome",
+        "cor",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "local-perigoso": {
+      "name": "Local Perigoso",
+      "tags": {
+        "local-perigoso": "yes"
+      },
+      "color": "#e06666",
+      "icon": "local-perigoso",
+      "fields": [
+        "nome",
+        "tipo-de-perigo"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "lugar-historico": {
+      "name": "Lugar historico",
+      "tags": {
+        "lugar-historico": "yes"
+      },
+      "color": "#f6b26b",
+      "icon": "lugar-historico",
+      "fields": [
+        "nome",
+        "yana"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "paisagem": {
+      "name": "Paisagem",
+      "tags": {
+        "paisagem": "yes"
+      },
+      "color": "#f6b26b",
+      "icon": "paisagem",
+      "fields": [
+        "nome",
+        "tipo-de-paisagem"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "planta-para-comer": {
+      "name": "Planta para comer",
+      "tags": {
+        "planta-para-comer": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "planta-para-comer",
+      "fields": [
+        "nome",
+        "planta-de-comer",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "planta-para-artesanato": {
+      "name": "Planta para artesanato",
+      "tags": {
+        "planta-para-artesanato": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "planta-para-artesanato",
+      "fields": [
+        "nome",
+        "planta-pra-artesanato",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "ponto-de-lixo": {
+      "name": "Ponto de lixo",
+      "tags": {
+        "ponto-de-lixo": "yes"
+      },
+      "color": "#cc4125",
+      "icon": "ponto-de-lixo",
+      "fields": [
+        "nome"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "planta-para-talhar": {
+      "name": "Planta para talhar",
+      "tags": {
+        "planta-para-talhar": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "planta-para-talhar",
+      "fields": [
+        "nome",
+        "planta-para-talhar",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "pesca": {
+      "name": "Pesca ",
+      "tags": {
+        "pesca": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "pesca",
+      "fields": [
+        "nome",
+        "especie-pesca",
+        "quantidade-coletada",
+        "tcnica-de-pesca"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "planta-para-construo": {
+      "name": "Planta para construção",
+      "tags": {
+        "planta-para-construo": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "planta-para-construo",
+      "fields": [
+        "nome",
+        "quantidade-coletada",
+        "tipo-coleta",
+        "planta-de-construo"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "remdio-tradicional": {
+      "name": "Remédio tradicional",
+      "tags": {
+        "remdio-tradicional": "yes"
+      },
+      "color": "#b6d7a8",
+      "icon": "remdio-tradicional",
+      "fields": [
+        "nome",
+        "quantidade-coletada",
+        "tipo-coleta",
+        "planta-medicinal"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "recursos-hdricos": {
+      "name": "Recursos hídricos",
+      "tags": {
+        "recursos-hdricos": "yes"
+      },
+      "color": "#a4c2f4",
+      "icon": "recursos-hdricos",
+      "fields": [
+        "nome",
+        "tipo-hidricos",
+        "qualidade-gua"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "porto": {
+      "name": "Porto",
+      "tags": {
+        "porto": "yes"
+      },
+      "color": "#cc4125",
+      "icon": "porto",
+      "fields": [
+        "nome",
+        "condies"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "vestgios-de-isolado": {
+      "name": "Vestígios de isolado",
+      "tags": {
+        "vestgios-de-isolado": "yes"
+      },
+      "color": "#f6b26b",
+      "icon": "vestgios-de-isolado",
+      "fields": [
+        "nome"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    },
+    "roa": {
+      "name": "Roça",
+      "tags": {
+        "roa": "yes"
+      },
+      "color": "#cc4125",
+      "icon": "roa",
+      "fields": [
+        "nome",
+        "tipo-roa",
+        "agrobiodiversidade",
+        "quantidade-coletada"
+      ],
+      "removeTags": {},
+      "addTags": {},
+      "geometry": [
+        "point",
+        "line",
+        "area"
+      ]
+    }
+  },
+  "translations": {
+    "api": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Orino esary"
+        },
+        "planta-para-artesanato": {
+          "name": "Wewe Tapyi Ritohtonomo"
+        },
+        "planta-para-comer": {
+          "name": "Tonahsamo"
+        },
+        "remdio-tradicional": {
+          "name": "Opime Exiketomo"
+        },
+        "planta-para-construo": {
+          "name": "Tykahsamo"
+        },
+        "planta-para-talhar": {
+          "name": "Taxikasamo"
+        },
+        "local-de-desova": {
+          "name": "Onokaro Ehmokatopo"
+        },
+        "pesca": {
+          "name": "Urakanatopo Tuna Ena"
+        },
+        "caa": {
+          "name": "Urakanatopo Itutaka"
+        },
+        "abelha": {
+          "name": "Ano"
+        },
+        "vestgios-de-isolado": {
+          "name": "Ikuremano Putahpyry"
+        },
+        "lugar-historico": {
+          "name": "Pake Ahtao Tokarosemy"
+        },
+        "paisagem": {
+          "name": "Tonesamo"
+        },
+        "invaso": {
+          "name": "Tunoma samo"
+        },
+        "local-perigoso": {
+          "name": "Ihtomanomo"
+        },
+        "roa": {
+          "name": "Tupito"
+        },
+        "ponto-de-lixo": {
+          "name": "Otyrõpo tõ esary"
+        },
+        "estrutura": {
+          "name": "Tapyi"
+        },
+        "porto": {
+          "name": "Nakuata"
+        },
+        "aldeia": {
+          "name": "Pata"
+        },
+        "recursos-hdricos": {
+          "name": "Tuna"
+        }
+      },
+      "fields": {
+        "nome": {},
+        "cor": {},
+        "planta-medicinal": {},
+        "planta-de-comer": {},
+        "planta-de-construo": {},
+        "planta-pra-artesanato": {},
+        "planta-para-talhar": {},
+        "epoca": {},
+        "habitate-animal": {},
+        "especie-reptis": {},
+        "quantidade-coletada": {},
+        "tipo-coleta": {},
+        "circunferncia-na-altura-do-peito": {},
+        "altura": {},
+        "yana": {},
+        "tamanho-em-metros": {},
+        "condies": {},
+        "tipo-abelha": {},
+        "especie-pesca": {},
+        "especie-caa": {},
+        "tipo-de-abelha": {},
+        "especie-abelha": {},
+        "numero-caixas": {},
+        "tipo-de-paisagem": {},
+        "tipo-invaso": {},
+        "tipo-de-perigo": {},
+        "agrobiodiversidade": {},
+        "tipo-estrutura": {},
+        "tipo-aldeia": {},
+        "tipo-hidricos": {},
+        "tipo-roa": {},
+        "tcnica-de-caa": {},
+        "qualidade-gua": {},
+        "tcnica-de-pesca": {}
+      },
+      "categories": {}
+    },
+    "en": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Clay site"
+        },
+        "planta-para-artesanato": {
+          "name": "Plant for building"
+        },
+        "planta-para-comer": {
+          "name": "Plant for food"
+        },
+        "remdio-tradicional": {
+          "name": "Medicinal Plant"
+        },
+        "planta-para-construo": {
+          "name": "Plants for crafts"
+        },
+        "planta-para-talhar": {
+          "name": "Plants for wood work"
+        },
+        "local-de-desova": {
+          "name": "Spawning location"
+        },
+        "pesca": {
+          "name": "Fishing"
+        },
+        "caa": {
+          "name": "Hunt"
+        },
+        "abelha": {
+          "name": "Bees"
+        },
+        "vestgios-de-isolado": {
+          "name": "Presence of isolated"
+        },
+        "lugar-historico": {
+          "name": "Historical points"
+        },
+        "paisagem": {
+          "name": "Landscape"
+        },
+        "invaso": {
+          "name": "Invasion"
+        },
+        "local-perigoso": {
+          "name": "Threat"
+        },
+        "roa": {
+          "name": "Roça"
+        },
+        "ponto-de-lixo": {
+          "name": "Garbage point"
+        },
+        "estrutura": {
+          "name": "Structure"
+        },
+        "porto": {
+          "name": "Porto"
+        },
+        "aldeia": {
+          "name": "Village"
+        },
+        "recursos-hdricos": {
+          "name": "Water resources"
+        }
+      },
+      "fields": {
+        "nome": {
+          "label": "Name",
+          "helperText": "What's the name?"
+        },
+        "cor": {
+          "label": "Color",
+          "helperText": "What color?"
+        },
+        "planta-medicinal": {
+          "label": "Medicinal Plant",
+          "helperText": "What is the medicinal plant?"
+        },
+        "planta-de-comer": {
+          "label": "Eating Plant",
+          "helperText": "Which collection plant?"
+        },
+        "planta-de-construo": {
+          "label": "Construction Plan",
+          "helperText": "What construction plan?"
+        },
+        "planta-pra-artesanato": {
+          "label": "Plant for Crafts",
+          "helperText": "Which plant for crafts?"
+        },
+        "planta-para-talhar": {
+          "label": "Plant for carving",
+          "helperText": "Which plant to carve?"
+        },
+        "epoca": {
+          "label": "Era",
+          "helperText": "What season of the year?"
+        },
+        "habitate-animal": {
+          "label": "Animal Habitat",
+          "helperText": "Where does this animal live?"
+        },
+        "especie-reptis": {
+          "label": "Species Reptiles",
+          "helperText": "Which species?"
+        },
+        "quantidade-coletada": {
+          "label": "Quantity collected",
+          "helperText": "How much was collected?"
+        },
+        "tipo-coleta": {
+          "label": "Collection Type",
+          "helperText": "What was collected?"
+        },
+        "circunferncia-na-altura-do-peito": {
+          "label": "Circumference at Chest Height",
+          "helperText": "What is the circumference measurement?"
+        },
+        "altura": {
+          "label": "Height",
+          "helperText": "How tall is it?"
+        },
+        "yana": {
+          "label": "Yana",
+          "helperText": "What ethnicity?"
+        },
+        "tamanho-em-metros": {
+          "label": "Size in Meters",
+          "helperText": "What is the size in meters?"
+        },
+        "condies": {
+          "label": "Conditions",
+          "helperText": "What conditions does this structure present?"
+        },
+        "tipo-abelha": {
+          "label": "Bee Type",
+          "helperText": "What type of bee is this?"
+        },
+        "especie-pesca": {
+          "label": "Fishing Species",
+          "helperText": "What species of fish?"
+        },
+        "especie-caa": {
+          "label": "Hunting Species",
+          "helperText": "What species of animal?"
+        },
+        "tipo-de-abelha": {
+          "label": "Type of Bee",
+          "helperText": "What type of bee?"
+        },
+        "especie-abelha": {
+          "label": "Bee Species",
+          "helperText": "What species of bee?"
+        },
+        "numero-caixas": {
+          "label": "Number of Boxes",
+          "helperText": "How many boxes are there?"
+        },
+        "tipo-de-paisagem": {
+          "label": "Landscape Type",
+          "helperText": "What kind of landscape is this?"
+        },
+        "tipo-invaso": {
+          "label": "Invasion Type",
+          "helperText": "What threat was found?"
+        },
+        "tipo-de-perigo": {
+          "label": "Type of Hazard",
+          "helperText": ""
+        },
+        "agrobiodiversidade": {
+          "label": "Agrobiodiversity",
+          "helperText": "Which food(s) are part of this agrobiodiversity?"
+        },
+        "tipo-estrutura": {
+          "label": "Type Structure",
+          "helperText": "What structure is this?"
+        },
+        "tipo-aldeia": {
+          "label": "Village Type",
+          "helperText": "What kind of village is this?"
+        },
+        "tipo-hidricos": {
+          "label": "Hydrotype",
+          "helperText": "What type of water?"
+        },
+        "tipo-roa": {
+          "label": "Roça Type",
+          "helperText": "What type of farm?"
+        },
+        "tcnica-de-caa": {
+          "label": "Hunting technique",
+          "helperText": "What technique is used in hunting?"
+        },
+        "qualidade-gua": {
+          "label": "Water quality",
+          "helperText": "Water quality?"
+        },
+        "tcnica-de-pesca": {
+          "label": "Fishing technique",
+          "helperText": "What technique is used in this fishing?"
+        }
+      },
+      "categories": {}
+    },
+    "es": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Sitio de arcilla"
+        },
+        "planta-para-artesanato": {
+          "name": "Planta para construcion"
+        },
+        "planta-para-comer": {
+          "name": "Planta para comer"
+        },
+        "remdio-tradicional": {
+          "name": "Planta medicinal"
+        },
+        "planta-para-construo": {
+          "name": "Planta para manualidades"
+        },
+        "planta-para-talhar": {
+          "name": "Plata para madera"
+        },
+        "local-de-desova": {
+          "name": "Ubicación de desove"
+        },
+        "pesca": {
+          "name": "Pesca"
+        },
+        "caa": {
+          "name": "Caza"
+        },
+        "abelha": {
+          "name": "Abejas"
+        },
+        "vestgios-de-isolado": {
+          "name": "Presencia de aislados"
+        },
+        "lugar-historico": {
+          "name": "Puntos históricos"
+        },
+        "paisagem": {
+          "name": "Paisaje"
+        },
+        "invaso": {
+          "name": "Invasión"
+        },
+        "local-perigoso": {
+          "name": "Amenaza"
+        },
+        "roa": {
+          "name": "Roca"
+        },
+        "ponto-de-lixo": {
+          "name": "Punto de basura"
+        },
+        "estrutura": {
+          "name": "Estructura"
+        },
+        "porto": {
+          "name": "Porto"
+        },
+        "aldeia": {
+          "name": "Aldea"
+        },
+        "recursos-hdricos": {
+          "name": "Recursos hídricos"
+        }
+      },
+      "fields": {
+        "nome": {
+          "label": "Nombre",
+          "helperText": "¿Cuál es el nombre?"
+        },
+        "cor": {
+          "label": "Color",
+          "helperText": "¿Qué color?"
+        },
+        "planta-medicinal": {
+          "label": "Planta Medicinal",
+          "helperText": "¿Cuál es la planta medicinal?"
+        },
+        "planta-de-comer": {
+          "label": "Comiendo Planta",
+          "helperText": "¿Qué planta de recolección?"
+        },
+        "planta-de-construo": {
+          "label": "Plano de construcción",
+          "helperText": "¿Qué plan de construcción?"
+        },
+        "planta-pra-artesanato": {
+          "label": "Planta para manualidades",
+          "helperText": "¿Qué planta para manualidades?"
+        },
+        "planta-para-talhar": {
+          "label": "Planta para tallar",
+          "helperText": "¿Qué planta tallar?"
+        },
+        "epoca": {
+          "label": "Era",
+          "helperText": "¿Qué estación del año?"
+        },
+        "habitate-animal": {
+          "label": "Hábitat animal",
+          "helperText": "¿Dónde vive este animal?"
+        },
+        "especie-reptis": {
+          "label": "Especies Reptiles",
+          "helperText": "¿Qué especie?"
+        },
+        "quantidade-coletada": {
+          "label": "Cantidad recolectada",
+          "helperText": "¿Cuánto se recaudó?"
+        },
+        "tipo-coleta": {
+          "label": "Tipo de colección",
+          "helperText": "¿Qué se recogió?"
+        },
+        "circunferncia-na-altura-do-peito": {
+          "label": "Circunferencia a la altura del pecho",
+          "helperText": "¿Cuál es la medida de la circunferencia?"
+        },
+        "altura": {
+          "label": "Altura",
+          "helperText": "¿Qué altura tiene?"
+        },
+        "yana": {
+          "label": "Yana",
+          "helperText": "¿Qué etnia?"
+        },
+        "tamanho-em-metros": {
+          "label": "Tamaño en Metros",
+          "helperText": "¿Cuál es el tamaño en metros?"
+        },
+        "condies": {
+          "label": "Condiciones",
+          "helperText": "¿Qué condiciones presenta esta estructura?"
+        },
+        "tipo-abelha": {
+          "label": "Tipo de abeja",
+          "helperText": "¿Qué tipo de abeja es esta?"
+        },
+        "especie-pesca": {
+          "label": "Especies de pesca",
+          "helperText": "¿Qué especie de pez?"
+        },
+        "especie-caa": {
+          "label": "Especies de caza",
+          "helperText": "¿Qué especie de animal?"
+        },
+        "tipo-de-abelha": {
+          "label": "Tipo de abeja",
+          "helperText": "¿Qué tipo de abeja?"
+        },
+        "especie-abelha": {
+          "label": "Especies de abejas",
+          "helperText": "¿Qué especie de abeja?"
+        },
+        "numero-caixas": {
+          "label": "Número de cajas",
+          "helperText": "¿Cuantas cajas hay?"
+        },
+        "tipo-de-paisagem": {
+          "label": "Tipo de paisaje",
+          "helperText": "¿Qué tipo de paisaje es este?"
+        },
+        "tipo-invaso": {
+          "label": "Tipo de invasión",
+          "helperText": "¿Qué amenaza se encontró?"
+        },
+        "tipo-de-perigo": {
+          "label": "Tipo de peligro",
+          "helperText": ""
+        },
+        "agrobiodiversidade": {
+          "label": "Agrobiodiversidad",
+          "helperText": "¿Qué alimentos forman parte de esta agrobiodiversidad?"
+        },
+        "tipo-estrutura": {
+          "label": "Tipo Estructura",
+          "helperText": "¿Qué estructura es esta?"
+        },
+        "tipo-aldeia": {
+          "label": "Tipo de pueblo",
+          "helperText": "¿Qué clase de pueblo es este?"
+        },
+        "tipo-hidricos": {
+          "label": "Hidrotipo",
+          "helperText": "¿Qué tipo de agua?"
+        },
+        "tipo-roa": {
+          "label": "Tipo roca",
+          "helperText": "¿Qué tipo de finca?"
+        },
+        "tcnica-de-caa": {
+          "label": "Tecnica de caza",
+          "helperText": "¿Qué técnica se utiliza en la caza?"
+        },
+        "qualidade-gua": {
+          "label": "Calidad del agua",
+          "helperText": "¿Calidad del agua?"
+        },
+        "tcnica-de-pesca": {
+          "label": "Tecnica de pesca",
+          "helperText": "¿Qué técnica se utiliza en esta pesca?"
+        }
+      },
+      "categories": {}
+    },
+    "kbb": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Yarimna yatxarï"
+        },
+        "planta-para-artesanato": {
+          "name": "Planta para construção"
+        },
+        "planta-para-comer": {
+          "name": "Planta para comer"
+        },
+        "remdio-tradicional": {
+          "name": "Yut'tawohoye titxemï o yu'tawomo yoherir yotohu, ohi, wenowetohu, kwama piihowaii, kwamatxari, kwama purous hoturu"
+        },
+        "planta-para-construo": {
+          "name": "Enerïr yanïmtohu"
+        },
+        "planta-para-talhar": {
+          "name": "Plata para talhar"
+        },
+        "local-de-desova": {
+          "name": "Emokato yatxarï (kaimare, iwana, itxawaru)"
+        },
+        "pesca": {
+          "name": "Kutma yanïmtohu (pore, okorohi, paku, aimara, pone"
+        },
+        "caa": {
+          "name": "Renano wehohu (ewarko, kirmawu, wotoimo, irema)"
+        },
+        "abelha": {
+          "name": "Wehoimo"
+        },
+        "vestgios-de-isolado": {
+          "name": "Tahutïkem ito wetohu (ikukuro)"
+        },
+        "lugar-historico": {
+          "name": "Takaremtomu (esotï)"
+        },
+        "paisagem": {
+          "name": "Na (tumatïkemï, yutuimo, wosuimo, yakrara)"
+        },
+        "invaso": {
+          "name": "Invasão"
+        },
+        "local-perigoso": {
+          "name": "Kunonomaï (moye rïka tuwomsomï, garimpo, newehokono, kaikus hokono, woto yonhekne, kutmahokono, mïkaiwaru moye rïka tïrenemï, kanawaimo yonetohu)"
+        },
+        "roa": {
+          "name": "Imoho (wosu, atxatohike, imoho, atxato)"
+        },
+        "ponto-de-lixo": {
+          "name": "Nekmanïtpo yaimatohu"
+        },
+        "estrutura": {
+          "name": "Estrutura"
+        },
+        "porto": {
+          "name": "Kuwamanï"
+        },
+        "aldeia": {
+          "name": "Atxato"
+        },
+        "recursos-hdricos": {
+          "name": "Tuna"
+        }
+      },
+      "fields": {
+        "nome": {},
+        "cor": {},
+        "planta-medicinal": {},
+        "planta-de-comer": {},
+        "planta-de-construo": {},
+        "planta-pra-artesanato": {},
+        "planta-para-talhar": {},
+        "epoca": {},
+        "habitate-animal": {},
+        "especie-reptis": {},
+        "quantidade-coletada": {},
+        "tipo-coleta": {},
+        "circunferncia-na-altura-do-peito": {},
+        "altura": {},
+        "yana": {},
+        "tamanho-em-metros": {},
+        "condies": {},
+        "tipo-abelha": {},
+        "especie-pesca": {},
+        "especie-caa": {},
+        "tipo-de-abelha": {},
+        "especie-abelha": {},
+        "numero-caixas": {},
+        "tipo-de-paisagem": {},
+        "tipo-invaso": {},
+        "tipo-de-perigo": {},
+        "agrobiodiversidade": {},
+        "tipo-estrutura": {},
+        "tipo-aldeia": {},
+        "tipo-hidricos": {},
+        "tipo-roa": {},
+        "tcnica-de-caa": {},
+        "qualidade-gua": {},
+        "tcnica-de-pesca": {}
+      },
+      "categories": {}
+    },
+    "tri": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Ërinë ipata"
+        },
+        "planta-para-artesanato": {
+          "name": "Wewe Pakoro Rïtohton"
+        },
+        "planta-para-comer": {
+          "name": "Tënasenton"
+        },
+        "remdio-tradicional": {
+          "name": "Ëpime Teesenton"
+        },
+        "planta-para-construo": {
+          "name": "Tïkasenton"
+        },
+        "planta-para-talhar": {
+          "name": ""
+        },
+        "local-de-desova": {
+          "name": "Akïrënna Iwehmakato"
+        },
+        "pesca": {
+          "name": "Kana Emato Ipata"
+        },
+        "caa": {
+          "name": "Wëiwato"
+        },
+        "abelha": {
+          "name": "Wanë"
+        },
+        "vestgios-de-isolado": {
+          "name": "Enepïnton Ihpupë"
+        },
+        "lugar-historico": {
+          "name": "Pena Ahtao Tïponosen"
+        },
+        "paisagem": {
+          "name": "Tënenton"
+        },
+        "invaso": {
+          "name": "Tïnonosenton"
+        },
+        "local-perigoso": {
+          "name": "Ihkërënmanehton"
+        },
+        "roa": {
+          "name": "Tïpitë"
+        },
+        "ponto-de-lixo": {
+          "name": "Ahpuru ipata"
+        },
+        "estrutura": {
+          "name": "Pakoro"
+        },
+        "porto": {
+          "name": "Tunahkata"
+        },
+        "aldeia": {
+          "name": "Pata"
+        },
+        "recursos-hdricos": {
+          "name": "Tuna"
+        }
+      },
+      "fields": {
+        "nome": {},
+        "cor": {},
+        "planta-medicinal": {},
+        "planta-de-comer": {},
+        "planta-de-construo": {},
+        "planta-pra-artesanato": {},
+        "planta-para-talhar": {},
+        "epoca": {},
+        "habitate-animal": {},
+        "especie-reptis": {},
+        "quantidade-coletada": {},
+        "tipo-coleta": {},
+        "circunferncia-na-altura-do-peito": {},
+        "altura": {},
+        "yana": {},
+        "tamanho-em-metros": {},
+        "condies": {},
+        "tipo-abelha": {},
+        "especie-pesca": {},
+        "especie-caa": {},
+        "tipo-de-abelha": {},
+        "especie-abelha": {},
+        "numero-caixas": {},
+        "tipo-de-paisagem": {},
+        "tipo-invaso": {},
+        "tipo-de-perigo": {},
+        "agrobiodiversidade": {},
+        "tipo-estrutura": {},
+        "tipo-aldeia": {},
+        "tipo-hidricos": {},
+        "tipo-roa": {},
+        "tcnica-de-caa": {},
+        "qualidade-gua": {},
+        "tcnica-de-pesca": {}
+      },
+      "categories": {}
+    },
+    "way": {
+      "presets": {
+        "local-de-argila": {
+          "name": "Warle enenela"
+        },
+        "planta-para-artesanato": {
+          "name": "Wewe pakolo ïtoptonom"
+        },
+        "planta-para-comer": {
+          "name": "Tëpïhamo"
+        },
+        "remdio-tradicional": {
+          "name": "Ëpi Me Tëweihamo"
+        },
+        "planta-para-construo": {
+          "name": "Tíkaphamo"
+        },
+        "planta-para-talhar": {
+          "name": "Tëklëhamo"
+        },
+        "local-de-desova": {
+          "name": "Ënïklë ehmokatop"
+        },
+        "pesca": {
+          "name": "Ulakanïmtop Tuna Wena"
+        },
+        "caa": {
+          "name": "Ulakanïmtop Ituhtak"
+        },
+        "abelha": {
+          "name": "Wanë"
+        },
+        "vestgios-de-isolado": {
+          "name": "Ikuremamnom Putatpë"
+        },
+        "lugar-historico": {
+          "name": "Uhpak Aptau Helë Tëkalem"
+        },
+        "paisagem": {
+          "name": "Tënehamo"
+        },
+        "invaso": {
+          "name": "Tunonmahamo"
+        },
+        "local-perigoso": {
+          "name": ""
+        },
+        "roa": {
+          "name": "Ïmë"
+        },
+        "ponto-de-lixo": {
+          "name": "Imukutpë pata"
+        },
+        "estrutura": {
+          "name": "Pakolo"
+        },
+        "porto": {
+          "name": ""
+        },
+        "aldeia": {
+          "name": "Ëutë"
+        },
+        "recursos-hdricos": {
+          "name": "Tuna"
+        }
+      },
+      "fields": {
+        "nome": {},
+        "cor": {},
+        "planta-medicinal": {},
+        "planta-de-comer": {},
+        "planta-de-construo": {},
+        "planta-pra-artesanato": {},
+        "planta-para-talhar": {},
+        "epoca": {},
+        "habitate-animal": {},
+        "especie-reptis": {},
+        "quantidade-coletada": {},
+        "tipo-coleta": {},
+        "circunferncia-na-altura-do-peito": {},
+        "altura": {},
+        "yana": {},
+        "tamanho-em-metros": {},
+        "condies": {},
+        "tipo-abelha": {},
+        "especie-pesca": {},
+        "especie-caa": {},
+        "tipo-de-abelha": {},
+        "especie-abelha": {},
+        "numero-caixas": {},
+        "tipo-de-paisagem": {},
+        "tipo-invaso": {},
+        "tipo-de-perigo": {},
+        "agrobiodiversidade": {},
+        "tipo-estrutura": {},
+        "tipo-aldeia": {},
+        "tipo-hidricos": {},
+        "tipo-roa": {},
+        "tcnica-de-caa": {},
+        "qualidade-gua": {},
+        "tcnica-de-pesca": {}
+      },
+      "categories": {}
+    }
+  },
+  "icons": {
+    "abelha-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 0,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "aldeia-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 100,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "caa-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 0,
+      "y": 100,
+      "pixelRatio": 1
+    },
+    "estrutura-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 100,
+      "y": 100,
+      "pixelRatio": 1
+    },
+    "invaso-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 200,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "local-de-argila-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 300,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "local-de-desova-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 200,
+      "y": 100,
+      "pixelRatio": 1
+    },
+    "local-perigoso-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 300,
+      "y": 100,
+      "pixelRatio": 1
+    },
+    "lugar-historico-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 0,
+      "y": 200,
+      "pixelRatio": 1
+    },
+    "paisagem-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 100,
+      "y": 200,
+      "pixelRatio": 1
+    },
+    "pesca-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 200,
+      "y": 200,
+      "pixelRatio": 1
+    },
+    "planta-para-artesanato-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 300,
+      "y": 200,
+      "pixelRatio": 1
+    },
+    "planta-para-comer-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 0,
+      "y": 300,
+      "pixelRatio": 1
+    },
+    "planta-para-construo-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 100,
+      "y": 300,
+      "pixelRatio": 1
+    },
+    "planta-para-talhar-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 200,
+      "y": 300,
+      "pixelRatio": 1
+    },
+    "ponto-de-lixo-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 300,
+      "y": 300,
+      "pixelRatio": 1
+    },
+    "porto-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 400,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "recursos-hdricos-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 500,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "remdio-tradicional-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 600,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "roa-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 700,
+      "y": 0,
+      "pixelRatio": 1
+    },
+    "vestgios-de-isolado-100px": {
+      "width": 100,
+      "height": 100,
+      "x": 400,
+      "y": 100,
+      "pixelRatio": 1
+    }
+  }
+}
