@@ -60,6 +60,29 @@ function cleanWhitespaceOnlyCells(
   }
 }
 
+function extractDriveFileId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/[-\w]{25,}/);
+  return match ? match[0] : null;
+}
+
+function normalizeIconSlug(slug: string): string {
+  if (!slug) return "";
+
+  const parts = slug.split("-").filter((part) => part !== "");
+
+  while (parts.length > 0) {
+    const last = parts[parts.length - 1];
+    if (/^(?:\d+px|\d+x|small|medium|large)$/.test(last)) {
+      parts.pop();
+      continue;
+    }
+    break;
+  }
+
+  return parts.join("-");
+}
+
 function checkForDuplicates(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   columnIndex: number,
@@ -384,6 +407,203 @@ function lintSheet(
   }
 }
 
+function getDriveIconInfo(fileId: string): {
+  slug: string | null;
+  isSvg: boolean;
+  errorMessage?: string;
+} {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const fileName = file.getName();
+    const mimeType = file.getMimeType();
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    const slug = normalizeIconSlug(slugify(nameWithoutExt));
+    const isSvg = mimeType === MimeType.SVG || /\.svg$/i.test(fileName);
+    return { slug: slug || null, isSvg };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      slug: null,
+      isSvg: false,
+      errorMessage: `Unable to access icon file (Drive ID ${fileId}): ${message}`,
+    };
+  }
+}
+
+function validateCategoryIcons(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+
+  if (!categoriesSheet) {
+    console.log("Categories sheet not found during icon validation");
+    return;
+  }
+
+  const lastRow = categoriesSheet.getLastRow();
+  if (lastRow <= 1) {
+    console.log("No category rows available for icon validation");
+    return;
+  }
+
+  const presetValues = categoriesSheet
+    .getRange(2, 1, lastRow - 1, 1)
+    .getValues();
+  const iconValues = categoriesSheet.getRange(2, 2, lastRow - 1, 1).getValues();
+
+  const presetSlugToRow = new Map<string, number>();
+  const iconSlugToRows = new Map<string, number[]>();
+  const driveFileCache = new Map<
+    string,
+    { slug: string | null; isSvg: boolean; errorMessage?: string }
+  >();
+  const rowIssues = new Map<number, string[]>();
+
+  const addIssue = (row: number, message: string): void => {
+    if (!rowIssues.has(row)) {
+      rowIssues.set(row, []);
+    }
+    const issues = rowIssues.get(row)!;
+    if (!issues.includes(message)) {
+      issues.push(message);
+    }
+  };
+
+  presetValues.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const rawName = row[0];
+    const presetName =
+      typeof rawName === "string"
+        ? rawName.trim()
+        : String(rawName ?? "").trim();
+
+    if (!presetName) {
+      return;
+    }
+
+    const presetSlug = slugify(presetName);
+    presetSlugToRow.set(presetSlug, rowNumber);
+
+    const iconCellValue = iconValues[index][0];
+
+    if (iconCellValue === null || iconCellValue === undefined || iconCellValue === "") {
+      return;
+    }
+
+    let iconSlug: string | null = null;
+
+    if (typeof iconCellValue === "string") {
+      const iconValue = iconCellValue.trim();
+      if (!iconValue) {
+        return;
+      }
+
+      if (iconValue.startsWith("data:")) {
+        if (!iconValue.startsWith("data:image/svg+xml")) {
+          addIssue(rowNumber, "Icon data URI must be image/svg+xml.");
+        }
+        iconSlug = presetSlug;
+      } else if (iconValue.startsWith("https://drive.google.com/")) {
+        const fileId = extractDriveFileId(iconValue);
+        if (fileId) {
+          let info = driveFileCache.get(fileId);
+          if (!info) {
+            info = getDriveIconInfo(fileId);
+            driveFileCache.set(fileId, info);
+          }
+
+          if (info.slug) {
+            iconSlug = info.slug;
+          }
+
+          if (info.errorMessage) {
+            addIssue(rowNumber, info.errorMessage);
+          } else if (!info.isSvg) {
+            addIssue(
+              rowNumber,
+              "Icon Drive file must be an SVG (MIME type image/svg+xml).",
+            );
+          }
+        } else {
+          addIssue(rowNumber, "Icon URL must contain a valid Google Drive file ID.");
+        }
+      } else if (/^https?:\/\//i.test(iconValue)) {
+        const segment = iconValue.split("/").pop() || "";
+        const fileName = segment.split("?")[0];
+        const baseName = fileName.replace(/\.[^/.]+$/, "");
+        iconSlug = normalizeIconSlug(slugify(baseName));
+        if (!/\.svg(\?|$)/i.test(fileName)) {
+          addIssue(rowNumber, "Icon URL must point to an SVG file.");
+        }
+      } else {
+        iconSlug = normalizeIconSlug(slugify(iconValue));
+        if (!iconValue.toLowerCase().endsWith(".svg")) {
+          addIssue(rowNumber, "Icon reference must be an SVG file.");
+        }
+      }
+    } else if (
+      iconCellValue &&
+      typeof iconCellValue === "object" &&
+      iconCellValue.toString() === "CellImage"
+    ) {
+      iconSlug = presetSlug;
+      addIssue(
+        rowNumber,
+        "Embedded images are not supported. Please use an SVG URL stored in the cell.",
+      );
+    } else {
+      iconSlug = presetSlug;
+      addIssue(
+        rowNumber,
+        "Unrecognized icon cell value. Please provide an SVG URL for the icon.",
+      );
+    }
+
+    if (iconSlug) {
+      const rows = iconSlugToRows.get(iconSlug) || [];
+      rows.push(rowNumber);
+      iconSlugToRows.set(iconSlug, rows);
+    } else {
+      addIssue(
+        rowNumber,
+        "Unable to determine an icon name. Icon file name must match the preset slug.",
+      );
+    }
+  });
+
+  iconSlugToRows.forEach((rows, slug) => {
+    if (!presetSlugToRow.has(slug)) {
+      rows.forEach((rowNumber) => {
+        addIssue(
+          rowNumber,
+          `Icon slug "${slug}" does not match any preset in the Categories sheet.`,
+        );
+      });
+    }
+  });
+
+  presetSlugToRow.forEach((rowNumber, slug) => {
+    if (!iconSlugToRows.has(slug)) {
+      addIssue(
+        rowNumber,
+        "No SVG icon found for this preset. Ensure the icon file name matches the category slug.",
+      );
+    }
+  });
+
+  rowIssues.forEach((messages, rowNumber) => {
+    const cell = categoriesSheet.getRange(rowNumber, 2);
+    cell.setBackground("#FFC7CE");
+    cell.setNote(messages.join("\n"));
+    console.warn(
+      `Icon issue in Categories row ${rowNumber}: ${messages.join(" | ")}`,
+    );
+  });
+
+  if (rowIssues.size === 0) {
+    console.log("Category icon validation completed with no issues found.");
+  }
+}
+
 // Specific sheet linting functions
 function lintCategoriesSheet(): void {
   const categoriesValidations = [
@@ -424,14 +644,10 @@ function lintCategoriesSheet(): void {
         }
 
         // Validate URL format
-        function getIdFromUrl(url: string): string | null {
-          const match = url.match(/[-\w]{25,}/);
-          return match ? match[0] : null;
-        }
         const isValidGoogleDriveUrl = (url: string): boolean => {
           return (
             url.startsWith("https://drive.google.com/") &&
-            getIdFromUrl(url) !== null
+            extractDriveFileId(url) !== null
           );
         };
 
@@ -499,6 +715,7 @@ function lintCategoriesSheet(): void {
 
   // Category name and icon are required
   lintSheet("Categories", categoriesValidations, [0, 1]);
+  validateCategoryIcons();
 }
 
 function lintDetailsSheet(): void {
