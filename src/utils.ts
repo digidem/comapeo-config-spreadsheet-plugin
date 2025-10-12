@@ -3,7 +3,7 @@
  * @param input The input string to be converted.
  * @returns The slugified string.
  */
-function slugify(input) {
+function slugify(input: string | any): string {
   if (!input) return "";
 
   const str = typeof input === "string" ? input : String(input);
@@ -15,7 +15,12 @@ function slugify(input) {
     .replace(/^-+|-+$/g, "");
 }
 
-function getFieldType(typeString) {
+/**
+ * Determines the field type based on the type string.
+ * @param typeString The type string from the spreadsheet (e.g., "Text", "Number", "Multiple choice", "Select one").
+ * @returns The CoMapeo field type.
+ */
+function getFieldType(typeString: string): "text" | "number" | "selectOne" | "selectMultiple" {
   const firstChar = typeString.charAt(0).toLowerCase();
   if (firstChar === "m") return "selectMultiple";
   if (firstChar === "n") return "number";
@@ -23,7 +28,16 @@ function getFieldType(typeString) {
   return "selectOne";
 }
 
-function getFieldOptions(typeString, optionsString) {
+/**
+ * Parses field options from the options string.
+ * @param typeString The type string to determine if options are needed.
+ * @param optionsString The comma-separated options string.
+ * @returns Array of option objects with label and value, or undefined for non-select fields.
+ */
+function getFieldOptions(
+  typeString: string,
+  optionsString: string,
+): Array<{ label: string; value: string }> | undefined {
   const fieldType = getFieldType(typeString);
   if (fieldType === "number" || fieldType === "text") return undefined;
   return optionsString

@@ -23,6 +23,8 @@ function generateCoMapeoConfigSkipTranslation() {
  * Continues the CoMapeo config generation process.
  */
 function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]) {
+  let createdFolderId: string | null = null;
+
   try {
     // Pre-flight validation checks
     console.log("[PIPELINE] ===== Starting CoMapeo Config Generation =====");
@@ -81,6 +83,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     showProcessingModalDialog(processingDialogTexts[3][locale]);
     console.log("[PIPELINE] Step 4: Saving config to Drive...");
     const { id } = saveConfigToDrive(config, updateProcessingDialogProgress);
+    createdFolderId = id; // Track folder ID for cleanup
     console.log("[PIPELINE] ✅ Saved to Drive. Folder ID:", id);
 
     // Step 5: Create package (with progress updates)
@@ -108,6 +111,12 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     // Handle any errors that weren't caught by specific functions
     console.error("Error generating CoMapeo config:", error);
 
+    // CLEANUP: Delete created Drive folder if pipeline failed
+    if (createdFolderId) {
+      console.log("[PIPELINE] ❌ Pipeline failed, initiating cleanup...");
+      cleanupDriveFolder(createdFolderId);
+    }
+
     // Show error dialog to user
     const ui = SpreadsheetApp.getUi();
     ui.alert(
@@ -133,10 +142,15 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
  */
 function processDataForCoMapeo(data) {
   console.log("Processing CoMapeo data...");
+
+  // Get spreadsheet reference once and reuse
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+
   const fields = processFields(data);
   console.log(`Done processing ${fields.length} fields`);
   console.log("Processing presets...");
-  const presets = processPresets(data);
+  const presets = processPresets(data, categoriesSheet);
   console.log(`Done processing ${presets.length} presets`);
   console.log("Processing icons...");
   const icons = processIcons();

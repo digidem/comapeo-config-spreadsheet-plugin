@@ -5,6 +5,43 @@ const LANGUAGES_CACHE_KEY = "all_languages_data";
 const LANGUAGES_CACHE_TTL = 21600; // 6 hours (max for CacheService)
 
 /**
+ * Gets the primary language name from cell A1 of Categories sheet
+ *
+ * @returns The primary language name (e.g., "English", "Español")
+ */
+function getPrimaryLanguageName(): string {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  return categoriesSheet?.getRange("A1").getValue() as string;
+}
+
+/**
+ * Filters languages based on primary language match
+ *
+ * @param allLanguages - All available languages
+ * @param includePrimary - Whether to include or exclude the primary language
+ * @returns Filtered language map
+ */
+function filterLanguagesByPrimary(
+  allLanguages: Record<string, string>,
+  includePrimary: boolean,
+): Record<string, string> {
+  const primaryLanguage = getPrimaryLanguageName();
+
+  return Object.entries(allLanguages)
+    .filter(([_, name]) =>
+      includePrimary ? name === primaryLanguage : name !== primaryLanguage,
+    )
+    .reduce(
+      (acc, [code, name]) => {
+        acc[code] = name;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+}
+
+/**
  * Fetches languages from cache or remote source
  */
 function getAllLanguages(): Record<string, string> {
@@ -47,161 +84,18 @@ function getAllLanguages(): Record<string, string> {
     return allLanguages;
   } catch (error) {
     console.warn("Failed to fetch languages from remote source, using fallback:", error);
-    // Fallback to basic languages if remote fetch fails
-    return {
-      en: "English",
-      es: "Español",
-      pt: "Português",
-      fr: "French",
-      de: "German",
-      it: "Italian",
-      ja: "Japanese",
-      ko: "Korean",
-      "zh-CN": "Chinese Simplified",
-      "zh-TW": "Chinese Traditional",
-      ru: "Russian",
-      ar: "Arabic",
-      hi: "Hindi",
-      th: "Thai",
-      vi: "Vietnamese",
-      tr: "Turkish",
-      pl: "Polish",
-      nl: "Dutch",
-      sv: "Swedish",
-      no: "Norwegian",
-      da: "Danish",
-      fi: "Finnish",
-      hu: "Hungarian",
-      cs: "Czech",
-      sk: "Slovak",
-      ro: "Romanian",
-      bg: "Bulgarian",
-      hr: "Croatian",
-      sr: "Serbian",
-      sl: "Slovenian",
-      et: "Estonian",
-      lv: "Latvian",
-      lt: "Lithuanian",
-      el: "Greek",
-      he: "Hebrew",
-      fa: "Persian",
-      ur: "Urdu",
-      bn: "Bengali",
-      ta: "Tamil",
-      te: "Telugu",
-      kn: "Kannada",
-      ml: "Malayalam",
-      gu: "Gujarati",
-      mr: "Marathi",
-      pa: "Punjabi",
-      ne: "Nepali",
-      si: "Sinhala",
-      my: "Myanmar",
-      km: "Khmer",
-      lo: "Lao",
-      ka: "Georgian",
-      am: "Amharic",
-      sw: "Swahili",
-      zu: "Zulu",
-      af: "Afrikaans",
-      is: "Icelandic",
-      mt: "Maltese",
-      cy: "Welsh",
-      ga: "Irish",
-      eu: "Basque",
-      ca: "Catalan",
-      gl: "Galician",
-      ast: "Asturian",
-      br: "Breton",
-      co: "Corsican",
-      eo: "Esperanto",
-      la: "Latin",
-      jv: "Javanese",
-      su: "Sundanese",
-      tl: "Filipino",
-      ceb: "Cebuano",
-      haw: "Hawaiian",
-      mg: "Malagasy",
-      sm: "Samoan",
-      to: "Tongan",
-      fj: "Fijian",
-      mi: "Maori",
-      sn: "Shona",
-      st: "Sotho",
-      xh: "Xhosa",
-      yo: "Yoruba",
-      ig: "Igbo",
-      ha: "Hausa",
-      rw: "Kinyarwanda",
-      ny: "Chichewa",
-      so: "Somali",
-      ti: "Tigrinya",
-      om: "Oromo",
-      ak: "Akan",
-      ee: "Ewe",
-      tw: "Twi",
-      lg: "Luganda",
-      ln: "Lingala",
-      kg: "Kongo",
-      rn: "Rundi",
-      wo: "Wolof",
-      ff: "Fulah",
-      bm: "Bambara",
-      dyu: "Dyula",
-      kri: "Krio",
-      luo: "Luo",
-      gom: "Goan Konkani",
-      sa: "Sanskrit",
-      pi: "Pali",
-      bo: "Tibetan",
-      dz: "Dzongkha",
-      ug: "Uyghur",
-      kk: "Kazakh",
-      ky: "Kyrgyz",
-      uz: "Uzbek",
-      tk: "Turkmen",
-      tg: "Tajik",
-      mn: "Mongolian",
-      ii: "Sichuan Yi",
-      iu: "Inuktitut",
-      ik: "Inupiaq",
-      chr: "Cherokee",
-      chy: "Cheyenne",
-      dak: "Dakota",
-      lkt: "Lakota",
-      nv: "Navajo",
-      qu: "Quechua",
-      gn: "Guarani",
-      ay: "Aymara",
-    };
+    // Fallback to external language data (defined in data/languagesFallback.ts)
+    return LANGUAGES_FALLBACK;
   }
 }
 
 function languages(includePrimary = false): Record<string, string> {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const primaryLanguage = categoriesSheet?.getRange("A1").getValue() as string;
-
   const allLanguages = getAllLanguages();
-
-  return Object.entries(allLanguages)
-    .filter(([_, name]) =>
-      includePrimary ? name === primaryLanguage : name !== primaryLanguage,
-    )
-    .reduce(
-      (acc, [code, name]) => {
-        acc[code] = name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+  return filterLanguagesByPrimary(allLanguages, includePrimary);
 }
 
 function getPrimaryLanguage(): { code: string; name: string } {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const primaryLanguage = categoriesSheet?.getRange("A1").getValue() as string;
-
+  const primaryLanguage = getPrimaryLanguageName();
   const allLanguages = getAllLanguages();
 
   // Find the code for the primary language
@@ -217,21 +111,11 @@ function getPrimaryLanguage(): { code: string; name: string } {
 
 function getAvailableTargetLanguages(): Record<string, string> {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const primaryLanguage = categoriesSheet?.getRange("A1").getValue() as string;
-
+  const primaryLanguage = getPrimaryLanguageName();
   const allLanguages = getAllLanguages();
 
   // Get all languages except the primary one
-  const targetLanguages = Object.entries(allLanguages)
-    .filter(([_, name]) => name !== primaryLanguage)
-    .reduce(
-      (acc, [code, name]) => {
-        acc[code] = name;
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+  const targetLanguages = filterLanguagesByPrimary(allLanguages, false);
 
   // Add custom languages from translation sheets
   const translationSheets = sheets(true);

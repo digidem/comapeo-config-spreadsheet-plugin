@@ -44,6 +44,32 @@ interface ExtractionOptions {
 }
 
 /**
+ * Maximum file size for imports (100MB)
+ */
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+/**
+ * Validates a file path to prevent path traversal attacks
+ *
+ * @param path - The file path to validate
+ * @returns true if valid, throws error if invalid
+ * @throws Error if path contains path traversal sequences
+ */
+function validateFilePathSecurity(path: string): boolean {
+  // Check for path traversal attempts
+  if (path.includes("../") || path.includes("..\\")) {
+    throw new Error(`Invalid file path detected (path traversal attempt): ${path}`);
+  }
+
+  // Check for absolute paths (Unix and Windows)
+  if (path.startsWith("/") || /^[A-Za-z]:/.test(path)) {
+    throw new Error(`Invalid file path detected (absolute path): ${path}`);
+  }
+
+  return true;
+}
+
+/**
  * Extracts and validates the content of an uploaded file
  * @param fileName - Name of the uploaded file
  * @param fileBlob - The file blob to extract
@@ -63,6 +89,22 @@ function extractAndValidateFile(
   };
 
   try {
+    // Validate file size to prevent memory exhaustion
+    const fileSize = fileBlob.getBytes().length;
+    const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+    console.log(`File size: ${fileSizeMB} MB`);
+
+    if (fileSize > MAX_FILE_SIZE) {
+      const maxSizeMB = (MAX_FILE_SIZE / 1024 / 1024).toFixed(0);
+      const errorMessage = `File too large: ${fileSizeMB} MB (maximum: ${maxSizeMB} MB)`;
+      console.error(errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+        validationErrors: [errorMessage],
+      };
+    }
+
     reportProgress("Creating temporary folder", 5);
     // Create a temporary folder for extraction
     const tempFolderName = "Config_Import_Temp_" + new Date().getTime();
@@ -93,6 +135,29 @@ function extractAndValidateFile(
         success: false,
         message:
           "Unsupported file format. Please upload a .comapeocat, .zip, .mapeosettings, or .tar file.",
+      };
+    }
+
+    // Validate all extracted file paths for security
+    reportProgress("Validating file paths", 70);
+    const pathErrors: string[] = [];
+    for (const file of extractedFiles) {
+      const extractedFileName = file.getName();
+      try {
+        validateFilePathSecurity(extractedFileName);
+      } catch (pathError) {
+        console.error(`Path validation failed for ${extractedFileName}: ${pathError.message}`);
+        pathErrors.push(pathError.message);
+      }
+    }
+
+    if (pathErrors.length > 0) {
+      // Clean up temp folder
+      tempFolder.setTrashed(true);
+      return {
+        success: false,
+        message: `Security validation failed: ${pathErrors.length} invalid file path(s) detected`,
+        validationErrors: pathErrors,
       };
     }
 

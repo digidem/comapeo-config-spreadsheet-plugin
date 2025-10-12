@@ -321,3 +321,30 @@ function saveMetadataAndPackage(
     MimeType.PLAIN_TEXT,
   );
 }
+
+/**
+ * Cleans up (deletes) a Drive folder and all its contents.
+ * Used for error recovery when config generation fails.
+ *
+ * @param folderId - The ID of the folder to delete
+ */
+function cleanupDriveFolder(folderId: string | null): void {
+  if (!folderId) {
+    console.log("[CLEANUP] No folder ID provided, skipping cleanup");
+    return;
+  }
+
+  try {
+    console.log("[CLEANUP] Attempting to delete folder with ID:", folderId);
+    const folder = DriveApp.getFolderById(folderId);
+    const folderName = folder.getName();
+
+    // Move to trash instead of permanent delete
+    folder.setTrashed(true);
+
+    console.log(`[CLEANUP] ✅ Successfully trashed folder: ${folderName} (ID: ${folderId})`);
+  } catch (error) {
+    // Log error but don't throw - cleanup failure shouldn't block error handling
+    console.error("[CLEANUP] ⚠️  Failed to cleanup folder:", error.message);
+  }
+}

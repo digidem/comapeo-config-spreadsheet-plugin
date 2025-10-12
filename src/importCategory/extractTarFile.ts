@@ -42,6 +42,32 @@ function createIconSprite(icons: any[]): string {
 }
 
 /**
+ * Maximum file size for imports (100MB)
+ */
+const MAX_IMPORT_FILE_SIZE = 100 * 1024 * 1024;
+
+/**
+ * Validates a file path to prevent path traversal attacks
+ *
+ * @param path - The file path to validate
+ * @returns true if valid, throws error if invalid
+ * @throws Error if path contains path traversal sequences
+ */
+function validateFilePath(path: string): boolean {
+  // Check for path traversal attempts
+  if (path.includes("../") || path.includes("..\\")) {
+    throw new Error(`Invalid file path detected (path traversal attempt): ${path}`);
+  }
+
+  // Check for absolute paths (Unix and Windows)
+  if (path.startsWith("/") || /^[A-Za-z]:/.test(path)) {
+    throw new Error(`Invalid file path detected (absolute path): ${path}`);
+  }
+
+  return true;
+}
+
+/**
  * Extracts a tar file and returns the extracted files.
  * @param blob - The tar file blob
  * @returns Extraction result with files and temp folder
@@ -54,6 +80,21 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob): {
 } {
   try {
     console.log("Extracting tar file...");
+
+    // Validate file size to prevent memory exhaustion
+    const fileSize = blob.getBytes().length;
+    console.log(`File size: ${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
+
+    if (fileSize > MAX_IMPORT_FILE_SIZE) {
+      const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+      const maxSizeMB = (MAX_IMPORT_FILE_SIZE / 1024 / 1024).toFixed(0);
+      const errorMessage = `File too large: ${fileSizeMB} MB (maximum: ${maxSizeMB} MB)`;
+      console.error(errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
 
     // Create a temporary folder to extract files
     const tempFolder = DriveApp.createFolder(
@@ -74,6 +115,22 @@ function extractTarFile(blob: GoogleAppsScript.Base.Blob): {
         // Use unzip for ZIP files
         extractedFiles = Utilities.unzip(tarFile);
         console.log(`Extracted ${extractedFiles.length} files using unzip`);
+
+        // Validate all extracted file paths for security
+        for (const file of extractedFiles) {
+          const extractedFileName = file.getName();
+          try {
+            validateFilePath(extractedFileName);
+          } catch (pathError) {
+            console.error(`Path validation failed: ${pathError.message}`);
+            // Clean up temp folder
+            tempFolder.setTrashed(true);
+            return {
+              success: false,
+              message: `Security error: ${pathError.message}`,
+            };
+          }
+        }
       } else if (
         fileName.endsWith(".mapeosettings") ||
         fileName.endsWith(".tar")

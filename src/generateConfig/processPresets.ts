@@ -1,6 +1,11 @@
-function processPresets(data) {
-  const categoriesSheet =
-    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories");
+/**
+ * Processes preset data from spreadsheet
+ *
+ * @param data - Spreadsheet data object
+ * @param categoriesSheet - Categories sheet reference (passed to avoid uncached access)
+ * @returns Array of CoMapeo preset objects
+ */
+function processPresets(data, categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet) {
   const categories = data["Categories"].slice(1);
   const backgroundColors = categoriesSheet
     .getRange(2, 1, categories.length, 1)

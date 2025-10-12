@@ -1,4 +1,31 @@
 /**
+ * Sets the API URL for CoMapeo configuration processing.
+ * This URL is stored in script properties and can be configured per deployment.
+ *
+ * @param url - The API URL to use (e.g., "http://137.184.153.36:3000/")
+ *
+ * @example
+ * // To set the API URL, run this function from the Apps Script editor:
+ * setApiUrl("http://your-api-server.com:3000/");
+ */
+function setApiUrl(url: string): void {
+  PropertiesService.getScriptProperties().setProperty("API_URL", url);
+  console.log(`API URL configured: ${url}`);
+}
+
+/**
+ * Gets the current API URL from script properties.
+ *
+ * @returns The configured API URL or the default if not set
+ */
+function getApiUrl(): string {
+  return (
+    PropertiesService.getScriptProperties().getProperty("API_URL") ||
+    "http://137.184.153.36:3000/"
+  );
+}
+
+/**
  * Validates if a byte array represents a valid ZIP file by checking its signature.
  * ZIP files start with the bytes: 0x50 0x4B 0x03 0x04 (PK\x03\x04)
  *
@@ -36,7 +63,7 @@ function sendDataToApiAndGetZip(
   onProgress?: (message: string, detail?: string) => void,
 ): string {
   const fileName = metadata.name + "-" + metadata.version + ".comapeocat";
-  const apiUrl = "http://137.184.153.36:3000/";
+  const apiUrl = getApiUrl();
   const minValidFileSize = 10 * 1024; // 10KB - files smaller than this are likely errors
   let retryCount = 0;
   let lastError = null;
