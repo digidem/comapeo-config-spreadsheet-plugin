@@ -1,4 +1,29 @@
+/**
+ * Cache key for languages data
+ */
+const LANGUAGES_CACHE_KEY = "all_languages_data";
+const LANGUAGES_CACHE_TTL = 21600; // 6 hours (max for CacheService)
+
+/**
+ * Fetches languages from cache or remote source
+ */
 function getAllLanguages(): Record<string, string> {
+  // Try to get from cache first
+  const cache = CacheService.getScriptCache();
+  const cachedData = cache.get(LANGUAGES_CACHE_KEY);
+
+  if (cachedData) {
+    console.log("Using cached languages data");
+    try {
+      return JSON.parse(cachedData);
+    } catch (parseError) {
+      console.warn("Failed to parse cached languages, fetching fresh data");
+      // Continue to fetch fresh data
+    }
+  }
+
+  console.log("Fetching languages from remote source");
+
   try {
     const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
     const response = UrlFetchApp.fetch(languagesUrl);
@@ -8,6 +33,15 @@ function getAllLanguages(): Record<string, string> {
     const allLanguages: Record<string, string> = {};
     for (const [code, lang] of Object.entries(languagesData)) {
       allLanguages[code] = (lang as { englishName: string }).englishName;
+    }
+
+    // Cache the result
+    try {
+      cache.put(LANGUAGES_CACHE_KEY, JSON.stringify(allLanguages), LANGUAGES_CACHE_TTL);
+      console.log("Languages data cached for 6 hours");
+    } catch (cacheError) {
+      console.warn("Failed to cache languages data:", cacheError);
+      // Continue even if caching fails
     }
 
     return allLanguages;
@@ -267,4 +301,13 @@ function getSpreadsheetData(): SheetData {
   }
 
   return data as SheetData;
+}
+
+/**
+ * Clears the languages cache. Useful for debugging or forcing fresh data.
+ */
+function clearLanguagesCache(): void {
+  const cache = CacheService.getScriptCache();
+  cache.remove(LANGUAGES_CACHE_KEY);
+  console.log("Languages cache cleared");
 }

@@ -4,6 +4,8 @@
  * @returns The slugified string.
  */
 function slugify(input) {
+  if (!input) return "";
+
   const str = typeof input === "string" ? input : String(input);
   return str
     .toLowerCase()

@@ -443,18 +443,3 @@ function extractPresets(configData: any): NormalizedPreset[] {
 
   return presets;
 }
-
-/**
- * Converts a string to a slug format.
- * @param input The input string to be converted.
- * @returns The slugified string.
- */
-function slugify(input: any): string {
-  const str = typeof input === "string" ? input : String(input);
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}

@@ -1,3 +1,32 @@
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ */
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Validates that a string contains only safe function identifier characters
+ * to prevent JavaScript injection
+ */
+function sanitizeFunctionName(funcName: string): string {
+  if (!funcName) return "";
+  // Only allow alphanumeric, underscore, and dot (for namespaced functions)
+  const sanitized = funcName.replace(/[^a-zA-Z0-9_.]/g, "");
+  // Prevent empty or invalid function names
+  if (!sanitized || !/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(sanitized)) {
+    console.error(`Invalid function name: ${funcName}`);
+    return "";
+  }
+  return sanitized;
+}
+
 function generateDialog(
   title: string,
   message: string,
@@ -7,6 +36,17 @@ function generateDialog(
   secondaryButtonText?: string,
   secondaryButtonFunction?: string,
 ): string {
+  // Escape user-controlled inputs
+  const safeTitle = escapeHtml(title);
+  const safeButtonText = escapeHtml(buttonText || "");
+  const safeSecondaryButtonText = escapeHtml(secondaryButtonText || "");
+  const safeButtonUrl = escapeHtml(buttonUrl || "");
+
+  // Sanitize function names to prevent JavaScript injection
+  const safeButtonFunction = sanitizeFunctionName(buttonFunction || "");
+  const safeSecondaryButtonFunction = sanitizeFunctionName(secondaryButtonFunction || "");
+
+  // Note: message is not escaped as it contains intentional HTML from calling functions
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -121,22 +161,22 @@ function generateDialog(
     </head>
     <body>
       <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" class="logo">
-      <h1>${title}</h1>
+      <h1>${safeTitle}</h1>
       <div class="container">
         ${message}
-        ${buttonUrl ? `<a href="${buttonUrl}" target="_blank" class="action-btn">${buttonText}</a>` : ""}
+        ${safeButtonUrl ? `<a href="${safeButtonUrl}" target="_blank" class="action-btn">${safeButtonText}</a>` : ""}
         ${
-          buttonFunction || secondaryButtonFunction
+          safeButtonFunction || safeSecondaryButtonFunction
             ? `
           <div class="button-container" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-            ${buttonFunction ? `
+            ${safeButtonFunction ? `
               <button onclick="handlePrimaryClick()" class="action-btn primary-btn">
-                <span class="btn-text">${buttonText}</span>
+                <span class="btn-text">${safeButtonText}</span>
                 <span class="spinner"></span>
               </button>` : ''}
-            ${secondaryButtonFunction ? `
+            ${safeSecondaryButtonFunction ? `
               <button onclick="handleSecondaryClick()" class="action-btn secondary-btn" style="background: linear-gradient(45deg, #666, #888) !important;">
-                <span class="btn-text">${secondaryButtonText}</span>
+                <span class="btn-text">${safeSecondaryButtonText}</span>
                 <span class="spinner"></span>
               </button>` : ''}
           </div>
@@ -145,18 +185,18 @@ function generateDialog(
               const button = document.querySelector('.primary-btn');
               button.classList.add('processing');
               try {
-                ${buttonFunction}();
+                ${safeButtonFunction}();
               } catch (error) {
                 console.error('Error:', error);
                 button.classList.remove('processing');
               }
             }
-            ${secondaryButtonFunction ? `
+            ${safeSecondaryButtonFunction ? `
             function handleSecondaryClick() {
               const button = document.querySelector('.secondary-btn');
               button.classList.add('processing');
               try {
-                ${secondaryButtonFunction}();
+                ${safeSecondaryButtonFunction}();
               } catch (error) {
                 console.error('Error:', error);
                 button.classList.remove('processing');

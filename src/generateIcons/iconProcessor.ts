@@ -243,9 +243,18 @@ function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
   const searchParams = getSearchParams(preset.name);
   let searchData = findValidSearchData(searchParams);
 
-  while (!searchData) {
-    console.log(`Retrying search for ${preset.name}`);
+  // Add retry limit to prevent infinite loop
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (!searchData && retryCount < maxRetries) {
+    console.log(`Retrying search for ${preset.name} (attempt ${retryCount + 1}/${maxRetries})`);
     searchData = findValidSearchData(searchParams);
+    retryCount++;
+  }
+
+  if (!searchData) {
+    console.error(`Failed to find icon data for ${preset.name} after ${maxRetries} attempts`);
   }
 
   if (searchData) {
