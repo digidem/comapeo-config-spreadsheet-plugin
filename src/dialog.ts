@@ -1,4 +1,10 @@
 /**
+ * CoMapeo logo as embedded SVG data URI
+ * Eliminates external network dependency and improves security
+ */
+const COMAPEO_LOGO_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Cdefs%3E%3ClinearGradient id="grad1" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%236d44d9;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23330B9E;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx="50" cy="50" r="48" fill="url(%23grad1)" /%3E%3Cpath fill="white" d="M50 25c-8.28 0-15 6.72-15 15 0 11.25 15 30 15 30s15-18.75 15-30c0-8.28-6.72-15-15-15zm0 20.5c-3.04 0-5.5-2.46-5.5-5.5s2.46-5.5 5.5-5.5 5.5 2.46 5.5 5.5-2.46 5.5-5.5 5.5z"/%3E%3C/svg%3E';
+
+/**
  * Escapes HTML special characters to prevent XSS attacks
  */
 function escapeHtml(unsafe: string): string {
@@ -160,7 +166,7 @@ function generateDialog(
       </style>
     </head>
     <body>
-      <img src="https://github.com/digidem/comapeo-mobile/blob/develop/assets/splash.png?raw=true" alt="CoMapeo Logo" class="logo">
+      <img src="${COMAPEO_LOGO_SVG}" alt="CoMapeo Logo" class="logo">
       <h1>${safeTitle}</h1>
       <div class="container">
         ${message}

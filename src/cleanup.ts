@@ -49,6 +49,7 @@ function cleanup(): void {
  * Cleans up temporary resources with robust error handling and retry logic
  * @param tempFolder - Temporary folder to clean up
  * @param options - Cleanup options
+ * @param depth - Current recursion depth (for internal use)
  * @returns Success status and any error messages
  */
 function cleanupTempResources(
@@ -59,7 +60,17 @@ function cleanupTempResources(
     forceDelete?: boolean;
     deleteChildrenFirst?: boolean;
   },
+  depth: number = 0,
 ): { success: boolean; errors?: string[] } {
+  // Maximum recursion depth to prevent infinite loops
+  const MAX_FOLDER_DEPTH = 50;
+
+  if (depth > MAX_FOLDER_DEPTH) {
+    const errorMsg = `Maximum folder depth (${MAX_FOLDER_DEPTH}) exceeded during cleanup. Possible circular reference detected.`;
+    console.error(errorMsg);
+    return { success: false, errors: [errorMsg] };
+  }
+
   // Default options
   const maxRetries = options?.maxRetries || 3;
   const retryDelayMs = options?.retryDelayMs || 1000;
@@ -122,8 +133,8 @@ function cleanupTempResources(
         while (folders.hasNext()) {
           const subfolder = folders.next();
           try {
-            // Recursively clean up subfolders
-            const subfolderResult = cleanupTempResources(subfolder, options);
+            // Recursively clean up subfolders with depth tracking
+            const subfolderResult = cleanupTempResources(subfolder, options, depth + 1);
             if (!subfolderResult.success && subfolderResult.errors) {
               errors.push(...subfolderResult.errors);
             }

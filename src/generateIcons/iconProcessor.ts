@@ -1,4 +1,10 @@
 /**
+ * Fallback icon SVG to use when icon generation fails
+ * Simple marker icon with 100% fill to use background color
+ */
+const FALLBACK_ICON_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E';
+
+/**
  * Processes icons for each category and returns an array of CoMapeoIcon objects.
  * @param folder - Optional Google Drive folder to save icons
  * @returns Array of CoMapeoIcon objects
@@ -19,17 +25,26 @@ function processIcons(
     const iconSvg = processIconImage(name, iconImage, backgroundColor);
     let iconUrl = iconSvg;
 
-    if (folder) {
+    // Validate icon before proceeding
+    if (!iconSvg || iconSvg.trim() === '') {
+      console.warn(`Empty icon generated for ${name}, using fallback icon`);
+      iconUrl = FALLBACK_ICON_SVG;
+    } else if (folder) {
       iconUrl = saveIconToFolder(folder, name, iconSvg, suffixes);
     }
 
     console.log(`Updating icon URL in sheet for: ${name}`);
     updateIconUrlInSheet(categoriesSheet, index + 2, 2, iconUrl);
 
-    icons.push({
-      name: slugify(name),
-      svg: iconSvg,
-    });
+    // Only push valid icons to array
+    if (iconUrl && iconUrl.trim() !== '') {
+      icons.push({
+        name: slugify(name),
+        svg: iconUrl,
+      });
+    } else {
+      console.error(`Failed to generate valid icon for ${name}, skipping`);
+    }
 
     console.log(`Finished processing icon for: ${name}`);
     return icons;
@@ -135,8 +150,8 @@ function saveIconToFolder(
     if (fallbackSvg) {
       return saveIconToFolder(folder, name, fallbackSvg, suffixes);
     } else {
-      console.error(`Complete failure to generate icon for ${name}`);
-      return "";
+      console.error(`Complete failure to generate icon for ${name}, using fallback icon`);
+      return FALLBACK_ICON_SVG;
     }
   }
 
@@ -236,7 +251,12 @@ function generateNewIcon(name: string, backgroundColor: string): string {
     name: name,
   };
   const generatedIcon = getIconForPreset(preset);
-  return generatedIcon ? generatedIcon.svg : "";
+  if (generatedIcon && generatedIcon.svg) {
+    return generatedIcon.svg;
+  } else {
+    console.warn(`Failed to generate icon for ${name}, using fallback icon`);
+    return FALLBACK_ICON_SVG;
+  }
 }
 
 function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {

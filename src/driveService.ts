@@ -47,11 +47,19 @@ function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: 
   const blobs: GoogleAppsScript.Base.Blob[] = [];
   let fileCount = 0;
   const startTime = new Date().getTime();
+  const MAX_FOLDER_DEPTH = 50;
 
   function addFolderContentsToBlobs(
     currentFolder: GoogleAppsScript.Drive.Folder,
     path = "",
+    depth = 0,
   ) {
+    // Prevent infinite recursion with depth limit
+    if (depth > MAX_FOLDER_DEPTH) {
+      console.error(`[ZIP] Maximum folder depth (${MAX_FOLDER_DEPTH}) exceeded at path: ${path}`);
+      throw new Error(`Maximum folder depth of ${MAX_FOLDER_DEPTH} exceeded. Please check for circular folder references or deeply nested structures.`);
+    }
+
     const files = currentFolder.getFiles();
     while (files.hasNext()) {
       const file = files.next();
@@ -72,7 +80,7 @@ function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: 
     while (subFolders.hasNext()) {
       const subFolder = subFolders.next();
       const newPath = `${path}${subFolder.getName()}/`;
-      addFolderContentsToBlobs(subFolder, newPath);
+      addFolderContentsToBlobs(subFolder, newPath, depth + 1);
     }
   }
 
