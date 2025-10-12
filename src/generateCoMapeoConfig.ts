@@ -1,3 +1,6 @@
+// Create scoped logger for this module
+const log = Logger.scope("ConfigGeneration");
+
 /**
  * Generates a CoMapeo configuration file from the spreadsheet data.
  * Shows progress dialogs and handles errors appropriately.
@@ -12,9 +15,8 @@ function generateCoMapeoConfig() {
  * Continues the CoMapeo config generation process without translation.
  */
 function generateCoMapeoConfigSkipTranslation() {
-  console.log("[SERVER] ===== generateCoMapeoConfigSkipTranslation CALLED =====");
-  console.log("[SERVER] User chose to skip translation");
-  console.log("[SERVER] Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
+  log.info("User chose to skip translation");
+  log.debug("Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
   generateCoMapeoConfigWithSelectedLanguages([]);
 }
 
@@ -27,93 +29,92 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
 
   try {
     // Pre-flight validation checks
-    console.log("[PIPELINE] ===== Starting CoMapeo Config Generation =====");
-    console.log("[PIPELINE] Running pre-flight validation checks...");
+    log.info("===== Starting CoMapeo Config Generation =====");
+    log.info("Running pre-flight validation checks...");
 
     const preflightResults = runPreflightChecks();
 
     if (!preflightResults.allPassed) {
-      console.warn("[PIPELINE] ⚠️  Pre-flight checks failed");
+      log.warn("Pre-flight checks failed");
       const shouldContinue = showPreflightResults(preflightResults);
 
       if (!shouldContinue) {
-        console.log("[PIPELINE] ❌ User cancelled due to pre-flight check failures");
+        log.info("User cancelled due to pre-flight check failures");
         return;
       }
 
-      console.log("[PIPELINE] ⚠️  User chose to continue despite pre-flight failures");
+      log.warn("User chose to continue despite pre-flight failures");
     } else {
-      console.log("[PIPELINE] ✅ All pre-flight checks passed");
+      log.info("All pre-flight checks passed");
     }
 
     // Step 1: Initialize (merges validation and linting)
     showProcessingModalDialog(processingDialogTexts[0][locale]);
-    console.log("[PIPELINE] Step 1: Initializing...");
-    console.log("[PIPELINE] Selected languages:", selectedLanguages);
-    console.log("[PIPELINE] Language count:", selectedLanguages.length);
+    log.info("Step 1: Initializing...");
+    log.debug("Selected languages:", selectedLanguages);
+    log.debug("Language count:", selectedLanguages.length);
 
     // Lint spreadsheet
-    console.log("[PIPELINE] Linting sheets...");
+    log.info("Linting sheets...");
     lintAllSheets(false); // Pass false to prevent UI alerts
-    console.log("[PIPELINE] ✅ Linting completed");
+    log.info("Linting completed");
 
     // Step 2: Auto translate (conditional - only if languages selected)
     if (selectedLanguages.length > 0) {
       showProcessingModalDialog(processingDialogTexts[1][locale]);
-      console.log("[TRANSLATION] 🌍 Starting translation process...");
-      console.log("[TRANSLATION] Target languages:", selectedLanguages.join(', '));
+      log.info("Starting translation process...", { languages: selectedLanguages });
       autoTranslateSheetsBidirectional(selectedLanguages);
-      console.log("[TRANSLATION] ✅ Translation process completed");
+      log.info("Translation process completed");
     } else {
-      console.log("[TRANSLATION] ⏭️  SKIPPING TRANSLATION - No languages selected");
+      log.info("SKIPPING TRANSLATION - No languages selected");
     }
 
     // Read spreadsheet data AFTER translation to include any new columns
-    console.log("[PIPELINE] Reading spreadsheet data (after translation)...");
+    log.info("Reading spreadsheet data (after translation)...");
     const data = getSpreadsheetData();
-    console.log("[PIPELINE] ✅ Spreadsheet data retrieved");
+    log.info("Spreadsheet data retrieved");
 
     // Step 3: Process data
     showProcessingModalDialog(processingDialogTexts[2][locale]);
-    console.log("[PIPELINE] Step 3: Processing data for CoMapeo...");
+    log.info("Step 3: Processing data for CoMapeo...");
     const config = processDataForCoMapeo(data);
-    console.log("[PIPELINE] ✅ Data processing completed");
+    log.info("Data processing completed");
 
     // Step 4: Save to Drive (with progress updates)
     showProcessingModalDialog(processingDialogTexts[3][locale]);
-    console.log("[PIPELINE] Step 4: Saving config to Drive...");
+    log.info("Step 4: Saving config to Drive...");
     const { id } = saveConfigToDrive(config, updateProcessingDialogProgress);
     createdFolderId = id; // Track folder ID for cleanup
-    console.log("[PIPELINE] ✅ Saved to Drive. Folder ID:", id);
+    log.info("Saved to Drive", { folderId: id });
 
     // Step 5: Create package (with progress updates)
     showProcessingModalDialog(processingDialogTexts[4][locale]);
-    console.log("[PIPELINE] Step 5: Creating ZIP package...");
+    log.info("Step 5: Creating ZIP package...");
     const folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress);
-    console.log("[PIPELINE] ✅ ZIP package created");
+    log.info("ZIP package created");
 
     // Step 6: Upload to API
     showProcessingModalDialog(processingDialogTexts[5][locale]);
-    console.log("[PIPELINE] Step 6: Uploading to API server...");
+    log.info("Step 6: Uploading to API server...");
 
     // Step 7: API Processing (with progress callback)
     showProcessingModalDialog(processingDialogTexts[6][locale]);
-    console.log("[PIPELINE] Step 7: Waiting for API processing...");
+    log.info("Step 7: Waiting for API processing...");
     const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata, 3, updateProcessingDialogProgress);
-    console.log("[PIPELINE] ✅ API processing completed. URL:", configUrl);
+    log.info("API processing completed", { url: configUrl });
 
     // Step 8: Complete
     showProcessingModalDialog(processingDialogTexts[7][locale]);
-    console.log("[PIPELINE] Step 8: Finalizing...");
+    log.info("Step 8: Finalizing...");
     showConfigurationGeneratedDialog(configUrl);
-    console.log("[PIPELINE] ===== CoMapeo Config Generation Complete =====");
+    log.info("===== CoMapeo Config Generation Complete =====");
   } catch (error) {
     // Handle any errors that weren't caught by specific functions
-    console.error("Error generating CoMapeo config:", error);
+    log.error("Error generating CoMapeo config", error);
 
     // CLEANUP: Delete created Drive folder if pipeline failed
     if (createdFolderId) {
-      console.log("[PIPELINE] ❌ Pipeline failed, initiating cleanup...");
+      log.warn("Pipeline failed, initiating cleanup...");
       cleanupDriveFolder(createdFolderId);
     }
 
@@ -141,25 +142,58 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
  *   - messages: An object with two properties, pt and es, each containing an object with translation messages for the corresponding language.
  */
 function processDataForCoMapeo(data) {
-  console.log("Processing CoMapeo data...");
+  const startTime = Date.now();
+  log.info("Processing CoMapeo data...");
+
+  // Validate sheet data before processing
+  log.info("Validating sheet data...");
+  const sheetValidation = validateSheetData(data);
+  if (!sheetValidation.valid) {
+    throw new Error(sheetValidation.error);
+  }
+  if (sheetValidation.warnings && sheetValidation.warnings.length > 0) {
+    log.warn(`Sheet validation warnings:\n${sheetValidation.warnings.join("\n")}`);
+  }
+  log.info("Sheet data validation passed");
 
   // Get spreadsheet reference once and reuse
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const categoriesSheet = spreadsheet.getSheetByName("Categories");
 
   const fields = processFields(data);
-  console.log(`Done processing ${fields.length} fields`);
-  console.log("Processing presets...");
+  log.info(`Done processing ${fields.length} fields`);
+  log.info("Processing presets...");
   const presets = processPresets(data, categoriesSheet);
-  console.log(`Done processing ${presets.length} presets`);
-  console.log("Processing icons...");
+  log.info(`Done processing ${presets.length} presets`);
+  log.info("Processing icons...");
   const icons = processIcons();
-  console.log(`Done processing ${icons.length} icons`);
-  console.log("Processing metadata...");
+  log.info(`Done processing ${icons.length} icons`);
+  log.info("Processing metadata...");
   const { metadata, packageJson } = processMetadata(data);
-  console.log("Processing translations...");
+  log.info("Processing translations...");
   const messages = processTranslations(data, fields, presets);
-  console.log("Generating CoMapeo config...");
+  log.info("Generating CoMapeo config...");
+
+  const config = {
+    metadata,
+    packageJson,
+    fields,
+    presets,
+    icons,
+    translations: messages, // Renamed to match validation schema
+  };
+
+  // Validate the final config schema
+  log.info("Validating configuration schema...");
+  const configValidation = validateConfigSchema(config);
+  if (!configValidation.valid) {
+    throw new Error(configValidation.error);
+  }
+  log.info("Configuration schema validation passed");
+
+  Logger.timing("processDataForCoMapeo", startTime);
+
+  // Return with original property name for backward compatibility
   return {
     metadata,
     packageJson,

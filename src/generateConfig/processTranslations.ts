@@ -75,6 +75,23 @@ function buildColumnMapForSheet(sheetName: string): {
   return { targetLanguages, columnToLanguageMap };
 }
 
+/**
+ * Processes all translation sheets and generates CoMapeo translations object
+ *
+ * Reads translation data from Category Translations, Detail Label Translations,
+ * Detail Helper Text Translations, and Detail Option Translations sheets.
+ * Maps each language to its corresponding translations for categories, fields,
+ * and options.
+ *
+ * @param data - Spreadsheet data object
+ * @param fields - Array of processed CoMapeo fields
+ * @param presets - Array of processed CoMapeo presets
+ * @returns CoMapeoTranslations object with language codes as keys
+ *
+ * @example
+ * const translations = processTranslations(data, fields, presets);
+ * // Returns: { "en": {...}, "es": {...}, "fr": {...} }
+ */
 function processTranslations(data, fields, presets) {
   console.log("Starting processTranslations...");
 

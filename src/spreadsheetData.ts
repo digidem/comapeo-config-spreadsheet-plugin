@@ -1,3 +1,6 @@
+// Create scoped logger for this module
+const log = Logger.scope("SpreadsheetData");
+
 /**
  * Cache key for languages data
  */
@@ -50,16 +53,16 @@ function getAllLanguages(): Record<string, string> {
   const cachedData = cache.get(LANGUAGES_CACHE_KEY);
 
   if (cachedData) {
-    console.log("Using cached languages data");
+    log.debug("Using cached languages data");
     try {
       return JSON.parse(cachedData);
     } catch (parseError) {
-      console.warn("Failed to parse cached languages, fetching fresh data");
+      log.warn("Failed to parse cached languages, fetching fresh data");
       // Continue to fetch fresh data
     }
   }
 
-  console.log("Fetching languages from remote source");
+  log.info("Fetching languages from remote source");
 
   try {
     const languagesUrl = "https://raw.githubusercontent.com/digidem/comapeo-mobile/refs/heads/develop/src/frontend/languages.json";
@@ -75,15 +78,15 @@ function getAllLanguages(): Record<string, string> {
     // Cache the result
     try {
       cache.put(LANGUAGES_CACHE_KEY, JSON.stringify(allLanguages), LANGUAGES_CACHE_TTL);
-      console.log("Languages data cached for 6 hours");
+      log.info("Languages data cached for 6 hours");
     } catch (cacheError) {
-      console.warn("Failed to cache languages data:", cacheError);
+      log.warn("Failed to cache languages data", cacheError);
       // Continue even if caching fails
     }
 
     return allLanguages;
   } catch (error) {
-    console.warn("Failed to fetch languages from remote source, using fallback:", error);
+    log.warn("Failed to fetch languages from remote source, using fallback", error);
     // Fallback to external language data (defined in data/languagesFallback.ts)
     return LANGUAGES_FALLBACK;
   }
@@ -98,14 +101,28 @@ function getPrimaryLanguage(): { code: string; name: string } {
   const primaryLanguage = getPrimaryLanguageName();
   const allLanguages = getAllLanguages();
 
+  // Validate the primary language
+  const validation = validatePrimaryLanguage(primaryLanguage, allLanguages);
+  if (!validation.valid) {
+    throw new Error(
+      `${validation.error}\n\nPlease set cell A1 in the Categories sheet to a valid language name (e.g., "English", "Spanish", "French").`,
+    );
+  }
+
   // Find the code for the primary language
   const primaryLanguageCode = Object.entries(allLanguages).find(
     ([_, name]) => name === primaryLanguage,
   )?.[0];
 
+  if (!primaryLanguageCode) {
+    throw new Error(
+      `Failed to find language code for primary language: "${primaryLanguage}"`,
+    );
+  }
+
   return {
-    code: primaryLanguageCode || "en",
-    name: primaryLanguage || "English",
+    code: primaryLanguageCode,
+    name: primaryLanguage,
   };
 }
 

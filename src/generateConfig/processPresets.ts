@@ -7,6 +7,34 @@
  */
 function processPresets(data, categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet) {
   const categories = data["Categories"].slice(1);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Validate all categories first
+  categories.forEach((category, index) => {
+    const validation = validateCategoryDefinition(category, index + 2); // +2 for header row and 0-index
+    if (!validation.valid && validation.error) {
+      errors.push(validation.error);
+    }
+    if (validation.warnings) {
+      warnings.push(...validation.warnings);
+    }
+  });
+
+  // If there are validation errors, throw with details
+  if (errors.length > 0) {
+    throw new Error(
+      `Category validation failed with ${errors.length} error(s) in Categories sheet:\n${errors.join("\n")}`,
+    );
+  }
+
+  // Log warnings if any
+  if (warnings.length > 0) {
+    console.warn(
+      `Category validation warnings (${warnings.length}):\n${warnings.join("\n")}`,
+    );
+  }
+
   const backgroundColors = categoriesSheet
     .getRange(2, 1, categories.length, 1)
     .getBackgrounds();

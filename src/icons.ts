@@ -1,3 +1,14 @@
+/**
+ * Generates icon configuration and saves icons to Google Drive
+ *
+ * Creates or uses existing icons folder in the config directory,
+ * then processes and saves all category icons as SVG files.
+ * Shows success dialog with link to the generated icons folder.
+ *
+ * @example
+ * generateIconsConfig();
+ * // Creates/updates icons folder with category icons and shows success dialog
+ */
 function generateIconsConfig() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const parentFolder = DriveApp.getFileById(spreadsheet.getId())

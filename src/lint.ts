@@ -1034,10 +1034,11 @@ function validateSheetConsistency(
   );
 
   try {
-    // Check row count consistency (excluding header)
+    // OPTIMIZATION: Read row counts once
     const sourceRowCount = sourceSheet.getLastRow();
     const translationRowCount = translationSheet.getLastRow();
 
+    // Check row count consistency (excluding header)
     if (sourceRowCount !== translationRowCount) {
       console.warn(
         `Row count mismatch in ${translationSheetName}: ` +
@@ -1045,10 +1046,10 @@ function validateSheetConsistency(
       );
 
       // Highlight the discrepancy in the translation sheet
-      const lastRow = translationSheet.getLastRow();
-      if (lastRow > 0) {
+      // Use cached translationRowCount instead of calling getLastRow() again
+      if (translationRowCount > 0) {
         translationSheet
-          .getRange(1, 1, Math.min(lastRow, 1), 1)
+          .getRange(1, 1, Math.min(translationRowCount, 1), 1)
           .setBackground("#FFF2CC"); // Light yellow warning
       }
     }
@@ -1059,18 +1060,25 @@ function validateSheetConsistency(
         SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details");
       if (!detailsSheet) return;
 
-      // Get the options column (column 4) from Details sheet
+      // OPTIMIZATION: Read all data once in a single batch operation
+      const translationLastCol = translationSheet.getLastColumn();
+
+      // Read options column from Details sheet (column 4)
       const detailsData = detailsSheet
         .getRange(2, 4, sourceRowCount - 1, 1)
         .getValues();
 
-      // Get all translation data
+      // Read all translation data in one operation
       const translationData = translationSheet
-        .getRange(2, 1, translationRowCount - 1, translationSheet.getLastColumn())
+        .getRange(2, 1, translationRowCount - 1, translationLastCol)
         .getValues();
 
-      // Validate each row
-      for (let i = 0; i < Math.min(detailsData.length, translationData.length); i++) {
+      // OPTIMIZATION: Collect all cells that need highlighting instead of setting individually
+      const cellsToHighlight: Array<{ row: number; col: number }> = [];
+
+      // Validate each row in a single pass
+      const minRows = Math.min(detailsData.length, translationData.length);
+      for (let i = 0; i < minRows; i++) {
         const sourceOptions = String(detailsData[i][0] || "").trim();
         if (!sourceOptions) continue; // Skip if no options in source
 
@@ -1095,12 +1103,19 @@ function validateSheetConsistency(
                 `Expected ${sourceOptionCount} options, found ${translatedOptionCount}`,
             );
 
-            // Highlight the mismatched cell
-            translationSheet
-              .getRange(i + 2, col + 1)
-              .setBackground("#FFC7CE"); // Light red for mismatch
+            // Collect cell for batch highlighting
+            cellsToHighlight.push({ row: i + 2, col: col + 1 });
           }
         }
+      }
+
+      // OPTIMIZATION: Apply all highlights in a single batch operation using RangeList
+      if (cellsToHighlight.length > 0) {
+        const rangeStrings = cellsToHighlight.map(
+          ({ row, col }) => translationSheet.getRange(row, col).getA1Notation(),
+        );
+        const rangeList = translationSheet.getRangeList(rangeStrings);
+        rangeList.setBackground("#FFC7CE"); // Light red for mismatch
       }
     }
   } catch (error) {

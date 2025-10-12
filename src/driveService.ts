@@ -1,3 +1,21 @@
+/**
+ * Creates a ZIP archive from a Google Drive folder
+ *
+ * Recursively collects all files from the folder and its subfolders,
+ * then creates a ZIP blob. Includes retry logic for Drive API reliability
+ * and progress reporting for long operations.
+ *
+ * @param folderId - Google Drive folder ID to archive
+ * @param onProgress - Optional callback for progress updates
+ * @returns ZIP file as a Blob
+ * @throws Error if folder cannot be accessed or depth limit exceeded
+ *
+ * @example
+ * const zip = saveDriveFolderToZip(folderId, (msg, detail) => {
+ *   console.log(`${msg}: ${detail}`);
+ * });
+ * // Returns: Blob containing ZIP archive of folder contents
+ */
 function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: string) => void): GoogleAppsScript.Base.Blob {
   console.log("[ZIP] Attempting to access folder with ID:", folderId);
 
@@ -137,6 +155,24 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   return fileUrl;
 }
 
+/**
+ * Saves CoMapeo configuration to Google Drive
+ *
+ * Creates a structured folder hierarchy in Drive and saves all configuration
+ * files including fields.json, presets.json, icons, and translations.
+ * Includes retry logic and progress reporting.
+ *
+ * @param config - Complete CoMapeo configuration object
+ * @param onProgress - Optional callback for progress updates
+ * @returns Object with folder URL and ID
+ * @throws Error if folder creation fails or save operation fails
+ *
+ * @example
+ * const result = saveConfigToDrive(config, (msg, detail) => {
+ *   console.log(`${msg}: ${detail}`);
+ * });
+ * // Returns: { url: "https://drive.google.com/...", id: "abc123" }
+ */
 function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string, detail?: string) => void): { url: string; id: string } {
   const configFolder = getConfigFolder();
   const folderName = `${slugify(config.metadata.version)}`;

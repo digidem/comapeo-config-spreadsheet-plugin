@@ -7,6 +7,20 @@ const DETAIL_OPTION_TRANSLATIONS_SHEET = "Detail Option Translations";
 const DETAILS_HELPER_TEXT_COLUMN = "B";
 const DETAILS_OPTIONS_COLUMN = "D";
 
+/**
+ * Translates a sheet from source language to a single target language
+ *
+ * Reads text from column A (source language) and translates to target language column.
+ * Only translates cells that are empty in the target column. Uses Google Translate API.
+ *
+ * @param sheetName - Name of the sheet to translate
+ * @param targetLanguage - ISO language code for target language (e.g., "es", "fr")
+ * @param sourceLanguage - Optional source language code (defaults to primary language from cell A1)
+ *
+ * @example
+ * translateSheet("Category Translations", "es");
+ * // Translates from primary language to Spanish
+ */
 function translateSheet(
   sheetName: string,
   targetLanguage: TranslationLanguage,
@@ -52,6 +66,22 @@ function translateSheet(
   }
 }
 
+/**
+ * Translates a sheet from source language to multiple target languages bidirectionally
+ *
+ * Supports custom language columns (format: "Language Name - ISO") in addition to
+ * standard languages. Validates all target languages before translation. Skips cells
+ * that already have translations.
+ *
+ * @param sheetName - Name of the sheet to translate
+ * @param targetLanguages - Array of ISO language codes for target languages
+ * @param sourceLanguage - Optional source language code (defaults to primary language)
+ * @throws Error if source and target languages are the same, or if target languages are invalid
+ *
+ * @example
+ * translateSheetBidirectional("Category Translations", ["es", "fr", "pt"]);
+ * // Translates from primary language to Spanish, French, and Portuguese
+ */
 function translateSheetBidirectional(
   sheetName: string,
   targetLanguages: TranslationLanguage[],
@@ -153,6 +183,20 @@ function translateSheetBidirectional(
   }
 }
 
+/**
+ * Creates or retrieves the Category Translations sheet
+ *
+ * Creates a new sheet with language headers (primary language + target languages).
+ * Links column A to Categories sheet with formulas for automatic sync.
+ * If target languages not specified, includes all available languages.
+ *
+ * @param targetLanguages - Optional array of ISO language codes to include as columns
+ * @returns The Category Translations sheet
+ *
+ * @example
+ * const sheet = createCategoryTranslationsSheet(["es", "fr"]);
+ * // Creates sheet with columns: Primary Language, Spanish, French
+ */
 function createCategoryTranslationsSheet(targetLanguages?: TranslationLanguage[]): GoogleAppsScript.Spreadsheet.Sheet {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET);
@@ -193,6 +237,24 @@ function createCategoryTranslationsSheet(targetLanguages?: TranslationLanguage[]
   return sheet;
 }
 
+/**
+ * Creates a translation sheet for field labels, helper text, or options
+ *
+ * Creates sheet with language headers and links column A to source sheet/column.
+ * Used for Detail Label Translations, Detail Helper Text Translations, and
+ * Detail Option Translations sheets.
+ *
+ * @param sheetName - Name for the new translation sheet
+ * @param targetLanguages - Array of ISO language codes for translation columns
+ * @param sourceSheet - Source sheet name (e.g., "Details")
+ * @param sourceColumn - Source column letter (e.g., "A", "B", "D")
+ * @returns The created translation sheet
+ * @throws Error if source sheet not found
+ *
+ * @example
+ * const sheet = createTranslationSheet("Detail Label Translations", ["es", "fr"], "Details", "A");
+ * // Creates sheet linked to Details column A with Spanish and French columns
+ */
 function createTranslationSheet(sheetName: string, targetLanguages: TranslationLanguage[], sourceSheet: string, sourceColumn: string): GoogleAppsScript.Spreadsheet.Sheet {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(sheetName);
@@ -229,6 +291,21 @@ function createTranslationSheet(sheetName: string, targetLanguages: TranslationL
   return sheet;
 }
 
+/**
+ * Ensures translation sheet has columns for all target languages
+ *
+ * Checks existing sheet headers and adds missing language columns.
+ * Maintains bold formatting for headers. Used when adding new languages
+ * to existing translation sheets.
+ *
+ * @param sheet - Translation sheet to update
+ * @param targetLanguages - Array of ISO language codes that should exist
+ *
+ * @example
+ * const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Category Translations");
+ * ensureLanguageColumnsExist(sheet, ["es", "fr", "pt"]);
+ * // Adds any missing language columns to the sheet
+ */
 function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, targetLanguages: TranslationLanguage[]): void {
   const allLanguages = getAllLanguages();
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -257,6 +334,19 @@ function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, t
   }
 }
 
+/**
+ * Automatically translates all translation sheets to all available languages
+ *
+ * Creates translation sheets if they don't exist and translates Categories,
+ * Detail Helper Text, and Detail Options to all languages defined in
+ * the languages() function. Uses unidirectional translation.
+ *
+ * @deprecated Use autoTranslateSheetsBidirectional() instead for better language support
+ *
+ * @example
+ * autoTranslateSheets();
+ * // Translates all sheets to all available languages
+ */
 function autoTranslateSheets(): void {
   const allSheets = sheets();
   const translationSheets = sheets(true);
@@ -340,6 +430,25 @@ function autoTranslateSheets(): void {
   }
 }
 
+/**
+ * Automatically translates all translation sheets to selected target languages
+ *
+ * Creates or updates all translation sheets (Category Translations, Detail Label
+ * Translations, Detail Helper Text Translations, Detail Option Translations).
+ * Validates target languages and skips translation if no languages specified.
+ * Uses bidirectional translation supporting custom language columns.
+ *
+ * @param targetLanguages - Array of ISO language codes to translate to
+ * @throws Error if target languages are invalid or conflict with source language
+ *
+ * @example
+ * autoTranslateSheetsBidirectional(["es", "fr", "pt"]);
+ * // Creates/updates all translation sheets with Spanish, French, and Portuguese
+ *
+ * @example
+ * autoTranslateSheetsBidirectional([]);
+ * // Skips translation entirely (useful for single-language configs)
+ */
 function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
   // Validation - return early if no languages specified (skip translation)
   if (!targetLanguages || targetLanguages.length === 0) {
@@ -446,6 +555,22 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
   }
 }
 
+/**
+ * Adds custom language columns to the Category Translations sheet
+ *
+ * Adds new language columns in custom format: "Language Name - ISO".
+ * Finds first empty column after D and adds new headers there.
+ * Skips languages that already exist in the sheet.
+ *
+ * @param newLanguages - Array of language objects with name and ISO code
+ *
+ * @example
+ * addNewLanguages([
+ *   { name: "Kichwa", iso: "qu" },
+ *   { name: "Quechua", iso: "quz" }
+ * ]);
+ * // Adds "Kichwa - qu" and "Quechua - quz" columns to Category Translations
+ */
 function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
   console.log("Adding new languages...", newLanguages);
   const sheet = createCategoryTranslationsSheet();

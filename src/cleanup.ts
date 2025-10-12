@@ -46,6 +46,142 @@ function cleanup(): void {
 }
 
 /**
+ * Automatically cleans up old temporary folders created by the app
+ *
+ * @param olderThanHours - Delete folders older than this many hours (default: 24)
+ * @param dryRun - If true, only logs what would be deleted without actually deleting
+ * @returns Summary of cleanup operation
+ */
+function cleanupOldTempFolders(
+  olderThanHours: number = 24,
+  dryRun: boolean = false,
+): {
+  foldersFound: number;
+  foldersDeleted: number;
+  foldersSkipped: number;
+  errors: string[];
+} {
+  const log = Logger.scope("TempCleanup");
+
+  log.info(`Starting automatic cleanup of temp folders older than ${olderThanHours} hours`, {
+    dryRun,
+  });
+
+  const results = {
+    foldersFound: 0,
+    foldersDeleted: 0,
+    foldersSkipped: 0,
+    errors: [] as string[],
+  };
+
+  // Calculate cutoff time
+  const cutoffTime = new Date().getTime() - olderThanHours * 60 * 60 * 1000;
+  log.debug("Cutoff time:", new Date(cutoffTime).toISOString());
+
+  // Patterns for temp folders created by this app
+  const tempFolderPatterns = [
+    /^Mapeo_Settings_Import_\d+$/,
+    /^Config_Import_\d+$/,
+    /^temp_import_\d+$/,
+    /^Icons_Test_\d+$/,
+    /^Format_Detection_Test_\d+$/,
+    /^Translation_Extraction_Test_\d+$/,
+    /^Category_Import_Test_\d+$/,
+    /^Field_Extraction_Test_\d+$/,
+    /^Details_Icons_Test_\d+$/,
+  ];
+
+  try {
+    // Get all folders in user's Drive root
+    const folders = DriveApp.getFolders();
+
+    while (folders.hasNext()) {
+      const folder = folders.next();
+      const folderName = folder.getName();
+
+      // Check if folder name matches any temp pattern
+      const isTemporaryFolder = tempFolderPatterns.some((pattern) =>
+        pattern.test(folderName),
+      );
+
+      if (!isTemporaryFolder) {
+        continue; // Skip non-temp folders
+      }
+
+      results.foldersFound++;
+
+      try {
+        // Extract timestamp from folder name
+        const timestampMatch = folderName.match(/_(\d+)$/);
+        let folderAge: number;
+
+        if (timestampMatch) {
+          // Use timestamp from folder name
+          const folderTimestamp = parseInt(timestampMatch[1], 10);
+          folderAge = folderTimestamp;
+          log.debug(`Folder ${folderName} timestamp from name: ${new Date(folderTimestamp).toISOString()}`);
+        } else {
+          // Fallback to modification date
+          folderAge = folder.getLastUpdated().getTime();
+          log.debug(`Folder ${folderName} using modification date: ${folder.getLastUpdated().toISOString()}`);
+        }
+
+        // Check if folder is old enough to delete
+        if (folderAge < cutoffTime) {
+          const ageHours = Math.round((new Date().getTime() - folderAge) / (60 * 60 * 1000));
+          log.info(`Found old temp folder: ${folderName} (${ageHours} hours old)`);
+
+          if (!dryRun) {
+            // Delete the folder using our robust cleanup function
+            const cleanupResult = cleanupTempResources(folder, {
+              maxRetries: 3,
+              forceDelete: true,
+              deleteChildrenFirst: true,
+            });
+
+            if (cleanupResult.success) {
+              results.foldersDeleted++;
+              log.info(`Successfully deleted: ${folderName}`);
+            } else {
+              results.foldersSkipped++;
+              const errorMsg = `Failed to delete ${folderName}: ${cleanupResult.errors?.join(", ")}`;
+              log.warn(errorMsg);
+              results.errors.push(errorMsg);
+            }
+          } else {
+            log.info(`[DRY RUN] Would delete: ${folderName}`);
+            results.foldersDeleted++; // Count as "would be deleted"
+          }
+        } else {
+          const ageHours = Math.round((new Date().getTime() - folderAge) / (60 * 60 * 1000));
+          log.debug(`Skipping recent temp folder: ${folderName} (${ageHours} hours old)`);
+          results.foldersSkipped++;
+        }
+      } catch (folderError) {
+        const errorMsg = `Error processing folder ${folderName}: ${folderError}`;
+        log.error(errorMsg, folderError);
+        results.errors.push(errorMsg);
+        results.foldersSkipped++;
+      }
+    }
+
+    log.info("Cleanup completed", {
+      found: results.foldersFound,
+      deleted: results.foldersDeleted,
+      skipped: results.foldersSkipped,
+      errors: results.errors.length,
+    });
+
+    return results;
+  } catch (error) {
+    const errorMsg = `Fatal error during temp folder cleanup: ${error}`;
+    log.error(errorMsg, error);
+    results.errors.push(errorMsg);
+    return results;
+  }
+}
+
+/**
  * Cleans up temporary resources with robust error handling and retry logic
  * @param tempFolder - Temporary folder to clean up
  * @param options - Cleanup options
