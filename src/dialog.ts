@@ -4,7 +4,7 @@
  * CoMapeo logo as embedded SVG data URI
  * Eliminates external network dependency and improves security
  */
-const COMAPEO_LOGO_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Cdefs%3E%3ClinearGradient id="grad1" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%236d44d9;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23330B9E;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx="50" cy="50" r="48" fill="url(%23grad1)" /%3E%3Cpath fill="white" d="M50 25c-8.28 0-15 6.72-15 15 0 11.25 15 30 15 30s15-18.75 15-30c0-8.28-6.72-15-15-15zm0 20.5c-3.04 0-5.5-2.46-5.5-5.5s2.46-5.5 5.5-5.5 5.5 2.46 5.5 5.5-2.46 5.5-5.5 5.5z"/%3E%3C/svg%3E';
+const COMAPEO_LOGO_SVG = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22grad1%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20style%3D%22stop-color%3A%236d44d9%3Bstop-opacity%3A1%22%20%2F%3E%3Cstop%20offset%3D%22100%25%22%20style%3D%22stop-color%3A%23330B9E%3Bstop-opacity%3A1%22%20%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2248%22%20fill%3D%22url(%23grad1)%22%20%2F%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M50%2025c-8.28%200-15%206.72-15%2015%200%2011.25%2015%2030%2015%2030s15-18.75%2015-30c0-8.28-6.72-15-15-15zm0%2020.5c-3.04%200-5.5-2.46-5.5-5.5s2.46-5.5%205.5-5.5%205.5%202.46%205.5%205.5-2.46%205.5-5.5%205.5z%22%2F%3E%3C%2Fsvg%3E";
 
 /**
  * CRITICAL: Safe dialog wrapper that validates HTML before showing
@@ -735,20 +735,30 @@ function showSelectTranslationLanguagesDialog() {
     '    return;\n' +
     '  }\n' +
     '\n' +
-    '  google.script.host.close();\n' +
     '  google.script.run\n' +
     '    .withFailureHandler(function(error) {\n' +
     "      console.error('Failed to generate CoMapeo config:', error);\n" +
+    "      var btn = document.querySelector('.primary-btn');\n" +
+    "      if (btn) btn.classList.remove('processing');\n" +
+    "      alert('CoMapeo config generation failed: ' + error.message);\n" +
+    '    })\n' +
+    '    .withSuccessHandler(function() {\n' +
+    '      google.script.host.close();\n' +
     '    })\n' +
     '    .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);\n' +
     '}\n' +
     '\n' +
     'function skipTranslation() {\n' +
     "  console.log('[CLIENT] Skip Translation button clicked');\n" +
-    '  google.script.host.close();\n' +
     '  google.script.run\n' +
     '    .withFailureHandler(function(error) {\n' +
     "      console.error('[CLIENT] Failed to generate CoMapeo config:', error);\n" +
+    "      var btn = document.querySelector('.secondary-btn');\n" +
+    "      if (btn) btn.classList.remove('processing');\n" +
+    "      alert('CoMapeo config generation failed: ' + error.message);\n" +
+    '    })\n' +
+    '    .withSuccessHandler(function() {\n' +
+    '      google.script.host.close();\n' +
     '    })\n' +
     '    .generateCoMapeoConfigSkipTranslation();\n' +
     '}';
