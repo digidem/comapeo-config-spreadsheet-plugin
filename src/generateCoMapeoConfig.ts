@@ -1,6 +1,15 @@
 // Lazy logger initialization to avoid compilation order issues
 function getLog() {
-  return typeof AppLogger !== 'undefined' ? AppLogger.scope("ConfigGeneration") : console;
+  if (typeof AppLogger !== 'undefined') {
+    return AppLogger.scope("ConfigGeneration");
+  }
+  // Fallback logger with all expected methods
+  return {
+    debug: (...args: any[]) => console.log('[DEBUG]', ...args),
+    info: (...args: any[]) => console.log('[INFO]', ...args),
+    warn: (...args: any[]) => console.log('[WARN]', ...args),
+    error: (...args: any[]) => console.log('[ERROR]', ...args),
+  };
 }
 
 /**
