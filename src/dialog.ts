@@ -619,141 +619,141 @@ function showSelectTranslationLanguagesDialog() {
   const buttonText = selectTranslationLanguagesDialogText[locale].buttonText;
   const skipButtonText = selectTranslationLanguagesDialogText[locale].skipButtonText;
 
-  // Consolidate ALL JavaScript into one script block to avoid validation issues
-  const allJavaScript = `
-    // Data from server (safe JSON)
-    var availableLanguages = ${languagesJson};
-    var primaryLanguage = ${primaryLanguageJson};
-    var commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];
+  // CRITICAL: Use string concatenation instead of template literals to avoid
+  // JSON injection breaking the template literal context (e.g., if JSON contains ` or ${})
+  const allJavaScript =
+    '// Data from server (safe JSON)\n' +
+    'var availableLanguages = ' + languagesJson + ';\n' +
+    'var primaryLanguage = ' + primaryLanguageJson + ';\n' +
+    "var commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];\n" +
+    '\n' +
+    '// Initialize on page load\n' +
+    "document.addEventListener('DOMContentLoaded', function() {\n" +
+    '  initializeLanguageSelection();\n' +
+    '});\n' +
+    '\n' +
+    'function initializeLanguageSelection() {\n' +
+    "  // Display source language\n" +
+    "  document.getElementById('sourceLangDisplay').textContent =\n" +
+    "    primaryLanguage.name + ' (' + primaryLanguage.code + ')';\n" +
+    '\n' +
+    '  // Generate language checkboxes client-side\n' +
+    '  renderLanguageCheckboxes(availableLanguages);\n' +
+    '}\n' +
+    '\n' +
+    'function renderLanguageCheckboxes(languages) {\n' +
+    '  var sortedLanguages = Object.entries(languages).sort(function(a, b) {\n' +
+    '    return a[1].localeCompare(b[1]);\n' +
+    '  });\n' +
+    '\n' +
+    "  var grid = document.getElementById('languagesGrid');\n" +
+    "  grid.innerHTML = '';\n" +
+    '\n' +
+    '  for (var i = 0; i < sortedLanguages.length; i++) {\n' +
+    '    var code = sortedLanguages[i][0];\n' +
+    '    var name = sortedLanguages[i][1];\n' +
+    '\n' +
+    "    var checkbox = document.createElement('div');\n" +
+    "    checkbox.className = 'language-checkbox';\n" +
+    '\n' +
+    "    var input = document.createElement('input');\n" +
+    "    input.type = 'checkbox';\n" +
+    "    input.id = 'lang_' + code;\n" +
+    '    input.value = code;\n' +
+    '\n' +
+    "    var label = document.createElement('label');\n" +
+    "    label.htmlFor = 'lang_' + code;\n" +
+    "    label.textContent = name + ' (' + code + ')';\n" +
+    '\n' +
+    '    checkbox.appendChild(input);\n' +
+    '    checkbox.appendChild(label);\n' +
+    '    grid.appendChild(checkbox);\n' +
+    '  }\n' +
+    '\n' +
+    "  document.getElementById('languageCount').textContent = sortedLanguages.length;\n" +
+    '}\n' +
+    '\n' +
+    'function filterLanguages() {\n' +
+    "  var searchTerm = document.getElementById('languageSearch').value.toLowerCase();\n" +
+    "  var checkboxes = document.querySelectorAll('.language-checkbox');\n" +
+    '  var visibleCount = 0;\n' +
+    '\n' +
+    '  for (var i = 0; i < checkboxes.length; i++) {\n' +
+    '    var checkbox = checkboxes[i];\n' +
+    "    var label = checkbox.querySelector('label').textContent.toLowerCase();\n" +
+    '    if (label.includes(searchTerm)) {\n' +
+    "      checkbox.style.display = 'flex';\n" +
+    '      visibleCount++;\n' +
+    '    } else {\n' +
+    "      checkbox.style.display = 'none';\n" +
+    '    }\n' +
+    '  }\n' +
+    '\n' +
+    "  document.getElementById('languageCount').textContent = visibleCount;\n" +
+    '}\n' +
+    '\n' +
+    'function selectAllLanguages() {\n' +
+    '  var allCheckboxes = document.querySelectorAll(\'input[type="checkbox"]\');\n' +
+    '  for (var i = 0; i < allCheckboxes.length; i++) {\n' +
+    '    var cb = allCheckboxes[i];\n' +
+    "    var parent = cb.closest('.language-checkbox');\n" +
+    "    if (parent && parent.style.display !== 'none') {\n" +
+    '      cb.checked = true;\n' +
+    '    }\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function deselectAllLanguages() {\n' +
+    '  var checkboxes = document.querySelectorAll(\'input[type="checkbox"]\');\n' +
+    '  for (var i = 0; i < checkboxes.length; i++) {\n' +
+    '    checkboxes[i].checked = false;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function selectCommonLanguages() {\n' +
+    '  deselectAllLanguages();\n' +
+    '  for (var i = 0; i < commonLanguages.length; i++) {\n' +
+    '    var langCode = commonLanguages[i];\n' +
+    "    var checkbox = document.getElementById('lang_' + langCode);\n" +
+    '    if (checkbox) {\n' +
+    '      checkbox.checked = true;\n' +
+    '    }\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function getSelectedTargetLanguages() {\n' +
+    '  var checkedBoxes = document.querySelectorAll(\'input[type="checkbox"]:checked\');\n' +
+    '  var selectedLanguages = [];\n' +
+    '  for (var i = 0; i < checkedBoxes.length; i++) {\n' +
+    '    selectedLanguages.push(checkedBoxes[i].value);\n' +
+    '  }\n' +
+    '\n' +
+    '  if (selectedLanguages.length === 0) {\n' +
+    "    alert('Please select at least one target language.');\n" +
+    "    var btn = document.querySelector('.primary-btn');\n" +
+    "    if (btn) btn.classList.remove('processing');\n" +
+    '    return;\n' +
+    '  }\n' +
+    '\n' +
+    '  google.script.host.close();\n' +
+    '  google.script.run\n' +
+    '    .withFailureHandler(function(error) {\n' +
+    "      console.error('Failed to generate CoMapeo config:', error);\n" +
+    '    })\n' +
+    '    .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);\n' +
+    '}\n' +
+    '\n' +
+    'function skipTranslation() {\n' +
+    "  console.log('[CLIENT] Skip Translation button clicked');\n" +
+    '  google.script.host.close();\n' +
+    '  google.script.run\n' +
+    '    .withFailureHandler(function(error) {\n' +
+    "      console.error('[CLIENT] Failed to generate CoMapeo config:', error);\n" +
+    '    })\n' +
+    '    .generateCoMapeoConfigSkipTranslation();\n' +
+    '}';
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      initializeLanguageSelection();
-    });
-
-    function initializeLanguageSelection() {
-      // Display source language
-      document.getElementById('sourceLangDisplay').textContent =
-        primaryLanguage.name + ' (' + primaryLanguage.code + ')';
-
-      // Generate language checkboxes client-side
-      renderLanguageCheckboxes(availableLanguages);
-    }
-
-    function renderLanguageCheckboxes(languages) {
-      var sortedLanguages = Object.entries(languages).sort(function(a, b) {
-        return a[1].localeCompare(b[1]);
-      });
-
-      var grid = document.getElementById('languagesGrid');
-      grid.innerHTML = '';
-
-      for (var i = 0; i < sortedLanguages.length; i++) {
-        var code = sortedLanguages[i][0];
-        var name = sortedLanguages[i][1];
-
-        var checkbox = document.createElement('div');
-        checkbox.className = 'language-checkbox';
-
-        var input = document.createElement('input');
-        input.type = 'checkbox';
-        input.id = 'lang_' + code;
-        input.value = code;
-
-        var label = document.createElement('label');
-        label.htmlFor = 'lang_' + code;
-        label.textContent = name + ' (' + code + ')';
-
-        checkbox.appendChild(input);
-        checkbox.appendChild(label);
-        grid.appendChild(checkbox);
-      }
-
-      document.getElementById('languageCount').textContent = sortedLanguages.length;
-    }
-
-    function filterLanguages() {
-      var searchTerm = document.getElementById('languageSearch').value.toLowerCase();
-      var checkboxes = document.querySelectorAll('.language-checkbox');
-      var visibleCount = 0;
-
-      for (var i = 0; i < checkboxes.length; i++) {
-        var checkbox = checkboxes[i];
-        var label = checkbox.querySelector('label').textContent.toLowerCase();
-        if (label.includes(searchTerm)) {
-          checkbox.style.display = 'flex';
-          visibleCount++;
-        } else {
-          checkbox.style.display = 'none';
-        }
-      }
-
-      document.getElementById('languageCount').textContent = visibleCount;
-    }
-
-    function selectAllLanguages() {
-      var allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-      for (var i = 0; i < allCheckboxes.length; i++) {
-        var cb = allCheckboxes[i];
-        var parent = cb.closest('.language-checkbox');
-        if (parent && parent.style.display !== 'none') {
-          cb.checked = true;
-        }
-      }
-    }
-
-    function deselectAllLanguages() {
-      var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-      for (var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = false;
-      }
-    }
-
-    function selectCommonLanguages() {
-      deselectAllLanguages();
-      for (var i = 0; i < commonLanguages.length; i++) {
-        var langCode = commonLanguages[i];
-        var checkbox = document.getElementById('lang_' + langCode);
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      }
-    }
-
-    function getSelectedTargetLanguages() {
-      var checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
-      var selectedLanguages = [];
-      for (var i = 0; i < checkedBoxes.length; i++) {
-        selectedLanguages.push(checkedBoxes[i].value);
-      }
-
-      if (selectedLanguages.length === 0) {
-        alert('Please select at least one target language.');
-        var btn = document.querySelector('.primary-btn');
-        if (btn) btn.classList.remove('processing');
-        return;
-      }
-
-      google.script.host.close();
-      google.script.run
-        .withFailureHandler(function(error) {
-          console.error('Failed to generate CoMapeo config:', error);
-        })
-        .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
-    }
-
-    function skipTranslation() {
-      console.log('[CLIENT] Skip Translation button clicked');
-      google.script.host.close();
-      google.script.run
-        .withFailureHandler(function(error) {
-          console.error('[CLIENT] Failed to generate CoMapeo config:', error);
-        })
-        .generateCoMapeoConfigSkipTranslation();
-    }
-  `;
-
-  // Add the message content with consolidated JavaScript (NO arrow functions, uses var and traditional loops)
+  // Add the message content with consolidated JavaScript
   const fullMessage = message + '<script>' + allJavaScript + '</script>';
 
   const html = generateDialog(
