@@ -584,31 +584,31 @@ function showSelectTranslationLanguagesDialog() {
         return;
       }
 
+      // Close this dialog BEFORE calling server function to avoid modal dialog conflict
+      google.script.host.close();
+
+      // Now call the server function which will show its own processing dialogs
       google.script.run
         .withFailureHandler((error) => {
           console.error('Failed to generate CoMapeo config:', error);
-          document.querySelector('.primary-btn').classList.remove('processing');
-          alert('CoMapeo config generation failed: ' + error.message);
-        })
-        .withSuccessHandler(() => {
-          google.script.host.close();
+          // Error will be shown by the server function's error handler
         })
         .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
     }
 
     function skipTranslation() {
       console.log('[CLIENT] Skip Translation button clicked');
+      console.log('[CLIENT] Closing dialog before calling server function');
+
+      // Close this dialog BEFORE calling server function to avoid modal dialog conflict
+      google.script.host.close();
+
       console.log('[CLIENT] Calling server function: generateCoMapeoConfigSkipTranslation()');
+      // Now call the server function which will show its own processing dialogs
       google.script.run
         .withFailureHandler((error) => {
           console.error('[CLIENT] ❌ Failed to generate CoMapeo config:', error);
-          document.querySelector('.secondary-btn').classList.remove('processing');
-          alert('CoMapeo config generation failed: ' + error.message);
-        })
-        .withSuccessHandler(() => {
-          console.log('[CLIENT] ✅ Skip translation completed successfully');
-          console.log('[CLIENT] Closing dialog');
-          google.script.host.close();
+          // Error will be shown by the server function's error handler
         })
         .generateCoMapeoConfigSkipTranslation();
     }
