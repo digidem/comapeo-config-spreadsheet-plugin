@@ -61,7 +61,7 @@ function cleanupOldTempFolders(
   foldersSkipped: number;
   errors: string[];
 } {
-  const log = Logger.scope("TempCleanup");
+  const log = AppLogger.scope("TempCleanup");
 
   log.info(`Starting automatic cleanup of temp folders older than ${olderThanHours} hours`, {
     dryRun,

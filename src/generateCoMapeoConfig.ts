@@ -1,5 +1,5 @@
 // Create scoped logger for this module
-const log = Logger.scope("ConfigGeneration");
+const log = AppLogger.scope("ConfigGeneration");
 
 /**
  * Generates a CoMapeo configuration file from the spreadsheet data.
@@ -191,7 +191,7 @@ function processDataForCoMapeo(data) {
   }
   log.info("Configuration schema validation passed");
 
-  Logger.timing("processDataForCoMapeo", startTime);
+  AppLogger.timing("processDataForCoMapeo", startTime);
 
   // Return with original property name for backward compatibility
   return {

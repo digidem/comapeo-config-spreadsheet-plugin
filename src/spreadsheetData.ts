@@ -1,5 +1,5 @@
 // Create scoped logger for this module
-const log = Logger.scope("SpreadsheetData");
+const log = AppLogger.scope("SpreadsheetData");
 
 /**
  * Cache key for languages data

@@ -18,7 +18,6 @@ function safeDebugLog(message: string, forceFlush = false) {
 
   // Fall back to standard logger
   try {
-    Logger.log(message);
     console.log(message);
   } catch (e) {
     // Last resort

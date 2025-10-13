@@ -54,7 +54,7 @@ interface TestSummary {
 }
 
 // Create scoped logger for test helpers
-const log = Logger.scope("TestHelpers");
+const log = AppLogger.scope("TestHelpers");
 
 /**
  * Test Runner - Collects and reports test results

@@ -5,9 +5,9 @@
  * and configurable output formatting.
  *
  * Usage:
- *   Logger.info("Processing started", { count: 10 });
- *   Logger.error("Failed to process", error, { userId: "123" });
- *   Logger.setLevel(LogLevel.DEBUG);
+ *   AppLogger.info("Processing started", { count: 10 });
+ *   AppLogger.error("Failed to process", error, { userId: "123" });
+ *   AppLogger.setLevel(LogLevel.DEBUG);
  */
 
 /**
@@ -22,9 +22,9 @@ enum LogLevel {
 }
 
 /**
- * Configuration for the Logger
+ * Configuration for the AppLogger
  */
-interface LoggerConfig {
+interface AppLoggerConfig {
   /** Minimum log level to output */
   level: LogLevel;
   /** Whether to include timestamps in logs */
@@ -40,9 +40,12 @@ interface LoggerConfig {
  *
  * Provides consistent, structured logging across the application with
  * configurable log levels, formatting, and context tracking.
+ *
+ * Note: Renamed from "AppLogger" to "AppAppLogger" to avoid conflict with
+ * Google Apps Script's built-in AppLogger object.
  */
-class Logger {
-  private static config: LoggerConfig = {
+class AppAppLogger {
+  private static config: AppLoggerConfig = {
     level: LogLevel.INFO,
     includeTimestamp: true,
     includeContext: true,
@@ -55,10 +58,10 @@ class Logger {
    * @param level - The minimum log level to output
    *
    * @example
-   * Logger.setLevel(LogLevel.DEBUG);
+   * AppLogger.setLevel(LogLevel.DEBUG);
    */
   static setLevel(level: LogLevel): void {
-    Logger.config.level = level;
+    AppLogger.config.level = level;
   }
 
   /**
@@ -67,7 +70,7 @@ class Logger {
    * @returns The current log level
    */
   static getLevel(): LogLevel {
-    return Logger.config.level;
+    return AppLogger.config.level;
   }
 
   /**
@@ -76,10 +79,10 @@ class Logger {
    * @param config - Partial configuration to merge with defaults
    *
    * @example
-   * Logger.configure({ includeTimestamp: false, maxStringLength: 500 });
+   * AppLogger.configure({ includeTimestamp: false, maxStringLength: 500 });
    */
-  static configure(config: Partial<LoggerConfig>): void {
-    Logger.config = { ...Logger.config, ...config };
+  static configure(config: Partial<AppLoggerConfig>): void {
+    AppLogger.config = { ...AppLogger.config, ...config };
   }
 
   /**
@@ -89,10 +92,10 @@ class Logger {
    * @param args - Additional arguments to log
    *
    * @example
-   * Logger.debug("Processing item", { id: 123, name: "test" });
+   * AppLogger.debug("Processing item", { id: 123, name: "test" });
    */
   static debug(message: string, ...args: any[]): void {
-    Logger.log(LogLevel.DEBUG, message, ...args);
+    AppLogger.log(LogLevel.DEBUG, message, ...args);
   }
 
   /**
@@ -102,10 +105,10 @@ class Logger {
    * @param args - Additional arguments to log
    *
    * @example
-   * Logger.info("Config generated successfully", { fileCount: 10 });
+   * AppLogger.info("Config generated successfully", { fileCount: 10 });
    */
   static info(message: string, ...args: any[]): void {
-    Logger.log(LogLevel.INFO, message, ...args);
+    AppLogger.log(LogLevel.INFO, message, ...args);
   }
 
   /**
@@ -115,10 +118,10 @@ class Logger {
    * @param args - Additional arguments to log
    *
    * @example
-   * Logger.warn("Missing optional field", { field: "description" });
+   * AppLogger.warn("Missing optional field", { field: "description" });
    */
   static warn(message: string, ...args: any[]): void {
-    Logger.log(LogLevel.WARN, message, ...args);
+    AppLogger.log(LogLevel.WARN, message, ...args);
   }
 
   /**
@@ -129,11 +132,11 @@ class Logger {
    * @param args - Additional arguments to log
    *
    * @example
-   * Logger.error("Failed to process", error, { userId: "123" });
+   * AppLogger.error("Failed to process", error, { userId: "123" });
    */
   static error(message: string, error?: Error | any, ...args: any[]): void {
     const allArgs = error ? [error, ...args] : args;
-    Logger.log(LogLevel.ERROR, message, ...allArgs);
+    AppLogger.log(LogLevel.ERROR, message, ...allArgs);
   }
 
   /**
@@ -145,7 +148,7 @@ class Logger {
    */
   private static log(level: LogLevel, message: string, ...args: any[]): void {
     // Skip if below configured level
-    if (level < Logger.config.level) {
+    if (level < AppLogger.config.level) {
       return;
     }
 
@@ -153,8 +156,8 @@ class Logger {
     const parts: string[] = [];
 
     // Add timestamp
-    if (Logger.config.includeTimestamp) {
-      parts.push(`[${Logger.getTimestamp()}]`);
+    if (AppLogger.config.includeTimestamp) {
+      parts.push(`[${AppLogger.getTimestamp()}]`);
     }
 
     // Add level
@@ -169,7 +172,7 @@ class Logger {
     // Add additional arguments if present
     if (args.length > 0) {
       const formattedArgs = args
-        .map((arg) => Logger.formatArgument(arg))
+        .map((arg) => AppLogger.formatArgument(arg))
         .filter((arg) => arg !== null)
         .join(" ");
 
@@ -179,7 +182,7 @@ class Logger {
     }
 
     // Output to console
-    Logger.output(level, logEntry);
+    AppLogger.output(level, logEntry);
   }
 
   /**
@@ -202,12 +205,12 @@ class Logger {
       // Handle objects and arrays
       if (typeof arg === "object") {
         const json = JSON.stringify(arg, null, 2);
-        return Logger.truncate(json);
+        return AppLogger.truncate(json);
       }
 
       // Handle primitives
       const str = String(arg);
-      return Logger.truncate(str);
+      return AppLogger.truncate(str);
     } catch (error) {
       return `[Unserializable: ${typeof arg}]`;
     }
@@ -220,12 +223,12 @@ class Logger {
    * @returns Truncated string
    */
   private static truncate(str: string): string {
-    if (str.length <= Logger.config.maxStringLength) {
+    if (str.length <= AppLogger.config.maxStringLength) {
       return str;
     }
 
-    const truncated = str.substring(0, Logger.config.maxStringLength);
-    return `${truncated}... [truncated ${str.length - Logger.config.maxStringLength} chars]`;
+    const truncated = str.substring(0, AppLogger.config.maxStringLength);
+    return `${truncated}... [truncated ${str.length - AppLogger.config.maxStringLength} chars]`;
   }
 
   /**
@@ -267,7 +270,7 @@ class Logger {
    * @returns Object with logging methods that include context
    *
    * @example
-   * const log = Logger.scope("IconProcessor");
+   * const log = AppLogger.scope("IconProcessor");
    * log.info("Processing icon", { name: "tree" });
    * // Output: [2024-01-01T00:00:00.000Z] [INFO] [IconProcessor] Processing icon {"name":"tree"}
    */
@@ -279,13 +282,13 @@ class Logger {
   } {
     return {
       debug: (message: string, ...args: any[]) =>
-        Logger.debug(`[${context}] ${message}`, ...args),
+        AppLogger.debug(`[${context}] ${message}`, ...args),
       info: (message: string, ...args: any[]) =>
-        Logger.info(`[${context}] ${message}`, ...args),
+        AppLogger.info(`[${context}] ${message}`, ...args),
       warn: (message: string, ...args: any[]) =>
-        Logger.warn(`[${context}] ${message}`, ...args),
+        AppLogger.warn(`[${context}] ${message}`, ...args),
       error: (message: string, error?: Error | any, ...args: any[]) =>
-        Logger.error(`[${context}] ${message}`, error, ...args),
+        AppLogger.error(`[${context}] ${message}`, error, ...args),
     };
   }
 
@@ -298,12 +301,12 @@ class Logger {
    * @example
    * const start = Date.now();
    * // ... operation ...
-   * Logger.timing("processIcons", start);
+   * AppLogger.timing("processIcons", start);
    * // Output: [INFO] Operation 'processIcons' took 1234ms
    */
   static timing(operation: string, startTime: number): void {
     const duration = Date.now() - startTime;
-    Logger.info(`Operation '${operation}' took ${duration}ms`);
+    AppLogger.info(`Operation '${operation}' took ${duration}ms`);
   }
 
   /**
@@ -313,18 +316,18 @@ class Logger {
    * @param callback - Function to execute within the group
    *
    * @example
-   * Logger.group("Processing Categories", () => {
-   *   Logger.info("Loading data");
-   *   Logger.info("Validating");
-   *   Logger.info("Complete");
+   * AppLogger.group("Processing Categories", () => {
+   *   AppLogger.info("Loading data");
+   *   AppLogger.info("Validating");
+   *   AppLogger.info("Complete");
    * });
    */
   static group(label: string, callback: () => void): void {
-    Logger.info(`╔══ ${label} ══`);
+    AppLogger.info(`╔══ ${label} ══`);
     try {
       callback();
     } finally {
-      Logger.info(`╚══ End ${label} ══`);
+      AppLogger.info(`╚══ End ${label} ══`);
     }
   }
 }

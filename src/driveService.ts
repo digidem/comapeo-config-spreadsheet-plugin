@@ -150,7 +150,7 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
     .createFile(doubleZippedBlob)
     .setName(fileName);
   const fileUrl = zipFile.getUrl();
-  Logger.log(`Download the ZIP file here: ${fileUrl}`);
+  console.log(`Download the ZIP file here: ${fileUrl}`);
 
   return fileUrl;
 }
