@@ -95,12 +95,19 @@ Reverse flow: imports existing `.comapeocat` files back into spreadsheet format.
 ### Validation & Cleanup (`src/lint.ts`, `src/cleanup.ts`)
 
 - **Linting**: Validates field types, required columns, data formats, and highlights errors
+- **HTML Validation**: Prevents "Malformed HTML content" errors in dialogs
+  - `validateHtmlContent()`: Core HTML validation with tag matching
+  - `validateDialogHtml()`: Pre-flight validation before showing dialogs
+  - `testHtmlValidation()`: Test suite for validation functions
 - **Cleanup**: Removes whitespace-only cells, fixes data inconsistencies
 - Both can run standalone via menu or as part of config generation
 
 ### UI Layer (`src/dialog.ts`, `src/text/`)
 
 - **`dialog.ts`**: Generates HTML dialogs for user interactions
+  - `generateDialog()`: Main dialog generator with built-in HTML validation
+  - `validateAndSanitizeMessage()`: Sanitizes message content before dialog creation
+  - `escapeHtml()`: Escapes user input to prevent XSS attacks
 - **`text/menu.ts`**, **`text/dialog.ts`**: Localized text strings for UI
 - **Dialog types**: Progress modals, language selection, success/error messages
 
@@ -213,6 +220,13 @@ All technical documentation lives in the **`context/`** directory. Reference the
   - O(n×m) → O(n+m) optimization using Map indexing
   - Before/after comparison with performance gains
   - **Use when**: Optimizing file operations or similar search patterns
+
+- **[`context/HTML_VALIDATION.md`](./context/HTML_VALIDATION.md)** - HTML validation strategy for dialogs
+  - Prevents "Malformed HTML content" errors
+  - Stack-based tag matching algorithm
+  - Integration with dialog generation system
+  - Test suite and debugging guide
+  - **Use when**: Working with dialog generation, debugging HTML errors, or adding new dialog types
 
 ### Navigation
 See **[`context/README.md`](./context/README.md)** for a complete overview and guidance on when to reference each file.

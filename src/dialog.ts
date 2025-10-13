@@ -1,8 +1,51 @@
+/// <reference path="./lint.ts" />
+
 /**
  * CoMapeo logo as embedded SVG data URI
  * Eliminates external network dependency and improves security
  */
 const COMAPEO_LOGO_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Cdefs%3E%3ClinearGradient id="grad1" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%236d44d9;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23330B9E;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx="50" cy="50" r="48" fill="url(%23grad1)" /%3E%3Cpath fill="white" d="M50 25c-8.28 0-15 6.72-15 15 0 11.25 15 30 15 30s15-18.75 15-30c0-8.28-6.72-15-15-15zm0 20.5c-3.04 0-5.5-2.46-5.5-5.5s2.46-5.5 5.5-5.5 5.5 2.46 5.5 5.5-2.46 5.5-5.5 5.5z"/%3E%3C/svg%3E';
+
+/**
+ * CRITICAL: Safe dialog wrapper that validates HTML before showing
+ * This prevents "Malformed HTML content" errors
+ */
+function showModalDialogSafe(
+  htmlContent: string,
+  title: string,
+  width: number,
+  height: number,
+  context: string
+): void {
+  try {
+    // MANDATORY validation before showing dialog
+    if (typeof validateDialogHtml === "function") {
+      validateDialogHtml(htmlContent, context);
+    } else {
+      console.warn("validateDialogHtml function not available - skipping validation");
+    }
+
+    // If we get here, HTML is valid - show the dialog
+    const output = HtmlService.createHtmlOutput(htmlContent)
+      .setWidth(width)
+      .setHeight(height);
+
+    SpreadsheetApp.getUi().showModalDialog(output, title);
+
+  } catch (error) {
+    // HTML validation failed - show error to user
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Dialog validation failed for ${context}:`, errorMessage);
+
+    // Show simple error dialog instead
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      "Dialog Error",
+      `Unable to show ${context} dialog due to a technical error.\n\nError: ${errorMessage}\n\nPlease report this issue.`,
+      ui.ButtonSet.OK
+    );
+  }
+}
 
 /**
  * Escapes HTML special characters to prevent XSS attacks
@@ -15,6 +58,40 @@ function escapeHtml(unsafe: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+/**
+ * Validates and sanitizes HTML message content before passing to generateDialog
+ * Use this for messages that contain user-generated or dynamic HTML
+ * @param messageLines - Array of message strings that may contain HTML
+ * @returns Validated HTML string with proper structure
+ */
+function validateAndSanitizeMessage(messageLines: string[]): string {
+  // Join message lines with proper paragraph tags
+  const message = messageLines
+    .map((line) => {
+      // Check if line already has HTML tags
+      if (/<\w+/.test(line)) {
+        // Validate the HTML structure
+        const validation = typeof validateHtmlContent === "function"
+          ? validateHtmlContent(line)
+          : { isValid: true, errors: [] };
+
+        if (!validation.isValid) {
+          console.warn(`Invalid HTML in message line: ${line}`);
+          console.warn(`Errors: ${validation.errors.join(", ")}`);
+          // Escape the entire line if it has invalid HTML
+          return `<p>${escapeHtml(line)}</p>`;
+        }
+        return line;
+      } else {
+        // Plain text - wrap in paragraph tags
+        return `<p>${line}</p>`;
+      }
+    })
+    .join("\n");
+
+  return message;
 }
 
 /**
@@ -53,7 +130,7 @@ function generateDialog(
   const safeSecondaryButtonFunction = sanitizeFunctionName(secondaryButtonFunction || "");
 
   // Note: message is not escaped as it contains intentional HTML from calling functions
-  return `
+  const html = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -216,19 +293,40 @@ function generateDialog(
     </body>
     </html>
   `;
+
+  // Validate HTML before returning to prevent "Malformed HTML content" errors
+  if (typeof validateDialogHtml === "function") {
+    try {
+      validateDialogHtml(html, title || "Dialog");
+    } catch (error) {
+      console.error("HTML validation error in generateDialog:", error);
+      // Return a safe fallback dialog
+      return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Error</title>
+        </head>
+        <body>
+          <h1>Dialog Error</h1>
+          <p>Unable to generate dialog due to malformed HTML content.</p>
+          <p>Error: ${escapeHtml(String(error))}</p>
+        </body>
+        </html>
+      `;
+    }
+  }
+
+  return html;
 }
 
 function showIconsGeneratedDialog(folderUrl: string) {
   const title = iconDialogTexts[locale].title;
-  const message = iconDialogTexts[locale].message
-    .map((msg) => `<p>${msg}</p>`)
-    .join("\n");
+  const message = validateAndSanitizeMessage(iconDialogTexts[locale].message);
   const buttonText = iconDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
-    title,
-  );
+  showModalDialogSafe(html, title, 800, 600, "Icons Generated");
 }
 
 function showProcessingModalDialog(dialogText: DialogText) {
@@ -236,12 +334,10 @@ function showProcessingModalDialog(dialogText: DialogText) {
     ? dialogText.message
     : [dialogText.message];
 
-  const message = messageLines.map(line => `<p>${line}</p>`).join('\n');
+  // Use validateAndSanitizeMessage to ensure proper HTML structure
+  const message = validateAndSanitizeMessage(messageLines);
   const html = generateDialog(dialogText.title, message);
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
-    dialogText.title,
-  );
+  showModalDialogSafe(html, dialogText.title, 800, 600, "Processing");
 }
 
 /**
@@ -256,43 +352,50 @@ function updateProcessingDialogProgress(mainMessage: string, detailMessage?: str
     ? [mainMessage, detailMessage]
     : [mainMessage];
 
-  const message = messageLines.map(line => `<p>${line}</p>`).join('\n');
+  // Use validateAndSanitizeMessage to ensure proper HTML structure
+  const message = validateAndSanitizeMessage(messageLines);
   const html = generateDialog(title, message);
 
   // Apps Script limitation: We have to close and reopen to update
   // This creates a brief flicker but provides progress feedback
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(600),
-    title,
-  );
+  showModalDialogSafe(html, title, 800, 600, "Processing Progress");
 }
 
 function showConfigurationGeneratedDialog(folderUrl: string) {
   const title = generatedConfigDialogTexts[locale].title;
-  const message = generatedConfigDialogTexts[locale].message
-    .map((msg) => `<p>${msg}</p>`)
-    .join("\n");
+  const message = validateAndSanitizeMessage(generatedConfigDialogTexts[locale].message);
   const buttonText = generatedConfigDialogTexts[locale].buttonText;
   const html = generateDialog(title, message, buttonText, folderUrl);
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980),
-    title,
-  );
+  showModalDialogSafe(html, title, 800, 980, "Configuration Generated");
 }
 
 function showHelpDialog() {
   const title = helpDialogTexts[locale].title;
-  const msgHeader = helpDialogTexts[locale].message
-    .map((msg) => `<p>${msg}</p>`)
-    .join("\n");
+  const msgHeader = validateAndSanitizeMessage(helpDialogTexts[locale].message);
+
+  // Instructions already contain HTML tags (like <br /> and <a>), validate them
   const instructions = helpDialogTexts[locale].instructions
-    .map((instruction) => `<li>${instruction}</li>`)
+    .map((instruction) => {
+      // Validate each instruction's HTML if it contains tags
+      if (/<\w+/.test(instruction)) {
+        const validation = typeof validateHtmlContent === "function"
+          ? validateHtmlContent(instruction)
+          : { isValid: true, errors: [] };
+
+        if (!validation.isValid) {
+          console.warn(`Invalid HTML in help instruction: ${instruction}`);
+          return `<li>${escapeHtml(instruction)}</li>`;
+        }
+      }
+      return `<li>${instruction}</li>`;
+    })
     .join("\n");
-  const footer = `<p>${helpDialogTexts[locale].footer}</p>`;
+
+  const footer = `<p>${escapeHtml(helpDialogTexts[locale].footer)}</p>`;
 
   const message = `
   ${msgHeader}
-  <ol style="text-align: left";>
+  <ol style="text-align: left;">
   ${instructions}
   </ol>
   ${footer}
@@ -301,10 +404,7 @@ function showHelpDialog() {
   const buttonUrl =
     "https://github.com/digidem/comapeo-config-spreadsheet-plugin";
   const html = generateDialog(title, message, buttonText, buttonUrl);
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(800).setHeight(980),
-    title,
-  );
+  showModalDialogSafe(html, title, 800, 980, "Help");
 }
 
 function showAddLanguagesDialog() {
@@ -312,13 +412,13 @@ function showAddLanguagesDialog() {
   const languages = getAllLanguages();
   const languageOptions = Object.entries(languages)
     .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB))
-    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`)
+    .map(([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)} (${escapeHtml(code)})</option>`)
     .join("");
 
   const message = `
-    <p>${addLanguageDialogText[locale].message[0]}</p>
+    <p>${escapeHtml(addLanguageDialogText[locale].message[0])}</p>
     <select id="languageSelect" class="language-select" onchange="updateFields()" style="margin-bottom: 15px;">
-      <option value="">${addLanguageDialogText[locale].message[1]}</option>
+      <option value="">${escapeHtml(addLanguageDialogText[locale].message[1])}</option>
       ${languageOptions}
     </select>
     <div id="languageInputs">
@@ -327,7 +427,7 @@ function showAddLanguagesDialog() {
         <input type="text" class="language-iso" placeholder="ISO code (e.g. es)" />
       </div>
     </div>
-    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">${addLanguageDialogText[locale].message[2]}</button>
+    <button id="addLanguageBtn" onclick="addLanguageRow()" style="margin: 10px 0;">${escapeHtml(addLanguageDialogText[locale].message[2])}</button>
     <script>
       function updateFields() {
         const select = document.getElementById('languageSelect');
@@ -391,10 +491,7 @@ function showAddLanguagesDialog() {
     null,
     "getSelectedLanguages",
   );
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(600).setHeight(800),
-    title,
-  );
+  showModalDialogSafe(html, title, 600, 800, "Add Languages");
 }
 
 function showSelectTranslationLanguagesDialog() {
@@ -404,30 +501,20 @@ function showSelectTranslationLanguagesDialog() {
   const title = selectTranslationLanguagesDialogText[locale].title;
   const messageTemplate = selectTranslationLanguagesDialogText[locale].message;
 
-  // Replace placeholder with actual source language
+  // Replace placeholder with actual source language (escaped)
   const messages = messageTemplate.map(msg =>
-    msg.replace('{{sourceLanguage}}', primaryLanguage.name)
+    msg.replace('{{sourceLanguage}}', escapeHtml(primaryLanguage.name))
   );
 
-  // Sort languages alphabetically for better UX
-  const sortedLanguages = Object.entries(availableTargetLanguages)
-    .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB));
-
-  // Generate checkboxes for each available target language
-  const languageCheckboxes = sortedLanguages
-    .map(([code, name]) =>
-      `<div class="language-checkbox">
-        <input type="checkbox" id="lang_${code}" value="${code}" />
-        <label for="lang_${code}">${name} (${code})</label>
-      </div>`
-    )
-    .join('');
+  // Convert languages to JSON for client-side rendering (much safer!)
+  const languagesJson = JSON.stringify(availableTargetLanguages);
+  const primaryLanguageJson = JSON.stringify(primaryLanguage);
 
   const message = `
-    ${messages.map(msg => `<p>${msg}</p>`).join('')}
+    ${messages.map(msg => `<p>${escapeHtml(msg)}</p>`).join('')}
     <div class="language-selection-container">
       <div class="source-language-info">
-        <strong>Source Language:</strong> ${primaryLanguage.name} (${primaryLanguage.code})
+        <strong>Source Language:</strong> <span id="sourceLangDisplay"></span>
       </div>
 
       <div class="search-container">
@@ -437,10 +524,10 @@ function showSelectTranslationLanguagesDialog() {
       <div class="target-languages">
         <strong>Target Languages:</strong>
         <div class="language-count">
-          <span id="languageCount">${sortedLanguages.length}</span> languages available
+          <span id="languageCount">0</span> languages available
         </div>
         <div class="languages-grid" id="languagesGrid">
-          ${languageCheckboxes}
+          <!-- Generated client-side from JSON -->
         </div>
       </div>
 
@@ -532,90 +619,142 @@ function showSelectTranslationLanguagesDialog() {
   const buttonText = selectTranslationLanguagesDialogText[locale].buttonText;
   const skipButtonText = selectTranslationLanguagesDialogText[locale].skipButtonText;
 
-  // Add the script functions for the dialog
-  const scriptFunctions = `
-    const commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];
+  // Consolidate ALL JavaScript into one script block to avoid validation issues
+  const allJavaScript = `
+    // Data from server (safe JSON)
+    var availableLanguages = ${languagesJson};
+    var primaryLanguage = ${primaryLanguageJson};
+    var commonLanguages = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja', 'ko', 'zh-CN', 'ru', 'ar', 'hi'];
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeLanguageSelection();
+    });
+
+    function initializeLanguageSelection() {
+      // Display source language
+      document.getElementById('sourceLangDisplay').textContent =
+        primaryLanguage.name + ' (' + primaryLanguage.code + ')';
+
+      // Generate language checkboxes client-side
+      renderLanguageCheckboxes(availableLanguages);
+    }
+
+    function renderLanguageCheckboxes(languages) {
+      var sortedLanguages = Object.entries(languages).sort(function(a, b) {
+        return a[1].localeCompare(b[1]);
+      });
+
+      var grid = document.getElementById('languagesGrid');
+      grid.innerHTML = '';
+
+      for (var i = 0; i < sortedLanguages.length; i++) {
+        var code = sortedLanguages[i][0];
+        var name = sortedLanguages[i][1];
+
+        var checkbox = document.createElement('div');
+        checkbox.className = 'language-checkbox';
+
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = 'lang_' + code;
+        input.value = code;
+
+        var label = document.createElement('label');
+        label.htmlFor = 'lang_' + code;
+        label.textContent = name + ' (' + code + ')';
+
+        checkbox.appendChild(input);
+        checkbox.appendChild(label);
+        grid.appendChild(checkbox);
+      }
+
+      document.getElementById('languageCount').textContent = sortedLanguages.length;
+    }
 
     function filterLanguages() {
-      const searchTerm = document.getElementById('languageSearch').value.toLowerCase();
-      const checkboxes = document.querySelectorAll('.language-checkbox');
-      let visibleCount = 0;
+      var searchTerm = document.getElementById('languageSearch').value.toLowerCase();
+      var checkboxes = document.querySelectorAll('.language-checkbox');
+      var visibleCount = 0;
 
-      checkboxes.forEach(checkbox => {
-        const label = checkbox.querySelector('label').textContent.toLowerCase();
+      for (var i = 0; i < checkboxes.length; i++) {
+        var checkbox = checkboxes[i];
+        var label = checkbox.querySelector('label').textContent.toLowerCase();
         if (label.includes(searchTerm)) {
           checkbox.style.display = 'flex';
           visibleCount++;
         } else {
           checkbox.style.display = 'none';
         }
-      });
+      }
 
       document.getElementById('languageCount').textContent = visibleCount;
     }
 
     function selectAllLanguages() {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]:not([style*="display: none"])');
-      checkboxes.forEach(checkbox => checkbox.checked = true);
+      var allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+      for (var i = 0; i < allCheckboxes.length; i++) {
+        var cb = allCheckboxes[i];
+        var parent = cb.closest('.language-checkbox');
+        if (parent && parent.style.display !== 'none') {
+          cb.checked = true;
+        }
+      }
     }
 
     function deselectAllLanguages() {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => checkbox.checked = false);
+      var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+      }
     }
 
     function selectCommonLanguages() {
       deselectAllLanguages();
-      commonLanguages.forEach(langCode => {
-        const checkbox = document.getElementById('lang_' + langCode);
+      for (var i = 0; i < commonLanguages.length; i++) {
+        var langCode = commonLanguages[i];
+        var checkbox = document.getElementById('lang_' + langCode);
         if (checkbox) {
           checkbox.checked = true;
         }
-      });
+      }
     }
 
     function getSelectedTargetLanguages() {
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-      const selectedLanguages = Array.from(checkboxes).map(checkbox => checkbox.value);
+      var checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      var selectedLanguages = [];
+      for (var i = 0; i < checkedBoxes.length; i++) {
+        selectedLanguages.push(checkedBoxes[i].value);
+      }
 
       if (selectedLanguages.length === 0) {
         alert('Please select at least one target language.');
-        document.querySelector('.primary-btn').classList.remove('processing');
+        var btn = document.querySelector('.primary-btn');
+        if (btn) btn.classList.remove('processing');
         return;
       }
 
-      // Close this dialog BEFORE calling server function to avoid modal dialog conflict
       google.script.host.close();
-
-      // Now call the server function which will show its own processing dialogs
       google.script.run
-        .withFailureHandler((error) => {
+        .withFailureHandler(function(error) {
           console.error('Failed to generate CoMapeo config:', error);
-          // Error will be shown by the server function's error handler
         })
         .generateCoMapeoConfigWithSelectedLanguages(selectedLanguages);
     }
 
     function skipTranslation() {
       console.log('[CLIENT] Skip Translation button clicked');
-      console.log('[CLIENT] Closing dialog before calling server function');
-
-      // Close this dialog BEFORE calling server function to avoid modal dialog conflict
       google.script.host.close();
-
-      console.log('[CLIENT] Calling server function: generateCoMapeoConfigSkipTranslation()');
-      // Now call the server function which will show its own processing dialogs
       google.script.run
-        .withFailureHandler((error) => {
-          console.error('[CLIENT] ❌ Failed to generate CoMapeo config:', error);
-          // Error will be shown by the server function's error handler
+        .withFailureHandler(function(error) {
+          console.error('[CLIENT] Failed to generate CoMapeo config:', error);
         })
         .generateCoMapeoConfigSkipTranslation();
     }
   `;
 
-  // Add the message content with all the language selection UI
-  const fullMessage = message + `<script>${scriptFunctions}</script>`;
+  // Add the message content with consolidated JavaScript (NO arrow functions, uses var and traditional loops)
+  const fullMessage = message + '<script>' + allJavaScript + '</script>';
 
   const html = generateDialog(
     title,
@@ -626,8 +765,5 @@ function showSelectTranslationLanguagesDialog() {
     skipButtonText,
     "skipTranslation",
   );
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(750).setHeight(900),
-    title,
-  );
+  showModalDialogSafe(html, title, 750, 900, "Translation Language Selection");
 }
