@@ -1,5 +1,7 @@
-// Create scoped logger for this module
-const log = AppLogger.scope("ConfigGeneration");
+// Lazy logger initialization to avoid compilation order issues
+function getLog() {
+  return typeof AppLogger !== 'undefined' ? AppLogger.scope("ConfigGeneration") : console;
+}
 
 /**
  * Generates a CoMapeo configuration file from the spreadsheet data.
@@ -15,6 +17,7 @@ function generateCoMapeoConfig() {
  * Continues the CoMapeo config generation process without translation.
  */
 function generateCoMapeoConfigSkipTranslation() {
+  const log = getLog();
   log.info("User chose to skip translation");
   log.debug("Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
   generateCoMapeoConfigWithSelectedLanguages([]);
@@ -25,6 +28,7 @@ function generateCoMapeoConfigSkipTranslation() {
  * Continues the CoMapeo config generation process.
  */
 function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]) {
+  const log = getLog();
   let createdFolderId: string | null = null;
 
   try {
@@ -142,6 +146,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
  *   - messages: An object with two properties, pt and es, each containing an object with translation messages for the corresponding language.
  */
 function processDataForCoMapeo(data) {
+  const log = getLog();
   const startTime = Date.now();
   log.info("Processing CoMapeo data...");
 
@@ -191,7 +196,9 @@ function processDataForCoMapeo(data) {
   }
   log.info("Configuration schema validation passed");
 
-  AppLogger.timing("processDataForCoMapeo", startTime);
+  if (typeof AppLogger !== 'undefined') {
+    AppLogger.timing("processDataForCoMapeo", startTime);
+  }
 
   // Return with original property name for backward compatibility
   return {

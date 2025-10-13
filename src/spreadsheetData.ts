@@ -1,5 +1,7 @@
-// Create scoped logger for this module
-const log = AppLogger.scope("SpreadsheetData");
+// Lazy logger initialization to avoid compilation order issues
+function getLog() {
+  return typeof AppLogger !== 'undefined' ? AppLogger.scope("SpreadsheetData") : console;
+}
 
 /**
  * Cache key for languages data
@@ -48,6 +50,7 @@ function filterLanguagesByPrimary(
  * Fetches languages from cache or remote source
  */
 function getAllLanguages(): Record<string, string> {
+  const log = getLog();
   // Try to get from cache first
   const cache = CacheService.getScriptCache();
   const cachedData = cache.get(LANGUAGES_CACHE_KEY);

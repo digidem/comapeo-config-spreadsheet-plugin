@@ -53,8 +53,10 @@ interface TestSummary {
   results: TestResult[];
 }
 
-// Create scoped logger for test helpers
-const log = AppLogger.scope("TestHelpers");
+// Lazy logger initialization to avoid compilation order issues
+function getLog() {
+  return typeof AppLogger !== 'undefined' ? AppLogger.scope("TestHelpers") : console;
+}
 
 /**
  * Test Runner - Collects and reports test results
@@ -67,6 +69,7 @@ class TestRunner {
    * Start a new test suite
    */
   start(): void {
+    const log = getLog();
     this.results = [];
     this.startTime = Date.now();
     log.info("===== Test Suite Started =====");
@@ -78,6 +81,7 @@ class TestRunner {
    * @param result - The test result to add
    */
   addResult(result: TestResult): void {
+    const log = getLog();
     this.results.push(result);
 
     const status = result.success ? "✅ PASSED" : "❌ FAILED";
@@ -101,6 +105,7 @@ class TestRunner {
    * @returns Test result
    */
   runTest(testName: string, testFn: () => TestResult): TestResult {
+    const log = getLog();
     const startTime = Date.now();
     log.info(`Running test: ${testName}`);
 
