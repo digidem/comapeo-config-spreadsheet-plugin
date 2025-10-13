@@ -26,9 +26,10 @@ validateHtmlContent(html: string): { isValid: boolean; errors: string[] }
 - ✅ Self-closing tag detection
 - ✅ Script/style tag validation
 - ✅ **Malformed attribute syntax** (e.g., `style="value";>`)
-- ✅ **Unclosed quotes in attributes**
 - ✅ Unescaped special characters in attributes
 - ✅ Multiple DOCTYPE declarations
+
+**Note**: Unclosed quote validation was initially added but later removed due to regex false positives that blocked all valid attributes. Client-side DOM rendering provides better protection.
 
 ### 2. Mandatory Pre-Flight Validation (`src/dialog.ts`)
 
@@ -103,7 +104,7 @@ input.value = code;  // Safe - no HTML injection possible
 **Three levels of testing:**
 
 #### A. Unit Tests: `testHtmlValidation()`
-Tests 11 HTML validation scenarios:
+Tests 10 HTML validation scenarios:
 - ✅ Valid HTML
 - ❌ Unclosed tags
 - ❌ Mismatched tags
@@ -113,8 +114,9 @@ Tests 11 HTML validation scenarios:
 - ✅ Valid data URIs
 - ❌ Multiple DOCTYPEs
 - ❌ **Malformed attribute syntax**
-- ❌ **Unclosed quotes**
 - ✅ Complex valid HTML
+
+**Note**: Unclosed quote test was removed after validation was disabled due to false positives.
 
 #### B. Integration Tests: `testDialogHtmlGeneration()`
 Tests actual dialog generation:
@@ -322,10 +324,11 @@ const message = validateAndSanitizeMessage(messages);
 5. **Custom Validation Rules**: Allow projects to define custom validation rules
 
 ### Known Limitations
-1. Doesn't validate HTML entities (e.g., `&nbsp;`, `&#39;`)
-2. Doesn't check CSS syntax within `<style>` tags
-3. Doesn't validate JavaScript syntax within `<script>` tags
-4. May not catch all edge cases in deeply nested HTML
+1. **Unclosed quotes in attributes** - Not validated due to regex false positives (use client-side DOM rendering)
+2. Doesn't validate HTML entities (e.g., `&nbsp;`, `&#39;`)
+3. Doesn't check CSS syntax within `<style>` tags
+4. Doesn't validate JavaScript syntax within `<script>` tags
+5. May not catch all edge cases in deeply nested HTML
 
 ## Conclusion
 

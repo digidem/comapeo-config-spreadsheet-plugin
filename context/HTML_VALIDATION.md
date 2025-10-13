@@ -11,9 +11,11 @@ The error "Malformed HTML content" occurs when Google Apps Script attempts to re
 1. **Unclosed HTML tags** - Tags that are opened but never closed
 2. **Mismatched tags** - Opening and closing tags don't match (e.g., `<div>...</p>`)
 3. **Invalid tag nesting** - Tags nested in improper order
-4. **Unescaped special characters** - Characters like `<`, `>`, `"` in attribute values
+4. **Unescaped special characters** - Characters like `<`, `>` in attribute values
 5. **Multiple DOCTYPE declarations** - More than one DOCTYPE in a document
 6. **Script/style tag issues** - Unclosed `<script>` or `<style>` tags
+
+**Note**: Unclosed quote validation in attributes was removed due to regex false positives. Use proper escaping and client-side DOM rendering to prevent quote issues.
 
 ## Solution Architecture
 
@@ -27,8 +29,12 @@ validateHtmlContent(html: string): { isValid: boolean; errors: string[] }
 - Tag matching using a stack-based algorithm
 - Self-closing tag detection (img, br, hr, input, etc.)
 - Script and style tag validation
-- Attribute value validation
+- Unescaped special characters in attribute values
+- Malformed attribute syntax (e.g., `style="value";>`)
 - DOCTYPE declaration count
+
+**Not validated** (due to false positives):
+- Unclosed quotes in attributes - Use client-side DOM rendering instead
 
 **Returns:**
 - `isValid`: Boolean indicating if HTML is valid
@@ -154,7 +160,7 @@ testHtmlValidation();
 
 ### Test Cases
 
-The `testHtmlValidation()` function includes 8 test cases:
+The `testHtmlValidation()` function includes 10 test cases:
 
 1. ✅ Valid HTML with nested tags
 2. ❌ Unclosed tag
@@ -164,6 +170,10 @@ The `testHtmlValidation()` function includes 8 test cases:
 6. ❌ Unescaped `<` in attribute
 7. ✅ Valid data URI
 8. ❌ Multiple DOCTYPE declarations
+9. ❌ Malformed attribute with semicolon
+10. ✅ Valid complex HTML
+
+**Note**: Unclosed quote test case was removed after validation was disabled due to false positives.
 
 ### Expected Output
 
@@ -309,10 +319,11 @@ When adding new dialog functions:
 
 ### Known Limitations
 
-1. **Complex HTML** - May not catch all edge cases in deeply nested HTML
-2. **Invalid Entities** - Doesn't validate HTML entities (e.g., `&nbsp;`)
-3. **CSS in Styles** - Doesn't validate CSS syntax within `<style>` tags
-4. **JavaScript in Scripts** - Doesn't validate JavaScript syntax within `<script>` tags
+1. **Unclosed Quotes in Attributes** - Not validated due to regex false positives. Use client-side DOM rendering or proper escaping.
+2. **Complex HTML** - May not catch all edge cases in deeply nested HTML
+3. **Invalid Entities** - Doesn't validate HTML entities (e.g., `&nbsp;`)
+4. **CSS in Styles** - Doesn't validate CSS syntax within `<style>` tags
+5. **JavaScript in Scripts** - Doesn't validate JavaScript syntax within `<script>` tags
 
 ## References
 
