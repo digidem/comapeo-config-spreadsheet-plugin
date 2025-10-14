@@ -130,18 +130,21 @@ function translateSheetBidirectional(
   getTranslationServiceLogger().info("Available target languages:", availableTargetLanguages);
 
   // Get headers to find column positions
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
 
   let translationErrors: string[] = [];
   let successfulTranslations = 0;
+
+  const translationCache = new Map<string, string>();
+  const allLanguages: LanguageMap = getAllLanguages();
+  const targetColumnIndexes = new Map<TranslationLanguage, number>();
 
   for (const targetLang of targetLanguages) {
     // Find the target column for this language
     let targetColumn = -1;
 
     // First check all available languages
-    const allLanguages: LanguageMap = getAllLanguages();
-
     if (allLanguages[targetLang]) {
       const targetLanguageName = allLanguages[targetLang];
       targetColumn = headers.findIndex(header => header === targetLanguageName);
@@ -157,30 +160,79 @@ function translateSheetBidirectional(
       continue;
     }
 
-    // Translate each row
-    for (let i = 2; i <= lastRow; i++) {
-      const originalText = sheet.getRange(i, 1).getValue() as string;
-      if (originalText && typeof originalText === "string" && originalText.trim()) {
-        const targetCell = sheet.getRange(i, targetColumn + 1); // +1 because findIndex is 0-based
-        if (!targetCell.getValue()) {
+    targetColumnIndexes.set(targetLang, targetColumn);
+  }
+
+  const rowCount = lastRow - 1;
+  if (rowCount <= 0 || targetColumnIndexes.size === 0) {
+    getTranslationServiceLogger().info(`No translation updates required for ${sheetName}`);
+  } else {
+    const sheetValues = sheet.getRange(2, 1, rowCount, lastColumn).getValues();
+    const updatedColumns = new Map<number, string[]>();
+    const updatedColumnIndexes = new Set<number>();
+
+    targetColumnIndexes.forEach((columnIndex) => {
+      const columnValues = sheetValues.map((row) => row[columnIndex]);
+      updatedColumns.set(columnIndex, columnValues.slice());
+    });
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      const rawValue = sheetValues[rowIndex][0];
+      const originalText = typeof rawValue === "string" ? rawValue.trim() : String(rawValue || "").trim();
+      if (!originalText) {
+        continue;
+      }
+
+      targetColumnIndexes.forEach((columnIndex, targetLang) => {
+        const columnValues = updatedColumns.get(columnIndex);
+        if (!columnValues) {
+          return;
+        }
+
+        const existingValue = columnValues[rowIndex];
+        if (existingValue && String(existingValue).trim() !== "") {
+          return;
+        }
+
+        const cacheKey = `${targetLang}::${originalText}`;
+        let translation = translationCache.get(cacheKey);
+
+        if (!translation) {
           try {
-            const translation = LanguageApp.translate(
-              originalText.trim(),
+            const translatedText = LanguageApp.translate(
+              originalText,
               actualSourceLanguage,
               targetLang,
             );
-            if (translation && translation.trim()) {
-              targetCell.setValue(translation.trim());
-              successfulTranslations++;
+            translation = translatedText ? translatedText.trim() : "";
+            if (translation) {
+              translationCache.set(cacheKey, translation);
             }
           } catch (error) {
-            const errorMessage = `Translation error for ${targetLang} (row ${i}): ${error.message}`;
+            const errorMessage = `Translation error for ${targetLang} (row ${rowIndex + 2}): ${error.message}`;
             getTranslationServiceLogger().error(errorMessage);
             translationErrors.push(errorMessage);
+            translation = "";
           }
         }
-      }
+
+        if (translation) {
+          columnValues[rowIndex] = translation;
+          updatedColumnIndexes.add(columnIndex);
+          successfulTranslations++;
+        }
+      });
     }
+
+    updatedColumnIndexes.forEach((columnIndex) => {
+      const columnValues = updatedColumns.get(columnIndex);
+      if (!columnValues) {
+        return;
+      }
+
+      const valuesToWrite = columnValues.map((value) => [value]);
+      sheet.getRange(2, columnIndex + 1, rowCount, 1).setValues(valuesToWrite);
+    });
   }
 
   getTranslationServiceLogger().info(`Translation summary for ${sheetName}:`, {

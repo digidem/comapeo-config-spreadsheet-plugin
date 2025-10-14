@@ -638,6 +638,22 @@ function validateCategoryIcons(): void {
 
 // Specific sheet linting functions
 function lintCategoriesSheet(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheetRef = spreadsheet.getSheetByName("Categories");
+  const detailsSheetRef = spreadsheet.getSheetByName("Details");
+
+  let cachedDetailNames: string[] = [];
+  if (detailsSheetRef) {
+    const lastRow = detailsSheetRef.getLastRow();
+    if (lastRow > 1) {
+      cachedDetailNames = detailsSheetRef
+        .getRange(2, 1, lastRow - 1, 1)
+        .getValues()
+        .map((row) => slugify(String(row[0])))
+        .filter((name) => name);
+    }
+  }
+
   const categoriesValidations = [
     // Rule 1: Capitalize the first letter of the category name
     (value, row, col) => {
@@ -646,10 +662,7 @@ function lintCategoriesSheet(): void {
       const capitalizedValue = capitalizeFirstLetter(value);
       if (capitalizedValue !== value) {
         try {
-          SpreadsheetApp.getActiveSpreadsheet()
-            .getSheetByName("Categories")
-            ?.getRange(row, col)
-            .setValue(capitalizedValue);
+          categoriesSheetRef?.getRange(row, col).setValue(capitalizedValue);
         } catch (error) {
           console.error(
             "Error capitalizing value in Categories sheet at row " +
@@ -668,8 +681,7 @@ function lintCategoriesSheet(): void {
         // Check if icon is missing or whitespace-only
         if (isEmptyOrWhitespace(value)) {
           console.log("Missing icon at row " + row);
-          SpreadsheetApp.getActiveSpreadsheet()
-            .getSheetByName("Categories")
+          categoriesSheetRef
             ?.getRange(row, col)
             .setBackground("#FFC7CE"); // Light red for missing required icon
           return;
@@ -685,10 +697,7 @@ function lintCategoriesSheet(): void {
 
         if (!isValidGoogleDriveUrl(value)) {
           console.log("Invalid icon URL: " + value);
-          SpreadsheetApp.getActiveSpreadsheet()
-            .getSheetByName("Categories")
-            ?.getRange(row, col)
-            .setFontColor("red");
+          categoriesSheetRef?.getRange(row, col).setFontColor("red");
         }
       } catch (error) {
         console.error(
@@ -707,27 +716,17 @@ function lintCategoriesSheet(): void {
 
       try {
         // Validate that each field in the comma-separated list exists in the Details sheet
-        const detailsSheet =
-          SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Details");
-        if (detailsSheet) {
-          const detailsData = detailsSheet
-            .getRange(2, 1, detailsSheet.getLastRow() - 1, 1)
-            .getValues();
-          const detailNames = detailsData
-            .map((row) => slugify(String(row[0])))
-            .filter((name) => name);
-
+        if (cachedDetailNames.length > 0) {
           const fields = value.split(",").map((field) => slugify(field.trim()));
           const invalidFields = fields.filter(
-            (field) => field && !detailNames.includes(field),
+            (field) => field && !cachedDetailNames.includes(field),
           );
 
           if (invalidFields.length > 0) {
             console.log(
               "Invalid fields in row " + row + ": " + invalidFields.join(", "),
             );
-            SpreadsheetApp.getActiveSpreadsheet()
-              .getSheetByName("Categories")
+            categoriesSheetRef
               ?.getRange(row, col)
               .setBackground("#FFC7CE");
           }

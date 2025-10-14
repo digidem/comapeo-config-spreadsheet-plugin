@@ -15,17 +15,20 @@ After completing any task below:
   *Risk:* Medium — batching needs to preserve all current highlighting/notes, so comprehensive before/after sheet comparisons are required.  
   *Tested:* `npm run lint`
 
-- [ ] **Cache Detail Slugs During Category Validation (`src/lint.ts`)**  
+- [x] **Cache Detail Slugs During Category Validation (`src/lint.ts`)**  
   *Gain:* Eliminates repeated reads of the entire Details sheet while validating each category row.  
-  *Risk:* Low — ensure cache invalidation within the lint pass so edits within the same run are respected.
+  *Risk:* Low — ensure cache invalidation within the lint pass so edits within the same run are respected.  
+  *Tested:* `npm run lint`
 
-- [ ] **Batch Translation Updates (`src/translation.ts`)**  
+- [x] **Batch Translation Updates (`src/translation.ts`)**  
   *Gain:* Replace per-cell translation writes with `setValues`, and cache repeated phrases per language to shrink LanguageApp calls.  
-  *Risk:* Medium — must keep column alignment and avoid overwriting pre-filled translations or formulas.
+  *Risk:* Medium — must keep column alignment and avoid overwriting pre-filled translations or formulas.  
+  *Tested:* `npm run lint`
 
-- [ ] **Hoist Language Lookups in Translation Loop (`src/translation.ts`)**  
+- [x] **Hoist Language Lookups in Translation Loop (`src/translation.ts`)**  
   *Gain:* Prevents redundant `getAllLanguages()` calls for every target language, shaving repeated network/cache hits.  
-  *Risk:* Low — confirm the hoisted map still reflects any runtime updates (e.g. newly added custom columns).
+  *Risk:* Low — confirm the hoisted map still reflects any runtime updates (e.g. newly added custom columns).  
+  *Tested:* `npm run lint`
 
 - [ ] **Reuse Generated Icons Across Pipeline (`src/generateCoMapeoConfig.ts`, `src/driveService.ts`)**  
   *Gain:* Avoids double icon generation and duplicate external API requests during Drive export.  
