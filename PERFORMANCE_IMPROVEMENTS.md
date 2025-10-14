@@ -30,13 +30,15 @@ After completing any task below:
   *Risk:* Low — confirm the hoisted map still reflects any runtime updates (e.g. newly added custom columns).  
   *Tested:* `npm run lint`
 
-- [ ] **Reuse Generated Icons Across Pipeline (`src/generateCoMapeoConfig.ts`, `src/driveService.ts`)**  
+- [x] **Reuse Generated Icons Across Pipeline (`src/generateCoMapeoConfig.ts`, `src/driveService.ts`)**  
   *Gain:* Avoids double icon generation and duplicate external API requests during Drive export.  
-  *Risk:* Medium — ensure Drive writes still emit all required size variants and that in-sheet icon URLs stay consistent.
+  *Risk:* Medium — ensure Drive writes still emit all required size variants and that in-sheet icon URLs stay consistent.  
+  *Tested:* `npm run lint`
 
-- [ ] **Make Drive Sync Delay Conditional (`src/driveService.ts`)**  
+- [x] **Make Drive Sync Delay Conditional (`src/driveService.ts`)**  
   *Gain:* Removes the unconditional 2 s pause when Drive has already committed files.  
-  *Risk:* Low — confirm no race conditions when immediately downloading the package after export.
+  *Risk:* Low — confirm no race conditions when immediately downloading the package after export.  
+  *Tested:* `npm run lint`
 
 - [ ] **Cache Successful Preflight Results (`src/preflightValidation.ts`)**  
   *Gain:* Skips repeated Drive/API connectivity checks when rerunning the generator within a short window.  
@@ -49,6 +51,5 @@ After completing any task below:
 ---
 
 **Priorities**
-1. Batch spreadsheet writes in linting and translations — highest ROI, largest current bottlenecks.  
-2. Icon reuse and Drive delay tweak — second tier, medium effort with noticeable savings.  
-3. Preflight caching and instrumentation — polish tasks to lock in improvements and monitor regressions.
+1. Finish remaining safeguards: Preflight result caching and instrumentation to monitor gains.  
+2. Revisit Drive/API flows for additional batching opportunities after verifying real-world timings.

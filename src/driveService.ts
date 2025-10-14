@@ -237,9 +237,11 @@ function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string,
     console.log("[DRIVE] ✅ Created subfolders successfully");
 
     // Process each step individually with better error handling and progress logging
+    const iconSuffixes = ["-100px", "-24px"];
+
     reportProgress("Saving to Drive... (4/8)", `Saving ${config.presets.length} presets and icons...`);
     const presetsStart = new Date().getTime();
-    savePresetsAndIcons(config, folders, ["-100px", "-24px"]);
+    savePresetsAndIcons(config, folders, iconSuffixes);
     const presetsTime = ((new Date().getTime() - presetsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved presets and icons (${presetsTime}s)`);
 
@@ -265,9 +267,21 @@ function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string,
     const totalTime = ((new Date().getTime() - startTime) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Successfully saved all config files to folder (total: ${totalTime}s)`);
 
-    // Add a small delay to ensure Drive operations are fully committed
-    console.log("[DRIVE] Waiting for Drive sync...");
-    Utilities.sleep(2000);
+    const iconVariantCount = iconSuffixes.length > 0 ? iconSuffixes.length : 1;
+    const iconFilesCreated = config.icons.length * iconVariantCount;
+    const totalFilesCreated =
+      config.presets.length +
+      iconFilesCreated +
+      config.fields.length +
+      languageCount +
+      2; // metadata.json + package.json
+
+    if (totalFilesCreated > 80) {
+      console.log(`[DRIVE] Created ${totalFilesCreated} files; waiting for Drive sync...`);
+      Utilities.sleep(2000);
+    } else {
+      console.log("[DRIVE] Skipping Drive sync wait (small batch)");
+    }
 
     return {
       url: rootFolder.getUrl(),
@@ -299,13 +313,58 @@ function savePresetsAndIcons(
   try {
     console.log("Saving presets...");
     savePresets(config.presets, folders.presets);
-    console.log("Processing icons...");
-    config.icons = processIcons(folders.icons, suffixes);
-    console.log("Icons processed successfully");
+    console.log("Saving icons from cached config...");
+    config.icons = saveExistingIconsToFolder(config, folders.icons, suffixes);
+    console.log("Icons saved successfully");
   } catch (error) {
     console.error("Error in savePresetsAndIcons:", error);
     throw new Error(`Failed to save presets and icons: ${error.message}`);
   }
+}
+
+function saveExistingIconsToFolder(
+  config: CoMapeoConfig,
+  iconsFolder: GoogleAppsScript.Drive.Folder,
+  suffixes: string[],
+): CoMapeoIcon[] {
+  const iconMap = new Map<string, CoMapeoIcon>();
+  for (const icon of config.icons) {
+    iconMap.set(icon.name, icon);
+  }
+
+  const { categories, backgroundColors, categoriesSheet } = getCategoryData();
+  const updatedIcons: CoMapeoIcon[] = [];
+
+  categories.forEach((category, index) => {
+    const categoryName = category[0];
+    const backgroundColor = backgroundColors[index]?.[0] || "#6d44d9";
+    const presetSlug = createPresetSlug(categoryName, index);
+    const existingIcon = iconMap.get(presetSlug);
+
+    const iconSource =
+      existingIcon?.svg ||
+      generateNewIcon(categoryName, backgroundColor, presetSlug);
+
+    const savedUrl = saveIconToFolder(
+      iconsFolder,
+      categoryName,
+      presetSlug,
+      iconSource,
+      suffixes,
+      backgroundColor,
+    );
+
+    updateIconUrlInSheet(categoriesSheet, index + 2, 2, savedUrl);
+
+    if (savedUrl && savedUrl.trim() !== "") {
+      updatedIcons.push({
+        name: presetSlug,
+        svg: savedUrl,
+      });
+    }
+  });
+
+  return updatedIcons;
 }
 
 function savePresets(
