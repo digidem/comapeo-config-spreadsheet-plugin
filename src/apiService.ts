@@ -135,8 +135,24 @@ function sendDataToApiAndGetZip(
 
         // Check if the response is too small (likely an error)
         if (blobSize < minValidFileSize) {
+          const contentType = response.getHeaders()["Content-Type"] || "unknown";
+          let responsePreview = "";
+          try {
+            responsePreview = response.getContentText();
+            const maxPreviewLength = 500;
+            if (responsePreview.length > maxPreviewLength) {
+              responsePreview =
+                responsePreview.slice(0, maxPreviewLength) + "... [truncated]";
+            }
+          } catch (previewError) {
+            console.warn(
+              "[API] Failed to read response preview:",
+              previewError.message || previewError,
+            );
+          }
+
           lastError = new Error(
-            `API returned a file that is too small (${blobSize} bytes). This is likely an error response.`,
+            `API returned a file that is too small (${blobSize} bytes, content-type: ${contentType}). This is likely an error response. Preview: ${responsePreview}`,
           );
           console.error(lastError.message);
           retryCount++;
