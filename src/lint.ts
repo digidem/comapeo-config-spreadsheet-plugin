@@ -66,6 +66,17 @@ function extractDriveFileId(url: string): string | null {
   return match ? match[0] : null;
 }
 
+function columnNumberToLetter(columnNumber: number): string {
+  let dividend = columnNumber;
+  let columnName = "";
+  while (dividend > 0) {
+    const modulo = (dividend - 1) % 26;
+    columnName = String.fromCharCode(65 + modulo) + columnName;
+    dividend = Math.floor((dividend - modulo) / 26);
+  }
+  return columnName;
+}
+
 function normalizeIconSlug(slug: string): string {
   if (!slug) return "";
 
@@ -118,9 +129,9 @@ function checkForDuplicates(
       console.log(
         'Found duplicate value "' + value + '" in rows: ' + rows.join(", "),
       );
-      for (let i = 0; i < rows.length; i++) {
-        sheet.getRange(rows[i], columnIndex).setBackground("#FFC7CE"); // Light red
-      }
+      const columnLetter = columnNumberToLetter(columnIndex);
+      const rangeAddresses = rows.map((rowNumber) => `${columnLetter}${rowNumber}`);
+      sheet.getRangeList(rangeAddresses).setBackground("#FFC7CE"); // Light red
     }
   });
 }
@@ -377,16 +388,37 @@ function lintSheet(
     console.timeEnd(`Getting data for ${sheetName}`);
 
     console.time(`Validating cells for ${sheetName}`);
-    // Iterate through each cell and apply the corresponding validation function
-    data.forEach((row, rowIndex) => {
-      // Check for required fields
+
+    // Highlight required fields in batches before running column validations
+    if (requiredColumns.length > 0) {
+      const requiredHighlights = new Map<number, number[]>();
       requiredColumns.forEach((colIndex) => {
-        if (isEmptyOrWhitespace(row[colIndex])) {
-          sheet.getRange(rowIndex + 2, colIndex + 1).setBackground("#FFF2CC"); // Light yellow for required fields
-        }
+        requiredHighlights.set(colIndex, []);
       });
 
-      // Apply validations
+      data.forEach((row, rowIndex) => {
+        requiredColumns.forEach((colIndex) => {
+          if (isEmptyOrWhitespace(row[colIndex])) {
+            const rows = requiredHighlights.get(colIndex);
+            if (rows) {
+              rows.push(rowIndex + 2); // +2 accounts for header row
+            }
+          }
+        });
+      });
+
+      requiredHighlights.forEach((rows, colIndex) => {
+        if (!rows || rows.length === 0) {
+          return;
+        }
+        const columnLetter = columnNumberToLetter(colIndex + 1);
+        const rangeAddresses = rows.map((rowNumber) => `${columnLetter}${rowNumber}`);
+        sheet.getRangeList(rangeAddresses).setBackground("#FFF2CC"); // Light yellow for required fields
+      });
+    }
+
+    // Iterate through each cell and apply the corresponding validation function
+    data.forEach((row, rowIndex) => {
       row.forEach((cellValue, colIndex) => {
         if (columnValidations[colIndex]) {
           columnValidations[colIndex](
