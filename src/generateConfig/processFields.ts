@@ -44,12 +44,16 @@ function processFields(data) {
     );
   }
 
-  return details.map((detail) => ({
-    tagKey: slugify(detail[0]),
-    type: getFieldType(detail[2]),
-    label: detail[0],
-    helperText: detail[1],
-    options: getFieldOptions(detail[2], detail[3]),
-    universal: detail[5] === "TRUE",
-  }));
+  return details.map((detail, index) => {
+    const tagKey = createFieldTagKey(detail[0], index);
+
+    return {
+      tagKey,
+      type: getFieldType(detail[2]),
+      label: detail[0],
+      helperText: detail[1],
+      options: getFieldOptions(detail[2], detail[3], tagKey),
+      universal: detail[5] === "TRUE",
+    };
+  });
 }

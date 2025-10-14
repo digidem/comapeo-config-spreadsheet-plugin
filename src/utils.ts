@@ -16,6 +16,47 @@ function slugify(input: string | any): string {
 }
 
 /**
+ * Ensures a deterministic slug for spreadsheet-derived identifiers.
+ * Falls back to a prefix + index pattern when the source cannot produce a slug.
+ *
+ * @param source - Raw value taken from the spreadsheet.
+ * @param fallbackPrefix - Prefix to use when the slug is empty.
+ * @param index - Zero-based index of the item in its collection, used for fallback uniqueness.
+ */
+function buildSlugWithFallback(source: string, fallbackPrefix: string, index: number): string {
+  const slug = slugify(source);
+  if (slug !== "") {
+    return slug;
+  }
+
+  const sanitizedPrefix = fallbackPrefix && fallbackPrefix.trim() !== ""
+    ? slugify(fallbackPrefix)
+    : "item";
+
+  return `${sanitizedPrefix || "item"}-${index + 1}`;
+}
+
+/**
+ * Generates the canonical tag key for CoMapeo fields.
+ *
+ * @param fieldName - Name column value from the Details sheet.
+ * @param index - Zero-based index of the field to guarantee deterministic fallback keys.
+ */
+function createFieldTagKey(fieldName: string, index: number): string {
+  return buildSlugWithFallback(fieldName, "field", index);
+}
+
+/**
+ * Generates the canonical slug for presets/categories.
+ *
+ * @param presetName - Category name from the Categories sheet.
+ * @param index - Zero-based index to ensure unique fallback slugs.
+ */
+function createPresetSlug(presetName: string, index: number): string {
+  return buildSlugWithFallback(presetName, "category", index);
+}
+
+/**
  * Determines the field type based on the type string.
  * @param typeString The type string from the spreadsheet (e.g., "Text", "Number", "Multiple choice", "Select one").
  * @returns The CoMapeo field type.
@@ -37,6 +78,7 @@ function getFieldType(typeString: string): "text" | "number" | "selectOne" | "se
 function getFieldOptions(
   typeString: string,
   optionsString: string,
+  fieldKey?: string,
 ): Array<{ label: string; value: string }> | undefined {
   const fieldType = getFieldType(typeString);
   if (fieldType === "number" || fieldType === "text") return undefined;
@@ -44,5 +86,20 @@ function getFieldOptions(
     .split(",")
     .map((opt) => opt.trim())
     .filter((opt) => opt !== "")
-    .map((opt) => ({ label: opt, value: slugify(opt) }));
+    .map((opt, index) => ({
+      label: opt,
+      value: createOptionValue(opt, fieldKey, index),
+    }));
+}
+
+/**
+ * Produces the canonical value for select field options with deterministic fallbacks.
+ *
+ * @param label - Option label taken from the spreadsheet.
+ * @param fieldKey - Canonical field key if already computed.
+ * @param index - Zero-based option index for fallback uniqueness.
+ */
+function createOptionValue(label: string, fieldKey: string | undefined, index: number): string {
+  const baseKey = fieldKey && fieldKey.trim() !== "" ? fieldKey : "option";
+  return buildSlugWithFallback(label, baseKey, index);
 }
