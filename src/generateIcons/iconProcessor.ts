@@ -1,3 +1,5 @@
+/// <reference path="../utils.ts" />
+
 /**
  * Fallback icon SVG to use when icon generation fails
  * Simple marker icon with 100% fill to use background color
@@ -20,9 +22,10 @@ function processIcons(
     const [name, , , icon] = category;
     const backgroundColor = backgroundColors[index][0];
     const iconImage = iconUrls[index][0];
+    const presetSlug = createPresetSlug(name, index);
 
-    console.log(`Processing icon for category: ${name}`);
-    const iconSvg = processIconImage(name, iconImage, backgroundColor);
+    console.log(`Processing icon for category: ${name} (slug: ${presetSlug})`);
+    const iconSvg = processIconImage(name, iconImage, backgroundColor, presetSlug);
     let iconUrl = iconSvg;
 
     // Validate icon before proceeding
@@ -30,7 +33,14 @@ function processIcons(
       console.warn(`Empty icon generated for ${name}, using fallback icon`);
       iconUrl = FALLBACK_ICON_SVG;
     } else if (folder) {
-      iconUrl = saveIconToFolder(folder, name, iconSvg, suffixes);
+      iconUrl = saveIconToFolder(
+        folder,
+        name,
+        presetSlug,
+        iconSvg,
+        suffixes,
+        backgroundColor,
+      );
     }
 
     console.log(`Updating icon URL in sheet for: ${name}`);
@@ -39,7 +49,7 @@ function processIcons(
     // Only push valid icons to array
     if (iconUrl && iconUrl.trim() !== '') {
       icons.push({
-        name: slugify(name),
+        name: presetSlug,
         svg: iconUrl,
       });
     } else {
@@ -71,6 +81,7 @@ function processIconImage(
   name: string,
   iconImage: any,
   backgroundColor: string,
+  presetSlug: string,
 ): string {
   try {
     if (isGoogleDriveIcon(iconImage)) {
@@ -83,20 +94,20 @@ function processIconImage(
           return iconImage; // Return the URL if we can access it
         } catch (error) {
           console.warn(`Cannot access Google Drive icon for ${name}, generating fallback: ${error.message}`);
-          return generateNewIcon(name, backgroundColor);
+          return generateNewIcon(name, backgroundColor, presetSlug);
         }
       }
       return iconImage;
     } else if (isCellImage(iconImage)) {
-      return processCellImage(name, iconImage, backgroundColor);
+      return processCellImage(name, iconImage, backgroundColor, presetSlug);
     } else {
       console.log(`Generating new icon for ${name}`);
-      return generateNewIcon(name, backgroundColor);
+      return generateNewIcon(name, backgroundColor, presetSlug);
     }
   } catch (error) {
     console.error(`Error processing icon for ${name}: ${error.message}`);
     console.log(`Falling back to generating new icon for ${name}`);
-    return generateNewIcon(name, backgroundColor);
+    return generateNewIcon(name, backgroundColor, presetSlug);
   }
 }
 
@@ -115,6 +126,7 @@ function processCellImage(
   name: string,
   iconImage: any,
   backgroundColor: string,
+  presetSlug: string,
 ): string {
   const iconUrl = iconImage.getUrl();
   console.log(`Processing cell image icon for ${name}: ${iconUrl}`);
@@ -125,32 +137,45 @@ function processCellImage(
     console.log(
       `Failed to process cell image. Generating new icon for ${name}`,
     );
-    return generateNewIcon(name, backgroundColor);
+    return generateNewIcon(name, backgroundColor, presetSlug);
   }
 }
 
 function saveIconToFolder(
   folder: GoogleAppsScript.Drive.Folder,
-  name: string,
+  displayName: string,
+  presetSlug: string,
   iconSvg: string,
   suffixes: string[],
+  backgroundColor: string,
 ): string {
-  console.log(`Saving icon to folder for ${name}:`, iconSvg);
+  console.log(`Saving icon to folder for ${displayName} (slug: ${presetSlug}):`, iconSvg);
 
   const { iconContent, mimeType } = getIconContent({
     svg: iconSvg,
-    name: slugify(name),
+    name: presetSlug,
   });
 
   if (!iconContent) {
-    console.warn(`Failed to get icon content for ${name}, using fallback approach`);
+    console.warn(`Failed to get icon content for ${displayName}, using fallback approach`);
     // Fall back to generating a new icon instead of failing completely
-    const backgroundColor = "#6d44d9"; // Default color
-    const fallbackSvg = generateNewIcon(name, backgroundColor);
+    const defaultBackground = "#6d44d9"; // Default color
+    const fallbackSvg = generateNewIcon(
+      displayName,
+      backgroundColor || defaultBackground,
+      presetSlug,
+    );
     if (fallbackSvg) {
-      return saveIconToFolder(folder, name, fallbackSvg, suffixes);
+      return saveIconToFolder(
+        folder,
+        displayName,
+        presetSlug,
+        fallbackSvg,
+        suffixes,
+        backgroundColor || defaultBackground,
+      );
     } else {
-      console.error(`Complete failure to generate icon for ${name}, using fallback icon`);
+      console.error(`Complete failure to generate icon for ${displayName}, using fallback icon`);
       return FALLBACK_ICON_SVG;
     }
   }
@@ -160,7 +185,7 @@ function saveIconToFolder(
     suffixes.forEach((suffix) => {
       const file = createIconFile(
         folder,
-        slugify(name),
+        presetSlug,
         suffix.replace("-", ""),
         iconContent,
         mimeType,
@@ -170,7 +195,7 @@ function saveIconToFolder(
   } else {
     const file = createIconFile(
       folder,
-      slugify(name),
+      presetSlug,
       "",
       iconContent,
       mimeType,
@@ -216,13 +241,14 @@ function getIconContent(icon: CoMapeoIcon): {
 
 function createIconFile(
   folder: GoogleAppsScript.Drive.Folder,
-  name: string,
+  slug: string,
   size: string,
   content: string,
   mimeType: string,
 ) {
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
-  return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
+  const sanitizedSize = size ? `-${size}` : "";
+  return folder.createFile(`${slug}${sanitizedSize}.${extension}`, content, mimeType);
 }
 
 function updateIconUrlInSheet(
@@ -244,9 +270,14 @@ function updateIconUrlInSheet(
 }
 
 // Import necessary functions from iconGenerator.ts
-function generateNewIcon(name: string, backgroundColor: string): string {
+function generateNewIcon(
+  name: string,
+  backgroundColor: string,
+  presetSlug?: string,
+): string {
+  const iconSlug = presetSlug || createPresetSlug(name);
   const preset = {
-    icon: slugify(name),
+    icon: iconSlug,
     color: backgroundColor,
     name: name,
   };
