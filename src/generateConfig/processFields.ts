@@ -1,3 +1,5 @@
+/// <reference path="../loggingHelpers.ts" />
+
 /**
  * Processes field definitions from spreadsheet Details sheet
  *
@@ -39,7 +41,10 @@ function processFields(data) {
 
   // Log warnings if any
   if (warnings.length > 0) {
-    console.warn(
+    const logger = typeof getScopedLogger === "function"
+      ? getScopedLogger("ProcessFields")
+      : console;
+    logger.warn(
       `Field validation warnings (${warnings.length}):\n${warnings.join("\n")}`,
     );
   }

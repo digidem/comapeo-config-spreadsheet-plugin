@@ -23,7 +23,7 @@ function slugify(input: string | any): string {
  * @param fallbackPrefix - Prefix to use when the slug is empty.
  * @param index - Zero-based index of the item in its collection, used for fallback uniqueness.
  */
-function buildSlugWithFallback(source: string, fallbackPrefix: string, index: number): string {
+function buildSlugWithFallback(source: string, fallbackPrefix: string, index: number = 0): string {
   const slug = slugify(source);
   if (slug !== "") {
     return slug;
@@ -42,8 +42,8 @@ function buildSlugWithFallback(source: string, fallbackPrefix: string, index: nu
  * @param fieldName - Name column value from the Details sheet.
  * @param index - Zero-based index of the field to guarantee deterministic fallback keys.
  */
-function createFieldTagKey(fieldName: string, index: number): string {
-  return buildSlugWithFallback(fieldName, "field", index);
+function createFieldTagKey(fieldName: string, index?: number): string {
+  return buildSlugWithFallback(fieldName, "field", typeof index === "number" ? index : 0);
 }
 
 /**
@@ -52,8 +52,8 @@ function createFieldTagKey(fieldName: string, index: number): string {
  * @param presetName - Category name from the Categories sheet.
  * @param index - Zero-based index to ensure unique fallback slugs.
  */
-function createPresetSlug(presetName: string, index: number): string {
-  return buildSlugWithFallback(presetName, "category", index);
+function createPresetSlug(presetName: string, index?: number): string {
+  return buildSlugWithFallback(presetName, "category", typeof index === "number" ? index : 0);
 }
 
 /**
@@ -73,6 +73,7 @@ function getFieldType(typeString: string): "text" | "number" | "selectOne" | "se
  * Parses field options from the options string.
  * @param typeString The type string to determine if options are needed.
  * @param optionsString The comma-separated options string.
+ * @param fieldKey The canonical field key used to build deterministic fallback option values.
  * @returns Array of option objects with label and value, or undefined for non-select fields.
  */
 function getFieldOptions(

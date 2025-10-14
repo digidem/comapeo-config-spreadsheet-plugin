@@ -1,3 +1,5 @@
+/// <reference path="./utils.ts" />
+
 /**
  * Format detection and normalization module
  * Handles detection of configuration file formats and mapping between different formats
@@ -210,10 +212,13 @@ function normalizeMapeoConfig(configData: any): NormalizedConfig {
  * @returns Normalized field
  */
 function normalizeCoMapeoField(field: any): NormalizedField {
+  const label = field.label || "";
+  const tagKey = field.tagKey || createFieldTagKey(label);
+
   return {
-    id: field.tagKey || "",
-    tagKey: field.tagKey || "",
-    label: field.label || "",
+    id: tagKey,
+    tagKey,
+    label,
     type: field.type || "text",
     helperText: field.helperText || "",
     options: field.options || undefined,
@@ -252,13 +257,20 @@ function normalizeMapeoField(fieldId: string, field: any): NormalizedField {
     if (Array.isArray(field.options)) {
       // If options is an array of strings
       normalizedOptions = field.options
-        .map((opt: any) => {
+        .map((opt: any, optionIndex: number) => {
           if (typeof opt === "string") {
-            return { label: opt, value: slugify(opt) };
+            return {
+              label: opt,
+              value: createOptionValue(opt, fieldId, optionIndex),
+            };
           } else if (typeof opt === "object" && opt.label) {
+            const normalizedValue =
+              typeof opt.value === "string" && opt.value.trim() !== ""
+                ? opt.value
+                : createOptionValue(opt.label, fieldId, optionIndex);
             return {
               label: opt.label,
-              value: opt.value || slugify(opt.label),
+              value: normalizedValue,
             };
           }
           return null;
@@ -273,10 +285,13 @@ function normalizeMapeoField(fieldId: string, field: any): NormalizedField {
     }
   }
 
+  const normalizedLabel = field.label || fieldId;
+  const normalizedTagKey = fieldId || createFieldTagKey(normalizedLabel);
+
   return {
-    id: fieldId,
-    tagKey: fieldId,
-    label: field.label || fieldId,
+    id: normalizedTagKey,
+    tagKey: normalizedTagKey,
+    label: normalizedLabel,
     type: normalizedType,
     helperText: field.placeholder || field.helperText || "",
     options: normalizedOptions,
@@ -290,10 +305,13 @@ function normalizeMapeoField(fieldId: string, field: any): NormalizedField {
  * @returns Normalized preset
  */
 function normalizeCoMapeoPreset(preset: any): NormalizedPreset {
+  const presetName = preset.name || "";
+  const presetSlug = preset.icon || createPresetSlug(presetName);
+
   return {
-    id: preset.icon || "",
-    name: preset.name || "",
-    icon: preset.icon || "",
+    id: presetSlug,
+    name: presetName || presetSlug,
+    icon: presetSlug,
     color: preset.color || "#0000FF",
     fields: preset.fields || [],
   };
@@ -306,10 +324,13 @@ function normalizeCoMapeoPreset(preset: any): NormalizedPreset {
  * @returns Normalized preset
  */
 function normalizeMapeoPreset(presetId: string, preset: any): NormalizedPreset {
+  const presetName = preset.name || presetId;
+  const presetSlug = presetId || createPresetSlug(presetName);
+
   return {
-    id: presetId,
-    name: preset.name || presetId,
-    icon: preset.icon || presetId,
+    id: presetSlug,
+    name: presetName,
+    icon: preset.icon || presetSlug,
     color: preset.color || "#0000FF",
     fields: preset.fields || [],
   };

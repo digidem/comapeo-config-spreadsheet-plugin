@@ -1,4 +1,11 @@
 /// <reference path="./types.ts" />
+/// <reference path="./loggingHelpers.ts" />
+
+function getTranslationServiceLogger() {
+  return typeof getScopedLogger === "function"
+    ? getScopedLogger("TranslationService")
+    : console;
+}
 
 const MAIN_LANGUAGE_COLUMN = "A";
 const CATEGORIES_SHEET = "Categories";
@@ -37,12 +44,12 @@ function translateSheet(
   const primaryLanguage = getPrimaryLanguage();
   const mainLanguage = sourceLanguage || primaryLanguage.code;
 
-  console.log("Source language", mainLanguage);
-  console.log("Target language", targetLanguage);
-  console.log("Primary language from A1", primaryLanguage);
+  getTranslationServiceLogger().info("Source language", mainLanguage);
+  getTranslationServiceLogger().info("Target language", targetLanguage);
+  getTranslationServiceLogger().info("Primary language from A1", primaryLanguage);
 
   for (const [code, name] of Object.entries(languagesList)) {
-    console.log(`Language code: ${code}, name: ${name}`);
+    getTranslationServiceLogger().info(`Language code: ${code}, name: ${name}`);
   }
 
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
@@ -60,7 +67,7 @@ function translateSheet(
           );
           targetCell.setValue(translation);
         } catch (error) {
-          console.warn(`Translation failed for "${originalText}" from ${mainLanguage} to ${targetLanguage}: ${error.message}`);
+          getTranslationServiceLogger().warn(`Translation failed for "${originalText}" from ${mainLanguage} to ${targetLanguage}: ${error.message}`);
           // Skip this translation but don't fail the entire process
         }
       }
@@ -96,13 +103,14 @@ function translateSheetBidirectional(
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) {
-    console.warn(`Sheet "${sheetName}" has no data to translate`);
+    getTranslationServiceLogger().warn(`Sheet "${sheetName}" has no data to translate`);
     return;
   }
 
   const primaryLanguage = getPrimaryLanguage();
   const actualSourceLanguage = sourceLanguage || primaryLanguage.code;
   const availableTargetLanguages: LanguageMap = getAvailableTargetLanguages();
+
 
   // Validate that source language is different from target languages
   const conflictingLanguages = targetLanguages.filter(lang => lang === actualSourceLanguage);
@@ -116,10 +124,10 @@ function translateSheetBidirectional(
     throw new Error(`Invalid target languages: ${invalidLanguages.join(', ')}`);
   }
 
-  console.log("Bidirectional translation:");
-  console.log("Source language:", actualSourceLanguage);
-  console.log("Target languages:", targetLanguages);
-  console.log("Available target languages:", availableTargetLanguages);
+  getTranslationServiceLogger().info("Bidirectional translation:");
+  getTranslationServiceLogger().info("Source language:", actualSourceLanguage);
+  getTranslationServiceLogger().info("Target languages:", targetLanguages);
+  getTranslationServiceLogger().info("Available target languages:", availableTargetLanguages);
 
   // Get headers to find column positions
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -167,7 +175,7 @@ function translateSheetBidirectional(
             }
           } catch (error) {
             const errorMessage = `Translation error for ${targetLang} (row ${i}): ${error.message}`;
-            console.error(errorMessage);
+            getTranslationServiceLogger().error(errorMessage);
             translationErrors.push(errorMessage);
           }
         }
@@ -175,13 +183,13 @@ function translateSheetBidirectional(
     }
   }
 
-  console.log(`Translation summary for ${sheetName}:`, {
+  getTranslationServiceLogger().info(`Translation summary for ${sheetName}:`, {
     successfulTranslations,
     errors: translationErrors.length,
   });
 
   if (translationErrors.length > 0) {
-    console.warn("Translation errors:", translationErrors);
+    getTranslationServiceLogger().warn("Translation errors:", translationErrors);
   }
 }
 
@@ -332,7 +340,7 @@ function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, t
     // Set header formatting
     sheet.getRange(1, startColumn, 1, missingLanguages.length).setFontWeight("bold");
 
-    console.log(`Added ${missingLanguages.length} new language columns: ${missingLanguages.join(', ')}`);
+    getTranslationServiceLogger().info(`Added ${missingLanguages.length} new language columns: ${missingLanguages.join(', ')}`);
   }
 }
 
@@ -418,17 +426,17 @@ function autoTranslateSheets(): void {
         translateSheet(sheetName, lang as TranslationLanguage);
         totalSuccessful++;
       } catch (error) {
-        console.warn(`Translation failed for ${sheetName} to ${lang}: ${error.message}`);
+        getTranslationServiceLogger().warn(`Translation failed for ${sheetName} to ${lang}: ${error.message}`);
         totalErrors++;
         // Continue with other languages instead of stopping completely
       }
     }
   }
 
-  console.log(`Translation completed. Successful: ${totalSuccessful}, Errors: ${totalErrors}`);
+  getTranslationServiceLogger().info(`Translation completed. Successful: ${totalSuccessful}, Errors: ${totalErrors}`);
 
   if (totalErrors > 0) {
-    console.warn(`Some translations failed. The CoMapeo config will be generated with available translations.`);
+    getTranslationServiceLogger().warn(`Some translations failed. The CoMapeo config will be generated with available translations.`);
   }
 }
 
@@ -454,15 +462,15 @@ function autoTranslateSheets(): void {
 function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
   // Validation - return early if no languages specified (skip translation)
   if (!targetLanguages || targetLanguages.length === 0) {
-    console.log("[TRANSLATION] ✓ SKIPPING TRANSLATION - No target languages specified");
-    console.log("[TRANSLATION] targetLanguages parameter:", targetLanguages);
-    console.log("[TRANSLATION] Returning early without translation");
+    getTranslationServiceLogger().info("[TRANSLATION] ✓ SKIPPING TRANSLATION - No target languages specified");
+    getTranslationServiceLogger().info("[TRANSLATION] targetLanguages parameter:", targetLanguages);
+    getTranslationServiceLogger().info("[TRANSLATION] Returning early without translation");
     return;
   }
 
-  console.log("[TRANSLATION] Starting bidirectional translation");
-  console.log("[TRANSLATION] Target languages count:", targetLanguages.length);
-  console.log("[TRANSLATION] Target languages:", targetLanguages);
+  getTranslationServiceLogger().info("[TRANSLATION] Starting bidirectional translation");
+  getTranslationServiceLogger().info("[TRANSLATION] Target languages count:", targetLanguages.length);
+  getTranslationServiceLogger().info("[TRANSLATION] Target languages:", targetLanguages);
 
   const allSheets = sheets();
   const translationSheets = sheets(true);
@@ -505,9 +513,9 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
     throw new Error(`Cannot translate from ${primaryLanguage.name} to itself. Please change the language in cell A1 of the Categories sheet or select different target languages.`);
   }
 
-  console.log("Auto-translating from primary language:", primaryLanguage);
-  console.log("Target languages:", targetLanguages);
-  console.log("Available target languages:", availableTargetLanguages);
+  getTranslationServiceLogger().info("Auto-translating from primary language:", primaryLanguage);
+  getTranslationServiceLogger().info("Target languages:", targetLanguages);
+  getTranslationServiceLogger().info("Available target languages:", availableTargetLanguages);
 
   let totalErrors = 0;
   let totalSuccessful = 0;
@@ -542,18 +550,18 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
       // Use bidirectional translation for selected target languages
       translateSheetBidirectional(sheetName, targetLanguages, primaryLanguage.code as TranslationLanguage);
     } catch (error) {
-      console.error(`Error translating sheet ${sheetName}:`, error);
+      getTranslationServiceLogger().error(`Error translating sheet ${sheetName}:`, error);
       totalErrors++;
     }
   }
 
-  console.log("[TRANSLATION] Translation summary:");
-  console.log("[TRANSLATION] - Total errors:", totalErrors);
-  console.log("[TRANSLATION] - Sheets processed:", translationSheets.length);
-  console.log("[TRANSLATION] ✅ Translation completed");
+  getTranslationServiceLogger().info("[TRANSLATION] Translation summary:");
+  getTranslationServiceLogger().info("[TRANSLATION] - Total errors:", totalErrors);
+  getTranslationServiceLogger().info("[TRANSLATION] - Sheets processed:", translationSheets.length);
+  getTranslationServiceLogger().info("[TRANSLATION] ✅ Translation completed");
 
   if (totalErrors > 0) {
-    console.warn("[TRANSLATION] ⚠️  Some translations failed. Check the logs for details.");
+    getTranslationServiceLogger().warn("[TRANSLATION] ⚠️  Some translations failed. Check the logs for details.");
   }
 }
 
@@ -574,7 +582,7 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
  * // Adds "Kichwa - qu" and "Quechua - quz" columns to Category Translations
  */
 function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
-  console.log("Adding new languages...", newLanguages);
+  getTranslationServiceLogger().info("Adding new languages...", newLanguages);
   const sheet = createCategoryTranslationsSheet();
 
   // Get current headers

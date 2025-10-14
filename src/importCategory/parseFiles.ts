@@ -1,8 +1,10 @@
+/// <reference path="../utils.ts" />
+
 /**
  * File parsing functions for the import category functionality.
  * This file contains functions related to parsing extracted files.
  *
- * Uses the slugify function from utils.ts
+ * Uses the slugify helpers from utils.ts
  */
 
 /**
@@ -204,38 +206,43 @@ function parseExtractedFiles(
 							else if (field.type === "select_multiple")
 								fieldType = "selectMultiple";
 
-							// Convert options
-							let options = [];
-							if (field.options) {
-								if (Array.isArray(field.options)) {
-									// Handle array of strings or objects
-									options = field.options.map((opt: any) => {
-										if (typeof opt === "string") {
-											return {
-												label: opt,
-												value: slugify(opt),
-											};
-										} else if (typeof opt === "object" && opt !== null) {
-											// Option is already an object with label/value
-											return {
-												label: opt.label || opt.value || opt.name || String(opt),
-												value: opt.value || slugify(opt.label || opt.name || ""),
-											};
-										}
+						// Convert options
+						let options = [];
+						if (field.options) {
+							if (Array.isArray(field.options)) {
+								// Handle array of strings or objects
+								options = field.options.map((opt: any, optionIndex: number) => {
+									if (typeof opt === "string") {
 										return {
-											label: String(opt),
-											value: slugify(String(opt)),
+											label: opt,
+											value: createOptionValue(opt, fieldId, optionIndex),
 										};
-									});
-								} else if (typeof field.options === "object") {
-									options = Object.entries(field.options).map(
-										([key, value]) => ({
-											label: typeof value === "string" ? value : key,
-											value: key,
-										}),
-									);
-								}
+									} else if (typeof opt === "object" && opt !== null) {
+										const optionLabel = opt.label || opt.value || opt.name || String(opt);
+										const normalizedValue =
+											typeof opt.value === "string" && opt.value.trim() !== ""
+												? opt.value
+											: createOptionValue(optionLabel, fieldId, optionIndex);
+										return {
+											label: optionLabel,
+											value: normalizedValue,
+										};
+									}
+									const fallbackLabel = String(opt);
+									return {
+										label: fallbackLabel,
+										value: createOptionValue(fallbackLabel, fieldId, optionIndex),
+									};
+								});
+							} else if (typeof field.options === "object") {
+								options = Object.entries(field.options).map(
+									([key, value]) => ({
+										label: typeof value === "string" ? value : key,
+										value: key,
+									}),
+								);
 							}
+						}
 
 							configData.fields.push({
 								id: fieldId,

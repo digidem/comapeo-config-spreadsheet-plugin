@@ -323,6 +323,8 @@ function functionName(paramName: string): ReturnType {
 }
 ```
 
+**Status (2025-10-14)**: JSDoc coverage extended to translation, naming, and preset helpers alongside scoped logging rollout.
+
 **See**: Multiple module reviews
 
 ---
@@ -451,6 +453,8 @@ Also listed as CRITICAL issue due to severity.
 - Update style guide
 
 **See**: [Module Review - Cross-Cutting Concerns](../reviews/cross-cutting.md#124-code-organization)
+
+**Status (2025-10-14)**: Naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) centralised in `src/utils.ts`, applied across export/import flows, and documented in `docs/NAMING_CONVENTIONS.md`.
 
 ---
 

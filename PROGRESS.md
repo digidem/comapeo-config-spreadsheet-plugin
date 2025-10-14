@@ -6,8 +6,8 @@
 **Reviewer**: Claude Code (Sonnet 4.5)
 
 **Snapshot (2025-10-14)**:
-- Phase 1 closed; 22 of 25 HIGH-priority items implemented with remaining work scoped below.
-- Immediate focus is finishing language-map propagation, hardening regression coverage, and capturing baseline performance metrics before new changes land.
+- Phase 1 closed; 23 of 25 HIGH-priority items implemented (HIGH-024 naming conventions delivered in this update).
+- Immediate focus is hardening regression coverage and capturing baseline performance metrics before new changes land.
 - HTTPS migration remains intentionally deferred because the upstream server only supports HTTP; attempting to force HTTPS would break the live integration.
 
 ## Latest Updates (2025-10-14)
@@ -16,7 +16,13 @@
 - ✅ Centralized scoped logging helper shared across runtime and tests
 - ✅ Standardized language typing with `LanguageCode`/`LanguageMap`
 - ✅ Updated translation workflow to use typed language map and richer JSDoc
-- 🔄 Follow-up: extend new helpers into remaining translation/util modules
+- ✅ Follow-up: extended scoped logging and typed helpers into translation/util modules
+
+**Phase 3 Update 2** (2025-10-14) - Naming standardisation + logging rollout:
+- ✅ Introduced canonical naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) and applied across export/import/format detection.
+- ✅ Added `docs/NAMING_CONVENTIONS.md` to codify rules for field, preset, and option identifiers.
+- ✅ Migrated translation + preset processors to scoped logging and refreshed JSDoc coverage of new helpers.
+- 🔄 Next: baseline performance capture and regression harness remain outstanding (see Immediate Actions #4-6).
 
 **Phase 2 Update 4** - 3 additional HIGH priority improvements implemented:
 - ✅ 22 HIGH priority issues resolved total (8 initial + 5 mid + 3 prev + 3 cleanup + 3 docs)
@@ -172,7 +178,7 @@
 | Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/issues/CRITICAL.md` |
 | Reliability (regression coverage) | Medium: lack of isolated regression suite risks reintroducing fixed defects | Complete Tasks 4-6 in Immediate Actions, automate smoke run before each release | Luandro + QA Support | In Progress |
 | Performance (baseline unknown) | Medium: improvements may regress without baseline metrics | Capture export/import timing metrics and log in metrics doc before next optimisation | Luandro | Not Started |
-| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Finish HIGH-024, extend logging/language helpers across modules, run lint sweeps post-change | Luandro | In Progress |
+| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `docs/NAMING_CONVENTIONS.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
 
 ---
 
@@ -214,14 +220,13 @@
 21. ✅ Add JSDoc to core functions (3-4h) - HIGH-016
 22. ✅ Create dependency documentation (2-3h) - HIGH-023
 
-**Remaining HIGH Priority Focus (11-28h)**:
-- HIGH-024: Standardize naming conventions across config, translation, and import modules (target 2025-11-03).
-- HIGH-016 follow-up: Extend JSDoc coverage to auxiliary translation/util modules not touched in Phase 2 (paired with language-map rollout, target 2025-10-24).
-- HIGH-024 pre-work: Finalize shared logging + language helper adoption to remove duplicated patterns before renaming passes (target 2025-10-24).
+**Remaining HIGH Priority Focus (~8-20h)**:
+- 🔄 Regression tooling: Build baseline performance + regression harness (Immediate Actions #4-6) before pulling additional HIGH/MEDIUM backlog.
+- ⏳ High-priority backlog re-triage scheduled post-baseline to confirm no new urgent findings (target 2025-10-24).
 
 ### Phase 3: Code Quality (Weeks 3-4)
-- **Completed (2025-10-14)**: Extract language fallback data, create DRY helper functions, add missing TypeScript types for language map & config contract.
-- **In Flight (target 2025-10-24)**: Propagate logging and typed language helpers across remaining translation/util modules and finish the related JSDoc expansion.
+- **Completed (2025-10-14)**: Extract language fallback data, create DRY helper functions, add missing TypeScript types for language map & config contract, roll out scoped logging to translation/preset processors, and deliver naming helper standardisation.
+- **Next**: Pause additional refactors until regression harness + baseline metrics are in place (see Immediate Actions #4-6).
 
 ### Phase 4: Testing & Documentation (Weeks 5-6)
 - **Planned**: Add unit tests, improve test isolation, expand regression documentation, and produce the dependency diagram once the baseline environment is in place (target kick-off 2025-10-27).
@@ -234,7 +239,7 @@
 
 1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
 2. **Review open critical docs**: Refresh on [CRITICAL.md](docs/issues/CRITICAL.md) and [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md) before each change.
-3. **Prep for HIGH-024**: Outline naming changes and helper rollout plan prior to coding to minimise churn.
+3. **Follow naming standard**: Use `docs/NAMING_CONVENTIONS.md` when touching identifiers and log helper usage for new code.
 
 ### For Project Managers
 
@@ -289,14 +294,13 @@ After addressing all issues:
 | 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `docs/REGRESSION-STRATEGY.md`. |
 | 5 | Create regression test suite covering current workflows | QA Support | 2025-10-24 | ⬜ Not Started | Blocked on Task 4; capture pass/fail matrix for export, import, translation flows. |
 | 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `docs/metrics/baseline.md`. |
-| 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-24 | 🔄 In Progress | Update remaining translation/util modules and add follow-up smoke tests. |
+| 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-14 | ✅ Completed | Applied naming/logging helpers across translation, preset, and import flows; smoke tests pending regression harness. |
 
 ### Implementation (Next 8-12 Weeks)
-1. Close out Phase 3 code-quality follow-ups (language helper rollout, JSDoc gaps) by 2025-10-24.
-2. Stand up regression environment and baseline metrics before major refactors (Tasks 4-6) by 2025-10-24.
-3. Execute naming-convention alignment and related documentation polish (HIGH-024) by 2025-11-03.
-4. Kick off Phase 4 testing improvements (unit tests, isolation harness) starting 2025-10-27.
-5. Sequence remaining HIGH/MEDIUM issues once baseline work is complete and metrics confirm no regressions.
+1. Stand up regression environment and baseline metrics before major refactors (Tasks 4-6) by 2025-10-24.
+2. Kick off Phase 4 testing improvements (unit tests, isolation harness) starting 2025-10-27.
+3. Sequence remaining HIGH/MEDIUM issues once baseline work is complete and metrics confirm no regressions.
+4. Revisit documentation polish after regression baseline to capture any naming or logging learnings.
 
 ### Important Reminders
 - ⚠️ **Test thoroughly after EACH change**

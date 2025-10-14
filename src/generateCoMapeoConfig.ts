@@ -165,7 +165,7 @@ function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
   const fields = processFields(data);
   log.info(`Done processing ${fields.length} fields`);
   log.info("Processing presets...");
-  const presets = processPresets(data, categoriesSheet);
+  const presets = processPresets(data, categoriesSheet, fields);
   log.info(`Done processing ${presets.length} presets`);
   log.info("Processing icons...");
   const icons = processIcons();
