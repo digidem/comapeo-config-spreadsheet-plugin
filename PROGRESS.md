@@ -5,7 +5,12 @@
 **Implementation Started**: 2025-10-12
 **Reviewer**: Claude Code (Sonnet 4.5)
 
-## Latest Updates (2025-10-12)
+**Snapshot (2025-10-14)**:
+- Phase 1 closed; 22 of 25 HIGH-priority items implemented with remaining work scoped below.
+- Immediate focus is finishing language-map propagation, hardening regression coverage, and capturing baseline performance metrics before new changes land.
+- HTTPS migration remains intentionally deferred because the upstream server only supports HTTP; attempting to force HTTPS would break the live integration.
+
+## Latest Updates (2025-10-14)
 
 **Phase 3 Update 1** (2025-10-14) - Kicked off code quality focus:
 - ✅ Centralized scoped logging helper shared across runtime and tests
@@ -128,30 +133,9 @@
 
 ### 🔨 Implementation Plan
 
-- **[Sprint 1: Critical Security & Performance](docs/implementation/sprint-1-critical.md)** (Week 1)
-  - HTTPS API endpoint
-  - Caching layer
-  - Delete dead code
-  - Fix infinite loop
-  - Remove duplicate code
-
-- **[Sprint 2: Code Quality & DRY](docs/implementation/sprint-2-quality.md)** (Week 2)
-  - Extract language fallback
-  - Create DRY helpers
-  - Add cleanup logic
-  - Externalize configuration
-
-- **[Sprint 3: Security & Validation](docs/implementation/sprint-3-security.md)** (Week 3)
-  - Fix XSS vulnerabilities
-  - Add API authentication
-  - File security (size, path traversal)
-  - Input validation
-
-- **[Sprint 4: Polish & Documentation](docs/implementation/sprint-4-polish.md)** (Week 4)
-  - Extract magic numbers
-  - Add JSDoc comments
-  - Testing improvements
-  - Code polish
+- **Completed Phases**: Phase 1 (Critical Security & Reliability) and the first four waves of Phase 2 (HIGH-priority improvements) wrapped by 2025-10-14; see the Latest Updates section for detailed deliverables.
+- **Upcoming Work (2025-10-20 → 2025-11-07)**: Week of 2025-10-20 — extend typed language map & scoped logging into remaining translation/util modules (ties to HIGH-024 pre-work). Week of 2025-10-27 — build spreadsheet clone for regression runs and capture baseline performance metrics prior to additional refactors. Week of 2025-11-03 — standardize naming conventions and complete outstanding documentation polish (HIGH-024 plus Phase 4 tasks).
+- **Deferred / Blocked**: HTTPS endpoint upgrade remains blocked by upstream HTTP-only service; keep monitoring vendor roadmap before reopening the task.
 
 ### 🛡️ Safety & Testing
 
@@ -182,10 +166,13 @@
 - Poor test isolation (modifies active spreadsheet)
 
 ### 🚨 Risk Areas
-1. **Security**: HTTP endpoint, XSS in dialogs, no path traversal protection
-2. **Reliability**: Infinite loop, no retry limits, inadequate error recovery
-3. **Performance**: No caching, repeated API calls, large data loading
-4. **Maintainability**: Dead code, code duplication, inconsistent patterns
+
+| Risk | Impact | Mitigation / Next Step | Owner | Status (2025-10-14) |
+|------|--------|------------------------|-------|---------------------|
+| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/issues/CRITICAL.md` |
+| Reliability (regression coverage) | Medium: lack of isolated regression suite risks reintroducing fixed defects | Complete Tasks 4-6 in Immediate Actions, automate smoke run before each release | Luandro + QA Support | In Progress |
+| Performance (baseline unknown) | Medium: improvements may regress without baseline metrics | Capture export/import timing metrics and log in metrics doc before next optimisation | Luandro | Not Started |
+| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Finish HIGH-024, extend logging/language helpers across modules, run lint sweeps post-change | Luandro | In Progress |
 
 ---
 
@@ -227,20 +214,17 @@
 21. ✅ Add JSDoc to core functions (3-4h) - HIGH-016
 22. ✅ Create dependency documentation (2-3h) - HIGH-023
 
-**Next Steps** (11-28h remaining):
-- Additional HIGH priority fixes (see docs/issues/HIGH.md)
+**Remaining HIGH Priority Focus (11-28h)**:
+- HIGH-024: Standardize naming conventions across config, translation, and import modules (target 2025-11-03).
+- HIGH-016 follow-up: Extend JSDoc coverage to auxiliary translation/util modules not touched in Phase 2 (paired with language-map rollout, target 2025-10-24).
+- HIGH-024 pre-work: Finalize shared logging + language helper adoption to remove duplicated patterns before renaming passes (target 2025-10-24).
 
 ### Phase 3: Code Quality (Weeks 3-4)
-1. ✅ Extract language fallback data
-2. ✅ Create DRY helper functions (shared logging helper)
-3. ✅ Add missing TypeScript types (language map & config contract)
-4. 🔄 Add JSDoc comments (expand to remaining modules)
+- **Completed (2025-10-14)**: Extract language fallback data, create DRY helper functions, add missing TypeScript types for language map & config contract.
+- **In Flight (target 2025-10-24)**: Propagate logging and typed language helpers across remaining translation/util modules and finish the related JSDoc expansion.
 
 ### Phase 4: Testing & Documentation (Weeks 5-6)
-1. Add unit tests
-2. Improve test isolation
-3. Add test documentation
-4. Create dependency diagram
+- **Planned**: Add unit tests, improve test isolation, expand regression documentation, and produce the dependency diagram once the baseline environment is in place (target kick-off 2025-10-27).
 
 ---
 
@@ -248,27 +232,28 @@
 
 ### For Developers
 
-1. **Review critical issues**: Start with [CRITICAL.md](docs/issues/CRITICAL.md)
-2. **Check sprint plan**: See [Sprint 1](docs/implementation/sprint-1-critical.md)
-3. **Read safety protocols**: Review [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md)
-4. **Begin with low-risk fixes**: Start with FIX-004 (infinite loop) and FIX-003 (dead code)
+1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
+2. **Review open critical docs**: Refresh on [CRITICAL.md](docs/issues/CRITICAL.md) and [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md) before each change.
+3. **Prep for HIGH-024**: Outline naming changes and helper rollout plan prior to coding to minimise churn.
 
 ### For Project Managers
 
-1. **Understand scope**: Review this PROGRESS.md
-2. **Assess priorities**: Review [docs/issues/](docs/issues/)
-3. **Plan sprints**: Review [docs/implementation/](docs/implementation/)
+1. **Track execution**: Use the Immediate Actions table as the weekly commitment tracker.
+2. **Understand scope**: Review this PROGRESS.md
+3. **Assess priorities**: Review [docs/issues/](docs/issues/)
 4. **Manage risks**: Review [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md)
 
 ### For Code Reviewers
 
 1. **Module details**: See [docs/reviews/](docs/reviews/)
 2. **Issue context**: See [docs/issues/](docs/issues/)
-3. **Implementation plan**: See [docs/implementation/](docs/implementation/)
+3. **Current focus**: Align feedback with the Immediate Actions table and outstanding HIGH-024 work noted above.
 
 ---
 
 ## Key Metrics
+
+**Last Updated**: 2025-10-14 (next refresh scheduled after baseline performance capture).
 
 ### Code Review Statistics
 - **Total Components Reviewed**: 32+ (all modules + cross-cutting concerns)
@@ -296,20 +281,22 @@ After addressing all issues:
 ## Next Steps
 
 ### Immediate Actions (This Week)
-1. ✅ ~~Review complete codebase~~ (DONE)
-2. ✅ ~~Create comprehensive improvement plan~~ (DONE)
-3. ✅ ~~Establish safety protocols~~ (DONE)
-4. 🔄 **Set up test environment** (duplicate production spreadsheet)
-5. 🔄 **Create regression test suite** (test all currently working scenarios)
-6. 🔄 **Measure baseline performance** (before any changes)
-7. 🔄 **Propagate language map typing across translation utilities**
+
+- **Completed (2025-10-12)**: Review complete codebase; create comprehensive improvement plan; establish safety protocols.
+
+| # | Task | Owner | Target Date | Status | Notes |
+|---|------|-------|-------------|--------|-------|
+| 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `docs/REGRESSION-STRATEGY.md`. |
+| 5 | Create regression test suite covering current workflows | QA Support | 2025-10-24 | ⬜ Not Started | Blocked on Task 4; capture pass/fail matrix for export, import, translation flows. |
+| 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `docs/metrics/baseline.md`. |
+| 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-24 | 🔄 In Progress | Update remaining translation/util modules and add follow-up smoke tests. |
 
 ### Implementation (Next 8-12 Weeks)
-7. **Sprint 1**: Critical fixes (Week 1)
-8. **Sprint 2**: Code quality (Week 2)
-9. **Sprint 3**: Security (Week 3)
-10. **Sprint 4**: Polish (Week 4)
-11. Continue with remaining HIGH and MEDIUM priorities
+1. Close out Phase 3 code-quality follow-ups (language helper rollout, JSDoc gaps) by 2025-10-24.
+2. Stand up regression environment and baseline metrics before major refactors (Tasks 4-6) by 2025-10-24.
+3. Execute naming-convention alignment and related documentation polish (HIGH-024) by 2025-11-03.
+4. Kick off Phase 4 testing improvements (unit tests, isolation harness) starting 2025-10-27.
+5. Sequence remaining HIGH/MEDIUM issues once baseline work is complete and metrics confirm no regressions.
 
 ### Important Reminders
 - ⚠️ **Test thoroughly after EACH change**
@@ -359,14 +346,14 @@ docs/
 
 The CoMapeo Config Spreadsheet Plugin is a **well-structured, functional system** with **solid core architecture** but **6 critical issues** that need immediate attention. The codebase demonstrates **good engineering practices** in many areas but has **security vulnerabilities, performance bottlenecks, and code quality issues**.
 
-**Key Takeaway**: System is **production-ready with known risks**. Addressing the 6 CRITICAL issues (10-14 hours) would dramatically improve security and reliability. The full improvement plan (8-12 weeks) would result in a robust, well-documented, high-performance system.
+**Key Takeaway**: System is **production-ready with known risks**. Critical gaps are closed, and the near-term leverage comes from finishing regression coverage, capturing baseline metrics, and completing the HIGH-024 naming clean-up.
 
-**Recommendation**: Begin with [Sprint 1](docs/implementation/sprint-1-critical.md) focusing on lowest-risk, highest-impact fixes.
+**Recommendation**: Execute the Immediate Actions table first, then deliver the outstanding HIGH-024 work before pulling in additional HIGH/MEDIUM backlog.
 
 ---
 
 **Questions?** See [docs/issues/](docs/issues/) for detailed information on specific issues.
 
-**Ready to start?** Begin with [Sprint 1: Critical Fixes](docs/implementation/sprint-1-critical.md).
+**Ready to start?** Work through the Immediate Actions table above, beginning with Task 4 (test environment clone).
 
 **Need safety guidance?** Review [Regression Prevention Strategy](docs/REGRESSION-STRATEGY.md).
