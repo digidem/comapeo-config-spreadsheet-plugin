@@ -480,7 +480,7 @@ function validateCategoryIcons(): void {
       return;
     }
 
-    const presetSlug = slugify(presetName);
+    const presetSlug = createPresetSlug(presetName, index);
     presetSlugToRow.set(presetSlug, rowNumber);
 
     const iconCellValue = iconValues[index][0];
