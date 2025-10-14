@@ -2,6 +2,9 @@ interface SheetData {
   [key: string]: (string | number | boolean)[][];
 }
 
+type LanguageCode = string;
+type LanguageMap = Record<LanguageCode, string>;
+
 interface CoMapeoField {
   tagKey: string;
   type: string;
@@ -64,6 +67,7 @@ interface CoMapeoConfig {
   presets: CoMapeoPreset[];
   icons: CoMapeoIcon[];
   messages: CoMapeoTranslations;
+  translations?: CoMapeoTranslations;
 }
 type TranslationLanguage = string;
 

@@ -12,7 +12,9 @@
 /**
  * Fallback language data mapping language codes to English names
  */
-const LANGUAGES_FALLBACK: Record<string, string> = {
+/// <reference path="../types.ts" />
+
+const LANGUAGES_FALLBACK: LanguageMap = {
   en: "English",
   es: "Español",
   pt: "Português",

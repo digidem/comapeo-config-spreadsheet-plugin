@@ -1,3 +1,5 @@
+/// <reference path="./types.ts" />
+
 /**
  * Validation utilities for user inputs and sheet data
  *
@@ -41,7 +43,7 @@ interface ValidationResult {
  */
 function validateLanguageCode(
   languageCode: string,
-  supportedLanguages: Record<string, string>,
+  supportedLanguages: LanguageMap,
 ): ValidationResult {
   if (!languageCode || languageCode.trim() === "") {
     return {
@@ -74,7 +76,7 @@ function validateLanguageCode(
  */
 function validateLanguageName(
   languageName: string,
-  supportedLanguages: Record<string, string>,
+  supportedLanguages: LanguageMap,
 ): ValidationResult & { code?: string } {
   if (!languageName || languageName.trim() === "") {
     return {
@@ -112,7 +114,7 @@ function validateLanguageName(
  */
 function validatePrimaryLanguage(
   primaryLanguage: string,
-  supportedLanguages: Record<string, string>,
+  supportedLanguages: LanguageMap,
 ): ValidationResult {
   const result = validateLanguageName(primaryLanguage, supportedLanguages);
 

@@ -1,16 +1,4 @@
-// Lazy logger initialization to avoid compilation order issues
-function getLog() {
-  if (typeof AppLogger !== 'undefined') {
-    return AppLogger.scope("SpreadsheetData");
-  }
-  // Fallback logger with all expected methods
-  return {
-    debug: (...args: any[]) => console.log('[DEBUG]', ...args),
-    info: (...args: any[]) => console.log('[INFO]', ...args),
-    warn: (...args: any[]) => console.log('[WARN]', ...args),
-    error: (...args: any[]) => console.log('[ERROR]', ...args),
-  };
-}
+/// <reference path="./loggingHelpers.ts" />
 
 /**
  * Cache key for languages data
@@ -19,9 +7,9 @@ const LANGUAGES_CACHE_KEY = "all_languages_data";
 const LANGUAGES_CACHE_TTL = 21600; // 6 hours (max for CacheService)
 
 /**
- * Gets the primary language name from cell A1 of Categories sheet
+ * Gets the primary language name from cell A1 of the Categories sheet.
  *
- * @returns The primary language name (e.g., "English", "Español")
+ * @returns Primary language display name (e.g., "English", "Español").
  */
 function getPrimaryLanguageName(): string {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -30,16 +18,16 @@ function getPrimaryLanguageName(): string {
 }
 
 /**
- * Filters languages based on primary language match
+ * Filters languages based on whether they match the primary language.
  *
- * @param allLanguages - All available languages
- * @param includePrimary - Whether to include or exclude the primary language
- * @returns Filtered language map
+ * @param allLanguages - Map of ISO language codes to display names.
+ * @param includePrimary - Whether to include the primary language in results.
+ * @returns Filtered language map.
  */
 function filterLanguagesByPrimary(
-  allLanguages: Record<string, string>,
+  allLanguages: LanguageMap,
   includePrimary: boolean,
-): Record<string, string> {
+): LanguageMap {
   const primaryLanguage = getPrimaryLanguageName();
 
   return Object.entries(allLanguages)
@@ -48,18 +36,19 @@ function filterLanguagesByPrimary(
     )
     .reduce(
       (acc, [code, name]) => {
-        acc[code] = name;
+        acc[code as LanguageCode] = name;
         return acc;
       },
-      {} as Record<string, string>,
+      {} as LanguageMap,
     );
 }
 
 /**
- * Fetches languages from cache or remote source
+ * Fetches the language map, preferring cached data and falling back to
+ * remote fetch or local fallback data when necessary.
  */
-function getAllLanguages(): Record<string, string> {
-  const log = getLog();
+function getAllLanguages(): LanguageMap {
+  const log = getScopedLogger("SpreadsheetData");
   // Try to get from cache first
   const cache = CacheService.getScriptCache();
   const cachedData = cache.get(LANGUAGES_CACHE_KEY);
@@ -82,7 +71,7 @@ function getAllLanguages(): Record<string, string> {
     const languagesData = JSON.parse(response.getContentText());
 
     // Convert to the format we need: {code: englishName}
-    const allLanguages: Record<string, string> = {};
+    const allLanguages: LanguageMap = {};
     for (const [code, lang] of Object.entries(languagesData)) {
       allLanguages[code] = (lang as { englishName: string }).englishName;
     }
@@ -104,12 +93,24 @@ function getAllLanguages(): Record<string, string> {
   }
 }
 
-function languages(includePrimary = false): Record<string, string> {
+/**
+ * Returns available languages filtered by whether to include the primary entry.
+ *
+ * @param includePrimary - When true, returns only the primary language.
+ * @returns Map of language codes to display names.
+ */
+function languages(includePrimary = false): LanguageMap {
   const allLanguages = getAllLanguages();
   return filterLanguagesByPrimary(allLanguages, includePrimary);
 }
 
-function getPrimaryLanguage(): { code: string; name: string } {
+/**
+ * Resolves the primary language code and name configured in the spreadsheet.
+ *
+ * @returns Primary language code and display name pair.
+ * @throws Error when cell A1 contains an unsupported language.
+ */
+function getPrimaryLanguage(): { code: LanguageCode; name: string } {
   const primaryLanguage = getPrimaryLanguageName();
   const allLanguages = getAllLanguages();
 
@@ -138,7 +139,11 @@ function getPrimaryLanguage(): { code: string; name: string } {
   };
 }
 
-function getAvailableTargetLanguages(): Record<string, string> {
+/**
+ * Retrieves the set of languages that can be targeted for translation,
+ * combining the canonical list with any custom sheet headers.
+ */
+function getAvailableTargetLanguages(): LanguageMap {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const primaryLanguage = getPrimaryLanguageName();
   const allLanguages = getAllLanguages();
@@ -174,16 +179,27 @@ function getAvailableTargetLanguages(): Record<string, string> {
   return targetLanguages;
 }
 
+/**
+ * Lists supported language names for validation in the Categories sheet.
+ */
 function getSupportedLanguagesForA1Cell(): string[] {
   const allLanguages = getAllLanguages();
   return Object.values(allLanguages).sort();
 }
 
+/**
+ * Checks whether a language name is valid for the A1 configuration cell.
+ */
 function isValidLanguageForA1Cell(languageName: string): boolean {
   const supportedLanguages = getSupportedLanguagesForA1Cell();
   return supportedLanguages.includes(languageName);
 }
 
+/**
+ * Returns the ordered list of spreadsheet sheet names used by the exporter.
+ *
+ * @param translationsOnly - When true, include only translation sheets.
+ */
 function sheets(translationsOnly = false): string[] {
   const translationSheets = [
     "Category Translations",
@@ -198,6 +214,11 @@ function sheets(translationsOnly = false): string[] {
 
   return [...translationSheets, "Categories", "Details"];
 }
+/**
+ * Reads spreadsheet data for all relevant sheets into a structured object.
+ *
+ * @returns SheetData containing sheet names and their value matrices.
+ */
 function getSpreadsheetData(): SheetData {
   const sheetNames = sheets();
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -222,5 +243,6 @@ function getSpreadsheetData(): SheetData {
 function clearLanguagesCache(): void {
   const cache = CacheService.getScriptCache();
   cache.remove(LANGUAGES_CACHE_KEY);
-  console.log("Languages cache cleared");
+  const log = getScopedLogger("SpreadsheetData");
+  log.info("Languages cache cleared");
 }

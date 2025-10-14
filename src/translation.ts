@@ -1,3 +1,5 @@
+/// <reference path="./types.ts" />
+
 const MAIN_LANGUAGE_COLUMN = "A";
 const CATEGORIES_SHEET = "Categories";
 const DETAILS_SHEET = "Details";
@@ -31,7 +33,7 @@ function translateSheet(
     throw new Error(`Sheet "${sheetName}" not found`);
   }
   const lastRow = sheet.getLastRow();
-  const languagesList = languages();
+  const languagesList: LanguageMap = languages();
   const primaryLanguage = getPrimaryLanguage();
   const mainLanguage = sourceLanguage || primaryLanguage.code;
 
@@ -100,7 +102,7 @@ function translateSheetBidirectional(
 
   const primaryLanguage = getPrimaryLanguage();
   const actualSourceLanguage = sourceLanguage || primaryLanguage.code;
-  const availableTargetLanguages = getAvailableTargetLanguages();
+  const availableTargetLanguages: LanguageMap = getAvailableTargetLanguages();
 
   // Validate that source language is different from target languages
   const conflictingLanguages = targetLanguages.filter(lang => lang === actualSourceLanguage);
@@ -130,7 +132,7 @@ function translateSheetBidirectional(
     let targetColumn = -1;
 
     // First check all available languages
-    const allLanguages = getAllLanguages();
+    const allLanguages: LanguageMap = getAllLanguages();
 
     if (allLanguages[targetLang]) {
       const targetLanguageName = allLanguages[targetLang];

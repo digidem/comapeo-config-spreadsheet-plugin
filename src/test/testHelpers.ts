@@ -53,18 +53,10 @@ interface TestSummary {
   results: TestResult[];
 }
 
-// Lazy logger initialization to avoid compilation order issues
-function getLog() {
-  if (typeof AppLogger !== 'undefined') {
-    return AppLogger.scope("TestHelpers");
-  }
-  // Fallback logger with all expected methods
-  return {
-    debug: (...args: any[]) => console.log('[DEBUG]', ...args),
-    info: (...args: any[]) => console.log('[INFO]', ...args),
-    warn: (...args: any[]) => console.log('[WARN]', ...args),
-    error: (...args: any[]) => console.log('[ERROR]', ...args),
-  };
+/// <reference path="../loggingHelpers.ts" />
+
+function getTestLogger(): ScopedLogger {
+  return getScopedLogger("TestHelpers");
 }
 
 /**
@@ -78,7 +70,7 @@ class TestRunner {
    * Start a new test suite
    */
   start(): void {
-    const log = getLog();
+    const log = getTestLogger();
     this.results = [];
     this.startTime = Date.now();
     log.info("===== Test Suite Started =====");
@@ -90,7 +82,7 @@ class TestRunner {
    * @param result - The test result to add
    */
   addResult(result: TestResult): void {
-    const log = getLog();
+    const log = getTestLogger();
     this.results.push(result);
 
     const status = result.success ? "✅ PASSED" : "❌ FAILED";
@@ -114,7 +106,7 @@ class TestRunner {
    * @returns Test result
    */
   runTest(testName: string, testFn: () => TestResult): TestResult {
-    const log = getLog();
+    const log = getTestLogger();
     const startTime = Date.now();
     log.info(`Running test: ${testName}`);
 
@@ -161,6 +153,7 @@ class TestRunner {
    * Display test summary in console
    */
   logSummary(): void {
+    const log = getTestLogger();
     const summary = this.getSummary();
 
     log.info("===== Test Suite Completed =====");

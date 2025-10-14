@@ -1,43 +1,35 @@
-// Lazy logger initialization to avoid compilation order issues
-function getLog() {
-  if (typeof AppLogger !== 'undefined') {
-    return AppLogger.scope("ConfigGeneration");
-  }
-  // Fallback logger with all expected methods
-  return {
-    debug: (...args: any[]) => console.log('[DEBUG]', ...args),
-    info: (...args: any[]) => console.log('[INFO]', ...args),
-    warn: (...args: any[]) => console.log('[WARN]', ...args),
-    error: (...args: any[]) => console.log('[ERROR]', ...args),
-  };
-}
+/// <reference path="./loggingHelpers.ts" />
+/// <reference path="./types.ts" />
 
 /**
- * Generates a CoMapeo configuration file from the spreadsheet data.
- * Shows progress dialogs and handles errors appropriately.
+ * Entry point for the CoMapeo category generation workflow.
+ *
+ * Displays the language selection dialog and delegates the rest of the
+ * pipeline to {@link generateCoMapeoConfigWithSelectedLanguages}.
  */
-function generateCoMapeoConfig() {
+function generateCoMapeoConfig(): void {
   // First, show the translation language selection dialog
   showSelectTranslationLanguagesDialog();
 }
 
 /**
- * Called when user chooses to skip translation.
- * Continues the CoMapeo config generation process without translation.
+ * Continues the generation pipeline without running translations.
  */
-function generateCoMapeoConfigSkipTranslation() {
-  const log = getLog();
+function generateCoMapeoConfigSkipTranslation(): void {
+  const log = getScopedLogger("ConfigGeneration");
   log.info("User chose to skip translation");
   log.debug("Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
   generateCoMapeoConfigWithSelectedLanguages([]);
 }
 
 /**
- * Called after user selects translation languages.
- * Continues the CoMapeo config generation process.
+ * Runs the full CoMapeo configuration pipeline after the user selects
+ * languages to translate to.
+ *
+ * @param selectedLanguages - ISO codes of translation languages chosen by the user.
  */
-function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]) {
-  const log = getLog();
+function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]): void {
+  const log = getScopedLogger("ConfigGeneration");
   let createdFolderId: string | null = null;
 
   try {
@@ -144,18 +136,14 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
 }
 
 /**
- * Process all the data from the spreadsheet into a CoMapeo configuration object.
- * @param {Object} data - The data from the spreadsheet, including fields, presets, icons, metadata, and translations.
- * @returns {Object} An object with the following properties:
- *   - metadata: The metadata for the CoMapeo configuration, including the dataset ID, name, and version.
- *   - packageJson: The package.json for the CoMapeo configuration, including the dependencies and version.
- *   - fields: An array of CoMapeoField objects, each representing a field in the CoMapeo configuration.
- *   - presets: An array of CoMapeoPreset objects, each representing a preset in the CoMapeo configuration.
- *   - icons: An array of CoMapeoIcon objects, each representing an icon in the CoMapeo configuration.
- *   - messages: An object with two properties, pt and es, each containing an object with translation messages for the corresponding language.
+ * Transforms spreadsheet data into a fully validated CoMapeo configuration.
+ *
+ * @param data - Raw sheet matrices captured from the active spreadsheet.
+ * @returns CoMapeo configuration ready for Drive export and packaging.
+ * @throws Error when sheet validation or schema validation fails.
  */
-function processDataForCoMapeo(data) {
-  const log = getLog();
+function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
+  const log = getScopedLogger("ConfigGeneration");
   const startTime = Date.now();
   log.info("Processing CoMapeo data...");
 
@@ -188,18 +176,19 @@ function processDataForCoMapeo(data) {
   const messages = processTranslations(data, fields, presets);
   log.info("Generating CoMapeo config...");
 
-  const config = {
+  const configForValidation: CoMapeoConfig = {
     metadata,
     packageJson,
     fields,
     presets,
     icons,
-    translations: messages, // Renamed to match validation schema
+    messages,
+    translations: messages,
   };
 
   // Validate the final config schema
   log.info("Validating configuration schema...");
-  const configValidation = validateConfigSchema(config);
+  const configValidation = validateConfigSchema(configForValidation);
   if (!configValidation.valid) {
     throw new Error(configValidation.error);
   }
@@ -209,13 +198,6 @@ function processDataForCoMapeo(data) {
     AppLogger.timing("processDataForCoMapeo", startTime);
   }
 
-  // Return with original property name for backward compatibility
-  return {
-    metadata,
-    packageJson,
-    fields,
-    presets,
-    icons,
-    messages,
-  };
+  // Return with original property name while keeping translations for validators
+  return configForValidation;
 }
