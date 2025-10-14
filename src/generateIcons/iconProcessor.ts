@@ -148,6 +148,7 @@ function saveIconToFolder(
   iconSvg: string,
   suffixes: string[],
   backgroundColor: string,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ): string {
   console.log(`Saving icon to folder for ${displayName} (slug: ${presetSlug}):`, iconSvg);
 
@@ -173,6 +174,7 @@ function saveIconToFolder(
         fallbackSvg,
         suffixes,
         backgroundColor || defaultBackground,
+        zipBlobs,
       );
     } else {
       console.error(`Complete failure to generate icon for ${displayName}, using fallback icon`);
@@ -189,6 +191,7 @@ function saveIconToFolder(
         suffix.replace("-", ""),
         iconContent,
         mimeType,
+        zipBlobs,
       );
       files.push(file);
     });
@@ -199,6 +202,7 @@ function saveIconToFolder(
       "",
       iconContent,
       mimeType,
+      zipBlobs,
     );
     files.push(file);
   }
@@ -245,10 +249,17 @@ function createIconFile(
   size: string,
   content: string,
   mimeType: string,
-) {
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
+): GoogleAppsScript.Drive.File {
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
   const sanitizedSize = size ? `-${size}` : "";
-  return folder.createFile(`${slug}${sanitizedSize}.${extension}`, content, mimeType);
+  const fileName = `${slug}${sanitizedSize}.${extension}`;
+  const blob = Utilities.newBlob(content, mimeType, fileName);
+  const file = folder.createFile(blob);
+  if (zipBlobs) {
+    zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
+  }
+  return file;
 }
 
 function updateIconUrlInSheet(

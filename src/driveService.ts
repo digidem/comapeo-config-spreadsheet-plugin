@@ -16,7 +16,11 @@
  * });
  * // Returns: Blob containing ZIP archive of folder contents
  */
-function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: string) => void): GoogleAppsScript.Base.Blob {
+function saveDriveFolderToZip(
+  folderId,
+  onProgress?: (message: string, detail?: string) => void,
+  preCollectedBlobs?: GoogleAppsScript.Base.Blob[],
+): GoogleAppsScript.Base.Blob {
   console.log("[ZIP] Attempting to access folder with ID:", folderId);
 
   if (!folderId) {
@@ -60,6 +64,19 @@ function saveDriveFolderToZip(folderId, onProgress?: (message: string, detail?: 
   }
 
   console.log("[ZIP] Successfully accessed folder:", folder.getName());
+
+  if (preCollectedBlobs && preCollectedBlobs.length > 0) {
+    reportProgress("Creating package... (5/8)", `Using cached blobs (${preCollectedBlobs.length})...`);
+    const zipStartTime = new Date().getTime();
+    const zipBlob = Utilities.zip(
+      preCollectedBlobs.map((blob) => blob.copyBlob()),
+      `${folder.getName()}.zip`,
+    );
+    const zipTime = ((new Date().getTime() - zipStartTime) / 1000).toFixed(1);
+    console.log(`[ZIP] ZIP archive created from cached blobs in ${zipTime}s (size: ${zipBlob.getBytes().length} bytes)`);
+    return zipBlob;
+  }
+
   reportProgress("Creating package... (5/8)", "Collecting files...");
 
   const blobs: GoogleAppsScript.Base.Blob[] = [];
@@ -173,11 +190,15 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
  * });
  * // Returns: { url: "https://drive.google.com/...", id: "abc123" }
  */
-function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string, detail?: string) => void): { url: string; id: string } {
+function saveConfigToDrive(
+  config: CoMapeoConfig,
+  onProgress?: (message: string, detail?: string) => void,
+): { url: string; id: string; zipBlobs: GoogleAppsScript.Base.Blob[] } {
   const configFolder = getConfigFolder();
   const folderName = `${slugify(config.metadata.version)}`;
   console.log("[DRIVE] Saving config to drive:", folderName);
   const startTime = new Date().getTime();
+  const zipBlobs: GoogleAppsScript.Base.Blob[] = [];
 
   // Progress callback helper
   const reportProgress = (message: string, detail?: string) => {
@@ -241,26 +262,26 @@ function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string,
 
     reportProgress("Saving to Drive... (4/8)", `Saving ${config.presets.length} presets and icons...`);
     const presetsStart = new Date().getTime();
-    savePresetsAndIcons(config, folders, iconSuffixes);
+    savePresetsAndIcons(config, folders, iconSuffixes, zipBlobs);
     const presetsTime = ((new Date().getTime() - presetsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved presets and icons (${presetsTime}s)`);
 
     reportProgress("Saving to Drive... (4/8)", `Saving ${config.fields.length} fields...`);
     const fieldsStart = new Date().getTime();
-    saveFields(config.fields, folders.fields);
+    saveFields(config.fields, folders.fields, zipBlobs);
     const fieldsTime = ((new Date().getTime() - fieldsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved ${config.fields.length} fields (${fieldsTime}s)`);
 
     const languageCount = Object.keys(config.messages).length;
     reportProgress("Saving to Drive... (4/8)", `Saving translations for ${languageCount} languages...`);
     const messagesStart = new Date().getTime();
-    saveMessages(config.messages, folders.messages);
+    saveMessages(config.messages, folders.messages, zipBlobs);
     const messagesTime = ((new Date().getTime() - messagesStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved messages for ${languageCount} languages (${messagesTime}s)`);
 
     reportProgress("Saving to Drive... (4/8)", "Saving metadata and package...");
     const metadataStart = new Date().getTime();
-    saveMetadataAndPackage(config, rootFolder);
+    saveMetadataAndPackage(config, rootFolder, zipBlobs);
     const metadataTime = ((new Date().getTime() - metadataStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved metadata and package (${metadataTime}s)`);
 
@@ -286,6 +307,7 @@ function saveConfigToDrive(config: CoMapeoConfig, onProgress?: (message: string,
     return {
       url: rootFolder.getUrl(),
       id: folderId,
+      zipBlobs,
     };
   } catch (error) {
     console.error("[DRIVE] Error saving config files to Drive:", error);
@@ -309,12 +331,13 @@ function savePresetsAndIcons(
     icons: GoogleAppsScript.Drive.Folder;
   },
   suffixes: string[],
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ) {
   try {
     console.log("Saving presets...");
-    savePresets(config.presets, folders.presets);
+    savePresets(config.presets, folders.presets, zipBlobs);
     console.log("Saving icons from cached config...");
-    config.icons = saveExistingIconsToFolder(config, folders.icons, suffixes);
+    config.icons = saveExistingIconsToFolder(config, folders.icons, suffixes, zipBlobs);
     console.log("Icons saved successfully");
   } catch (error) {
     console.error("Error in savePresetsAndIcons:", error);
@@ -326,6 +349,7 @@ function saveExistingIconsToFolder(
   config: CoMapeoConfig,
   iconsFolder: GoogleAppsScript.Drive.Folder,
   suffixes: string[],
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ): CoMapeoIcon[] {
   const iconMap = new Map<string, CoMapeoIcon>();
   for (const icon of config.icons) {
@@ -352,6 +376,7 @@ function saveExistingIconsToFolder(
       iconSource,
       suffixes,
       backgroundColor,
+      zipBlobs,
     );
 
     updateIconUrlInSheet(categoriesSheet, index + 2, 2, savedUrl);
@@ -370,59 +395,75 @@ function saveExistingIconsToFolder(
 function savePresets(
   presets: CoMapeoPreset[],
   presetsFolder: GoogleAppsScript.Drive.Folder,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ) {
   for (const preset of presets) {
     const presetJson = JSON.stringify(preset, null, 2);
-    presetsFolder.createFile(
-      `${preset.icon}.json`,
-      presetJson,
-      MimeType.PLAIN_TEXT,
-    );
+    const fileName = `${preset.icon}.json`;
+    const blob = Utilities.newBlob(presetJson, MimeType.PLAIN_TEXT, fileName);
+    presetsFolder.createFile(blob);
+    if (zipBlobs) {
+      zipBlobs.push(blob.copyBlob().setName(`presets/${fileName}`));
+    }
   }
 }
 
 function saveFields(
   fields: CoMapeoField[],
   fieldsFolder: GoogleAppsScript.Drive.Folder,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ) {
   for (const field of fields) {
     const fieldJson = JSON.stringify(field, null, 2);
-    fieldsFolder.createFile(
-      `${field.tagKey}.json`,
-      fieldJson,
-      MimeType.PLAIN_TEXT,
-    );
+    const fileName = `${field.tagKey}.json`;
+    const blob = Utilities.newBlob(fieldJson, MimeType.PLAIN_TEXT, fileName);
+    fieldsFolder.createFile(blob);
+    if (zipBlobs) {
+      zipBlobs.push(blob.copyBlob().setName(`fields/${fileName}`));
+    }
   }
 }
 
 function saveMessages(
   messages: CoMapeoTranslations,
   messagesFolder: GoogleAppsScript.Drive.Folder,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ) {
   for (const [lang, langMessages] of Object.entries(messages)) {
     const messagesJson = JSON.stringify(langMessages, null, 2);
-    messagesFolder.createFile(
-      `${lang}.json`,
-      messagesJson,
-      MimeType.PLAIN_TEXT,
-    );
+    const fileName = `${lang}.json`;
+    const blob = Utilities.newBlob(messagesJson, MimeType.PLAIN_TEXT, fileName);
+    messagesFolder.createFile(blob);
+    if (zipBlobs) {
+      zipBlobs.push(blob.copyBlob().setName(`messages/${fileName}`));
+    }
   }
 }
 
 function saveMetadataAndPackage(
   config: CoMapeoConfig,
   rootFolder: GoogleAppsScript.Drive.Folder,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
 ) {
-  rootFolder.createFile(
-    "metadata.json",
+  const metadataBlob = Utilities.newBlob(
     JSON.stringify(config.metadata, null, 2),
     MimeType.PLAIN_TEXT,
+    "metadata.json",
   );
-  rootFolder.createFile(
-    "package.json",
+  rootFolder.createFile(metadataBlob);
+  if (zipBlobs) {
+    zipBlobs.push(metadataBlob.copyBlob().setName("metadata.json"));
+  }
+
+  const packageBlob = Utilities.newBlob(
     JSON.stringify(config.packageJson, null, 2),
     MimeType.PLAIN_TEXT,
+    "package.json",
   );
+  rootFolder.createFile(packageBlob);
+  if (zipBlobs) {
+    zipBlobs.push(packageBlob.copyBlob().setName("package.json"));
+  }
 }
 
 /**

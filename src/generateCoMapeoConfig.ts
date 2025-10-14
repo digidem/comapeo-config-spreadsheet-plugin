@@ -104,7 +104,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     showProcessingModalDialog(processingDialogTexts[3][locale]);
     log.info("Step 4: Saving config to Drive...");
     const saveDriveStart = Date.now();
-    const { id } = saveConfigToDrive(config, updateProcessingDialogProgress);
+    const { id, zipBlobs } = saveConfigToDrive(config, updateProcessingDialogProgress);
     recordTiming("saveConfigToDrive", saveDriveStart);
     createdFolderId = id; // Track folder ID for cleanup
     log.info("Saved to Drive", { folderId: id });
@@ -113,7 +113,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     showProcessingModalDialog(processingDialogTexts[4][locale]);
     log.info("Step 5: Creating ZIP package...");
     const zipStart = Date.now();
-    const folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress);
+    const folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress, zipBlobs);
     recordTiming("saveDriveFolderToZip", zipStart);
     log.info("ZIP package created");
 
