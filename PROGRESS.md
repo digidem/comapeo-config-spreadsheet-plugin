@@ -7,6 +7,12 @@
 
 ## Latest Updates (2025-10-12)
 
+**Phase 3 Update 1** (2025-10-14) - Kicked off code quality focus:
+- ✅ Centralized scoped logging helper shared across runtime and tests
+- ✅ Standardized language typing with `LanguageCode`/`LanguageMap`
+- ✅ Updated translation workflow to use typed language map and richer JSDoc
+- 🔄 Follow-up: extend new helpers into remaining translation/util modules
+
 **Phase 2 Update 4** - 3 additional HIGH priority improvements implemented:
 - ✅ 22 HIGH priority issues resolved total (8 initial + 5 mid + 3 prev + 3 cleanup + 3 docs)
 - ✅ ~2400 lines added (net): +1200 documentation and JSDoc
@@ -225,10 +231,10 @@
 - Additional HIGH priority fixes (see docs/issues/HIGH.md)
 
 ### Phase 3: Code Quality (Weeks 3-4)
-1. Extract language fallback data
-2. Create DRY helper functions
-3. Add missing TypeScript types
-4. Add JSDoc comments
+1. ✅ Extract language fallback data
+2. ✅ Create DRY helper functions (shared logging helper)
+3. ✅ Add missing TypeScript types (language map & config contract)
+4. 🔄 Add JSDoc comments (expand to remaining modules)
 
 ### Phase 4: Testing & Documentation (Weeks 5-6)
 1. Add unit tests
@@ -296,6 +302,7 @@ After addressing all issues:
 4. 🔄 **Set up test environment** (duplicate production spreadsheet)
 5. 🔄 **Create regression test suite** (test all currently working scenarios)
 6. 🔄 **Measure baseline performance** (before any changes)
+7. 🔄 **Propagate language map typing across translation utilities**
 
 ### Implementation (Next 8-12 Weeks)
 7. **Sprint 1**: Critical fixes (Week 1)
