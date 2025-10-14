@@ -23,6 +23,10 @@ interface PreflightCheckResults {
  * Check Drive storage quota availability
  * @returns Validation result with quota information
  */
+const PREFLIGHT_CACHE_KEY = "preflight_checks";
+const PREFLIGHT_CACHE_TTL = 300; // 5 minutes
+const PREFLIGHT_FORCE_KEY = "force_refresh";
+
 function checkDriveQuota(): ValidationResult {
   try {
     console.log("[PREFLIGHT] Checking Drive quota...");
@@ -186,6 +190,24 @@ function checkNetworkConnectivity(): ValidationResult {
  * @returns Results of all validation checks
  */
 function runPreflightChecks(): PreflightCheckResults {
+  const cache = CacheService.getScriptCache();
+  const cachedForceFlag = cache.get(PREFLIGHT_FORCE_KEY);
+
+  if (!cachedForceFlag) {
+    const cachedResults = cache.get(PREFLIGHT_CACHE_KEY);
+    if (cachedResults) {
+      try {
+        const parsed = JSON.parse(cachedResults) as PreflightCheckResults;
+        console.log("[PREFLIGHT] Using cached results");
+        return parsed;
+      } catch (error) {
+        console.warn("[PREFLIGHT] Failed to parse cached results, running fresh checks");
+      }
+    }
+  } else {
+    cache.remove(PREFLIGHT_FORCE_KEY);
+  }
+
   console.log("[PREFLIGHT] ===== Starting Pre-flight Validation =====");
   const startTime = new Date().getTime();
 
@@ -201,6 +223,16 @@ function runPreflightChecks(): PreflightCheckResults {
 
   const totalTime = ((new Date().getTime() - startTime) / 1000).toFixed(1);
   console.log(`[PREFLIGHT] ===== Pre-flight Validation Complete (${totalTime}s) =====`);
+
+  try {
+    cache.put(
+      PREFLIGHT_CACHE_KEY,
+      JSON.stringify({ allPassed, checks }),
+      PREFLIGHT_CACHE_TTL,
+    );
+  } catch (error) {
+    console.warn("[PREFLIGHT] Failed to cache preflight results", error);
+  }
 
   if (allPassed) {
     console.log("[PREFLIGHT] ✅ All checks passed");

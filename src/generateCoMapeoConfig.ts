@@ -1,6 +1,15 @@
 /// <reference path="./loggingHelpers.ts" />
 /// <reference path="./types.ts" />
 
+function recordTiming(operation: string, startTime: number): void {
+  if (typeof AppLogger !== "undefined" && AppLogger && typeof AppLogger.timing === "function") {
+    AppLogger.timing(operation, startTime);
+    return;
+  }
+  const duration = new Date().getTime() - startTime;
+  console.log(`[TIMING] ${operation} took ${duration}ms`);
+}
+
 /**
  * Entry point for the CoMapeo category generation workflow.
  *
@@ -61,14 +70,18 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
 
     // Lint spreadsheet
     log.info("Linting sheets...");
+    const lintStart = Date.now();
     lintAllSheets(false); // Pass false to prevent UI alerts
+    recordTiming("lintAllSheets", lintStart);
     log.info("Linting completed");
 
     // Step 2: Auto translate (conditional - only if languages selected)
     if (selectedLanguages.length > 0) {
       showProcessingModalDialog(processingDialogTexts[1][locale]);
       log.info("Starting translation process...", { languages: selectedLanguages });
+      const translationStart = Date.now();
       autoTranslateSheetsBidirectional(selectedLanguages);
+      recordTiming("autoTranslateSheetsBidirectional", translationStart);
       log.info("Translation process completed");
     } else {
       log.info("SKIPPING TRANSLATION - No languages selected");
@@ -76,7 +89,9 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
 
     // Read spreadsheet data AFTER translation to include any new columns
     log.info("Reading spreadsheet data (after translation)...");
+    const readDataStart = Date.now();
     const data = getSpreadsheetData();
+    recordTiming("getSpreadsheetData", readDataStart);
     log.info("Spreadsheet data retrieved");
 
     // Step 3: Process data
@@ -88,14 +103,18 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     // Step 4: Save to Drive (with progress updates)
     showProcessingModalDialog(processingDialogTexts[3][locale]);
     log.info("Step 4: Saving config to Drive...");
+    const saveDriveStart = Date.now();
     const { id } = saveConfigToDrive(config, updateProcessingDialogProgress);
+    recordTiming("saveConfigToDrive", saveDriveStart);
     createdFolderId = id; // Track folder ID for cleanup
     log.info("Saved to Drive", { folderId: id });
 
     // Step 5: Create package (with progress updates)
     showProcessingModalDialog(processingDialogTexts[4][locale]);
     log.info("Step 5: Creating ZIP package...");
+    const zipStart = Date.now();
     const folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress);
+    recordTiming("saveDriveFolderToZip", zipStart);
     log.info("ZIP package created");
 
     // Step 6: Upload to API
@@ -105,7 +124,9 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
     // Step 7: API Processing (with progress callback)
     showProcessingModalDialog(processingDialogTexts[6][locale]);
     log.info("Step 7: Waiting for API processing...");
+    const apiStart = Date.now();
     const configUrl = sendDataToApiAndGetZip(folderZip, config.metadata, 3, updateProcessingDialogProgress);
+    recordTiming("sendDataToApiAndGetZip", apiStart);
     log.info("API processing completed", { url: configUrl });
 
     // Step 8: Complete
