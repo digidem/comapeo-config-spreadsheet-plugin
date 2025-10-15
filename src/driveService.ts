@@ -721,6 +721,9 @@ function saveExistingIconsToFolder(
 
   pruneUnusedIconHashEntries();
   logIconCacheStats(iconStats, shouldWriteToDrive);
+  if (iconsFolder) {
+    deduplicateFolderFilesByName(iconsFolder);
+  }
   return updatedIcons;
 }
 
@@ -1151,6 +1154,31 @@ function getOrCreateSubFolder(
     return folders.next();
   }
   return parent.createFolder(name);
+}
+
+function deduplicateFolderFilesByName(folder: GoogleAppsScript.Drive.Folder): void {
+  const seen: Record<string, GoogleAppsScript.Drive.File> = {};
+  const duplicates: GoogleAppsScript.Drive.File[] = [];
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const file = files.next();
+    const name = file.getName();
+    if (seen[name]) {
+      duplicates.push(file);
+    } else {
+      seen[name] = file;
+    }
+  }
+
+  duplicates.forEach((file) => {
+    try {
+      console.log(`[ICON] Removing duplicate file from Drive: ${file.getName()} (${file.getId()})`);
+      folder.removeFile(file);
+      file.setTrashed(true);
+    } catch (error) {
+      console.warn(`[ICON] Failed to remove duplicate file ${file.getId()}: ${error.message}`);
+    }
+  });
 }
 
 function markIconHashUsage(propertyKey: string): void {

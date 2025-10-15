@@ -81,7 +81,7 @@ For every improvement initiative:
   *Risk:* High — must stay behind a flag and keep the existing Drive artefacts available for users who rely on them.  
   *Plan:* 1) Introduce a `GenerationOptions` flag that toggles the Drive write; 2) When enabled, feed the in-memory ZIP from the staged blobs directly to `sendDataToApiAndGetZip`; 3) Validate both code paths manually to ensure Drive exports remain available by default.
   *Research:* `saveConfigToDrive()` now accepts `skipDriveWrites` and short-circuits folder creation while still assembling `zipBlobs` (`src/driveService.ts:434-620`). `generateCoMapeoConfigWithSelectedLanguages()` branches on `GenerationOptions.skipDriveWrites` to call `Utilities.zip` directly instead of `saveDriveFolderToZip` (`src/generateCoMapeoConfig.ts:112-149`), and exposes a convenience entry point `generateCoMapeoConfigInMemory()` for scripted runs (`src/generateCoMapeoConfig.ts:44-48`).  
-  *Status:* In-memory packaging path is feature-flagged (`skipDriveWrites`), but we still need end-to-end validation (manual generator run + API upload) and UX plumbing so users can toggle the mode from the UI. Monitor execution time and API quotas once real-world telemetry is available.
+  *Status:* In-memory packaging path now powers the default “Generate CoMapeo Category” menu entry (icons still write to Drive for stable URLs, but all other artefacts stay in memory). A separate “Generate CoMapeo Category (debug rawBuild)” option re-enables the full Drive export when needed. Deduplication guards prevent duplicate icon blobs (`src/driveService.ts:964`, `src/generateIcons/iconProcessor.ts:249`) and the sharing helper keeps permissions consistent. Pending: capture timing deltas and verify API uploads under both menu paths.
 
 ---
 

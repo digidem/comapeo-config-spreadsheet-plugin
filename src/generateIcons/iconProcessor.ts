@@ -254,6 +254,7 @@ function createIconFile(
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
   const sanitizedSize = size ? `-${size}` : "";
   const fileName = `${slug}${sanitizedSize}.${extension}`;
+  removeExistingFilesByName(folder, fileName);
   const blob = Utilities.newBlob(content, mimeType, fileName);
   const file = folder.createFile(blob);
   if (typeof applyDefaultSharing === "function") {
@@ -267,6 +268,19 @@ function createIconFile(
     zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
   }
   return file;
+}
+
+function removeExistingFilesByName(
+  folder: GoogleAppsScript.Drive.Folder,
+  fileName: string,
+): void {
+  const matches = folder.getFilesByName(fileName);
+  while (matches.hasNext()) {
+    const existing = matches.next();
+    console.log(`Removing existing icon file to avoid duplicates: ${existing.getName()} (${existing.getId()})`);
+    folder.removeFile(existing);
+    existing.setTrashed(true);
+  }
 }
 
 function updateIconUrlInSheet(
