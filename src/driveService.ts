@@ -16,6 +16,8 @@
  * });
  * // Returns: Blob containing ZIP archive of folder contents
  */
+const ZIP_DIGEST_LOGGING_PROPERTY_KEY = "ENABLE_ZIP_DIGEST_LOGGING";
+const MAX_DRIVE_FOLDER_DEPTH = 50;
 function saveDriveFolderToZip(
   folderId,
   onProgress?: (message: string, detail?: string) => void,
@@ -64,16 +66,18 @@ function saveDriveFolderToZip(
   }
 
   console.log("[ZIP] Successfully accessed folder:", folder.getName());
+  const logZipDigests = isZipDigestLoggingEnabled();
 
   if (preCollectedBlobs && preCollectedBlobs.length > 0) {
     reportProgress("Creating package... (5/8)", `Using cached blobs (${preCollectedBlobs.length})...`);
     const zipStartTime = new Date().getTime();
-    const zipBlob = Utilities.zip(
-      preCollectedBlobs.map((blob) => blob.copyBlob()),
-      `${folder.getName()}.zip`,
-    );
+    const sortedCachedBlobs = sortBlobsByName(preCollectedBlobs);
+    const zipBlob = Utilities.zip(sortedCachedBlobs, `${folder.getName()}.zip`);
     const zipTime = ((new Date().getTime() - zipStartTime) / 1000).toFixed(1);
     console.log(`[ZIP] ZIP archive created from cached blobs in ${zipTime}s (size: ${zipBlob.getBytes().length} bytes)`);
+    if (logZipDigests) {
+      logZipDigestComparison(sortedCachedBlobs, zipBlob, folder);
+    }
     return zipBlob;
   }
 
@@ -82,7 +86,6 @@ function saveDriveFolderToZip(
   const blobs: GoogleAppsScript.Base.Blob[] = [];
   let fileCount = 0;
   const startTime = new Date().getTime();
-  const MAX_FOLDER_DEPTH = 50;
 
   function addFolderContentsToBlobs(
     currentFolder: GoogleAppsScript.Drive.Folder,
@@ -90,9 +93,9 @@ function saveDriveFolderToZip(
     depth = 0,
   ) {
     // Prevent infinite recursion with depth limit
-    if (depth > MAX_FOLDER_DEPTH) {
-      console.error(`[ZIP] Maximum folder depth (${MAX_FOLDER_DEPTH}) exceeded at path: ${path}`);
-      throw new Error(`Maximum folder depth of ${MAX_FOLDER_DEPTH} exceeded. Please check for circular folder references or deeply nested structures.`);
+    if (depth > MAX_DRIVE_FOLDER_DEPTH) {
+      console.error(`[ZIP] Maximum folder depth (${MAX_DRIVE_FOLDER_DEPTH}) exceeded at path: ${path}`);
+      throw new Error(`Maximum folder depth of ${MAX_DRIVE_FOLDER_DEPTH} exceeded. Please check for circular folder references or deeply nested structures.`);
     }
 
     const files = currentFolder.getFiles();
@@ -126,11 +129,243 @@ function saveDriveFolderToZip(
   reportProgress("Creating package... (5/8)", `Compressing ${fileCount} files into archive...`);
 
   const zipStartTime = new Date().getTime();
-  const zipBlob = Utilities.zip(blobs, `${folder.getName()}.zip`);
+  const sortedDriveBlobs = sortBlobsByName(blobs);
+  const zipBlob = Utilities.zip(sortedDriveBlobs, `${folder.getName()}.zip`);
   const zipTime = ((new Date().getTime() - zipStartTime) / 1000).toFixed(1);
 
   console.log(`[ZIP] ZIP archive created in ${zipTime}s (size: ${zipBlob.getBytes().length} bytes)`);
+  if (logZipDigests) {
+    const driveDigest = computeBlobMd5Digest(zipBlob);
+    console.log(`[ZIP] Digest (Drive traversal): ${driveDigest}`);
+  }
   return zipBlob;
+}
+
+function isZipDigestLoggingEnabled(): boolean {
+  try {
+    const propertyValue = PropertiesService.getScriptProperties().getProperty(
+      ZIP_DIGEST_LOGGING_PROPERTY_KEY,
+    );
+    const isEnabled = typeof propertyValue === "string" && propertyValue.toLowerCase() === "true";
+    if (isEnabled) {
+      console.log("[ZIP] Digest comparison logging enabled via script property");
+    }
+    return isEnabled;
+  } catch (error) {
+    console.warn(
+      `[ZIP] Unable to read script property "${ZIP_DIGEST_LOGGING_PROPERTY_KEY}": ${error.message}`,
+    );
+    return false;
+  }
+}
+
+function logZipDigestComparison(
+  cachedBlobs: GoogleAppsScript.Base.Blob[],
+  cachedZipBlob: GoogleAppsScript.Base.Blob,
+  sourceFolder: GoogleAppsScript.Drive.Folder,
+): void {
+  try {
+    const cachedNames = cachedBlobs.map((blob) => blob.getName() || "");
+    const cachedSortedNames = cachedNames.slice().sort();
+    const cachedDigest = computeBlobMd5Digest(cachedZipBlob);
+    console.log(`[ZIP] Digest (cached blobs): ${cachedDigest}`);
+
+    const driveBlobs = collectFolderBlobsForDigest(sourceFolder);
+    const driveNames = driveBlobs.map((blob) => blob.getName() || "");
+    const driveSortedNames = driveNames.slice().sort();
+    logZipBlobNameDiagnostics(cachedSortedNames, driveSortedNames);
+
+    const sortedDriveBlobs = sortBlobsByName(driveBlobs);
+    const driveZipBlob = Utilities.zip(sortedDriveBlobs, `${sourceFolder.getName()}.zip`);
+    const driveDigest = computeBlobMd5Digest(driveZipBlob);
+    console.log(`[ZIP] Digest (Drive traversal): ${driveDigest}`);
+
+    logPerBlobDigestDifferences(cachedBlobs, sortedDriveBlobs);
+
+    const digestsMatch = cachedDigest === driveDigest;
+    console.log(`[ZIP] Digest comparison result: ${digestsMatch ? "MATCH" : "MISMATCH"}`);
+  } catch (error) {
+    console.error("[ZIP] Failed to compute ZIP digest comparison:", error);
+  }
+}
+
+function logZipBlobNameDiagnostics(
+  cachedSortedNames: string[],
+  driveSortedNames: string[],
+): void {
+  const cachedCount = cachedSortedNames.length;
+  const driveCount = driveSortedNames.length;
+
+  if (
+    cachedCount === driveCount &&
+    cachedSortedNames.every((name, index) => name === driveSortedNames[index])
+  ) {
+    console.log(`[ZIP] Blob name lists match (${cachedCount} entries)`);
+  } else {
+    console.log(
+      `[ZIP] Blob name lists differ — cached (${cachedCount}) vs Drive (${driveCount})`,
+    );
+    console.log(
+      `[ZIP] Cached blob names: ${cachedSortedNames.join(", ") || "(none)"}`,
+    );
+    console.log(
+      `[ZIP] Drive blob names: ${driveSortedNames.join(", ") || "(none)"}`,
+    );
+
+    const cachedOnly = computeNameDifference(
+      cachedSortedNames,
+      new Set(driveSortedNames),
+    );
+    const driveOnly = computeNameDifference(
+      driveSortedNames,
+      new Set(cachedSortedNames),
+    );
+
+    console.log(
+      `[ZIP] Only in cached blobs: ${cachedOnly.join(", ") || "(none)"}`,
+    );
+    console.log(
+      `[ZIP] Only in Drive blobs: ${driveOnly.join(", ") || "(none)"}`,
+    );
+  }
+
+  const cachedDuplicates = findDuplicateNames(cachedSortedNames);
+  const driveDuplicates = findDuplicateNames(driveSortedNames);
+
+  if (cachedDuplicates.length > 0) {
+    console.log(
+      `[ZIP] Duplicate cached blob names: ${cachedDuplicates.join(", ")}`,
+    );
+  }
+  if (driveDuplicates.length > 0) {
+    console.log(
+      `[ZIP] Duplicate Drive blob names: ${driveDuplicates.join(", ")}`,
+    );
+  }
+}
+
+function computeNameDifference(
+  names: string[],
+  comparisonSet: Set<string>,
+): string[] {
+  const difference = new Set<string>();
+  for (const name of names) {
+    if (!comparisonSet.has(name)) {
+      difference.add(name);
+    }
+  }
+  return Array.from(difference.values()).sort();
+}
+
+function findDuplicateNames(names: string[]): string[] {
+  const duplicates = new Set<string>();
+  const counts: Record<string, number> = {};
+  for (const name of names) {
+    counts[name] = (counts[name] || 0) + 1;
+    if (counts[name] === 2) {
+      duplicates.add(name);
+    }
+  }
+  return Array.from(duplicates.values()).sort();
+}
+
+function logPerBlobDigestDifferences(
+  cachedBlobs: GoogleAppsScript.Base.Blob[],
+  driveBlobs: GoogleAppsScript.Base.Blob[],
+): void {
+  const cachedDigestMap = computeBlobDigestMap(cachedBlobs);
+  const driveDigestMap = computeBlobDigestMap(driveBlobs);
+  const mismatchedNames: string[] = [];
+
+  Object.keys(cachedDigestMap).forEach((name) => {
+    if (cachedDigestMap[name] !== driveDigestMap[name]) {
+      mismatchedNames.push(name);
+    }
+  });
+
+  if (mismatchedNames.length === 0) {
+    console.log("[ZIP] Individual blob digests match for all entries");
+  } else {
+    console.log(
+      `[ZIP] Individual blob digest mismatches (${mismatchedNames.length}): ${mismatchedNames.join(", ")}`,
+    );
+    mismatchedNames.forEach((name) => {
+      console.log(
+        `[ZIP]  • ${name}: cached=${cachedDigestMap[name]} vs Drive=${driveDigestMap[name]}`,
+      );
+    });
+  }
+}
+
+function computeBlobMd5Digest(blob: GoogleAppsScript.Base.Blob): string {
+  const digestBytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.MD5,
+    blob.getBytes(),
+  );
+  return digestBytes
+    .map((byte) => {
+      const normalized = byte < 0 ? byte + 256 : byte;
+      return normalized.toString(16).padStart(2, "0");
+    })
+    .join("");
+}
+
+function computeBlobDigestMap(
+  blobs: GoogleAppsScript.Base.Blob[],
+): Record<string, string> {
+  const digestMap: Record<string, string> = {};
+  blobs.forEach((blob) => {
+    const name = blob.getName() || "";
+    digestMap[name] = computeBlobMd5Digest(blob);
+  });
+  return digestMap;
+}
+
+function sortBlobsByName(
+  blobs: GoogleAppsScript.Base.Blob[],
+): GoogleAppsScript.Base.Blob[] {
+  return blobs
+    .map((blob) => {
+      const name = blob.getName() || "";
+      const copy = blob.copyBlob();
+      if (copy.getName() !== name) {
+        copy.setName(name);
+      }
+      return {
+        name,
+        blob: copy,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((entry) => entry.blob);
+}
+
+function collectFolderBlobsForDigest(
+  folder: GoogleAppsScript.Drive.Folder,
+  path = "",
+  depth = 0,
+  blobs: GoogleAppsScript.Base.Blob[] = [],
+): GoogleAppsScript.Base.Blob[] {
+  if (depth > MAX_DRIVE_FOLDER_DEPTH) {
+    throw new Error(
+      `Maximum folder depth of ${MAX_DRIVE_FOLDER_DEPTH} exceeded while collecting digest comparison blobs.`,
+    );
+  }
+
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const file = files.next();
+    blobs.push(file.getBlob().copyBlob().setName(`${path}${file.getName()}`));
+  }
+
+  const subFolders = folder.getFolders();
+  while (subFolders.hasNext()) {
+    const subFolder = subFolders.next();
+    const nextPath = `${path}${subFolder.getName()}/`;
+    collectFolderBlobsForDigest(subFolder, nextPath, depth + 1, blobs);
+  }
+
+  return blobs;
 }
 
 function getConfigFolder(): GoogleAppsScript.Drive.Folder {
