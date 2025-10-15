@@ -83,17 +83,15 @@ function sendDataToApiAndGetZip(
     try {
       // If this is a retry, show a dialog to the user
       if (retryCount > 0) {
-        const ui = SpreadsheetApp.getUi();
-        ui.alert(
-          "Retrying API Request",
-          "Attempt " +
-            retryCount +
-            " of " +
-            maxRetries +
-            ". Previous attempt failed: " +
-            (lastError ? lastError.message : "Unknown error"),
-          ui.ButtonSet.OK,
-        );
+        const attemptMessage =
+          "Retrying API request (attempt " +
+          (retryCount + 1) +
+          " of " +
+          (maxRetries + 1) +
+          "). Previous attempt failed: " +
+          (lastError ? lastError.message : "Unknown error");
+        console.warn("[API]", attemptMessage);
+        reportProgress("Retrying upload...", attemptMessage);
       }
 
       console.log(
