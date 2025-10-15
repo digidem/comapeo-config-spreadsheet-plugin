@@ -489,60 +489,60 @@ function saveConfigToDrive(
     }
   };
 
-  const configFolder: MaybeDriveFolder = shouldWriteToDrive ? getConfigFolder() : null;
+  const configFolder: GoogleAppsScript.Drive.Folder = getConfigFolder();
 
-  let rootFolder: MaybeDriveFolder = null;
+  let rootFolder: GoogleAppsScript.Drive.Folder | null = null;
   let folderId = "";
   let folderUrl = "";
 
-  if (shouldWriteToDrive && configFolder) {
-    let retryCount = 0;
-    const maxRetries = 3;
+  let retryCount = 0;
+  const maxRetries = 3;
 
-    // Retry logic for folder creation (handles Drive API rate limits)
-    while (retryCount <= maxRetries) {
-      try {
-        const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
-          ? configFolder.getFoldersByName("rawBuilds").next()
-          : configFolder.createFolder("rawBuilds");
-        applyDefaultSharing(rawBuildsFolder);
-        rootFolder = rawBuildsFolder.createFolder(folderName);
-        applyDefaultSharing(rootFolder);
-        break; // Success, exit retry loop
-      } catch (error) {
-        retryCount++;
-        console.error(`[DRIVE] Error creating folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
+  // Retry logic for folder creation (handles Drive API rate limits)
+  while (retryCount <= maxRetries) {
+    try {
+      const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
+        ? configFolder.getFoldersByName("rawBuilds").next()
+        : configFolder.createFolder("rawBuilds");
+      applyDefaultSharing(rawBuildsFolder);
+      rootFolder = rawBuildsFolder.createFolder(folderName);
+      applyDefaultSharing(rootFolder);
+      break; // Success, exit retry loop
+    } catch (error) {
+      retryCount++;
+      console.error(`[DRIVE] Error creating folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
 
-        if (retryCount > maxRetries) {
-          throw new Error(
-            `Failed to create folder "${folderName}" in "rawBuilds" after ${maxRetries + 1} attempts. Please check your Drive permissions and quota, then try again. Original error: ${error.message}`,
-          );
-        }
-
-        // Wait before retrying (exponential backoff)
-        const waitTime = 1000 * Math.pow(2, retryCount);
-        console.log(`[DRIVE] Waiting ${waitTime}ms before retry...`);
-        Utilities.sleep(waitTime);
+      if (retryCount > maxRetries) {
+        throw new Error(
+          `Failed to create folder "${folderName}" in "rawBuilds" after ${maxRetries + 1} attempts. Please check your Drive permissions and quota, then try again. Original error: ${error.message}`,
+        );
       }
-    }
 
-    if (!rootFolder) {
-      throw new Error(
-        `Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`,
-      );
+      // Wait before retrying (exponential backoff)
+      const waitTime = 1000 * Math.pow(2, retryCount);
+      console.log(`[DRIVE] Waiting ${waitTime}ms before retry...`);
+      Utilities.sleep(waitTime);
     }
-    console.log("[DRIVE] Created folder:", rootFolder.getName(), "in rawBuilds");
+  }
 
-    // Verify folder ID is valid before proceeding
-    folderId = rootFolder.getId();
-    folderUrl = rootFolder.getUrl();
-    console.log("[DRIVE] Folder ID:", folderId);
+  if (!rootFolder) {
+    throw new Error(
+      `Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`,
+    );
+  }
+  console.log("[DRIVE] Created folder:", rootFolder.getName(), "in rawBuilds");
 
-    if (!folderId) {
-      throw new Error("Failed to get valid folder ID from created folder");
-    }
-  } else {
-    reportProgress("Saving to Drive... (4/8)", "Staging files in memory (Drive writes skipped)...");
+  // Verify folder ID is valid before proceeding
+  folderId = rootFolder.getId();
+  folderUrl = rootFolder.getUrl();
+  console.log("[DRIVE] Folder ID:", folderId);
+
+  if (!folderId) {
+    throw new Error("Failed to get valid folder ID from created folder");
+  }
+
+  if (!shouldWriteToDrive) {
+    reportProgress("Saving to Drive... (4/8)", "Staging files in memory (Drive writes skipped – icons still updated)...");
   }
 
   try {
