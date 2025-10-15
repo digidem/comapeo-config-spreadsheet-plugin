@@ -707,7 +707,13 @@ function saveExistingIconsToFolder(
       iconStats,
     );
 
-    updateIconUrlInSheet(categoriesSheet, index + 2, 2, savedUrl);
+    if (shouldUpdateIconCell(savedUrl, shouldWriteToDrive)) {
+      updateIconUrlInSheet(categoriesSheet, index + 2, 2, savedUrl);
+    } else {
+      console.log(
+        `[ICON] Skipping sheet update for ${presetSlug} (URL length: ${savedUrl ? savedUrl.length : 0})`,
+      );
+    }
 
     if (savedUrl && savedUrl.trim() !== "") {
       updatedIcons.push({
@@ -939,6 +945,22 @@ function deriveInMemoryIconUrl(
   }
 
   return null;
+}
+
+function shouldUpdateIconCell(savedUrl: string, shouldWriteToDrive: boolean): boolean {
+  if (!savedUrl) {
+    return false;
+  }
+
+  if (shouldWriteToDrive) {
+    return true;
+  }
+
+  if (savedUrl.startsWith("https://")) {
+    return true;
+  }
+
+  return savedUrl.length <= 50000;
 }
 
 function reuseExistingIconVariant(
