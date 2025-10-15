@@ -546,18 +546,9 @@ function saveConfigToDrive(
   }
 
   try {
-    if (shouldWriteToDrive && rootFolder) {
-      reportProgress("Saving to Drive... (4/8)", "Creating folders...");
-    }
-    const folders: ConfigFolders =
-      shouldWriteToDrive && rootFolder
-        ? createSubFolders(rootFolder)
-        : createVirtualSubFolders();
-    if (shouldWriteToDrive && rootFolder) {
-      console.log("[DRIVE] ✅ Created subfolders successfully");
-    } else {
-      console.log("[DRIVE] Skipping Drive subfolder creation (in-memory mode)");
-    }
+    reportProgress("Saving to Drive... (4/8)", "Creating folders...");
+    const folders = createSubFolders(rootFolder);
+    console.log("[DRIVE] ✅ Created subfolders successfully");
 
     // Process each step individually with better error handling and progress logging
     const iconSuffixes = ["-100px", "-24px"];
@@ -633,15 +624,6 @@ function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder): ConfigFold
   applyDefaultSharing(folders.messages);
 
   return folders;
-}
-
-function createVirtualSubFolders(): ConfigFolders {
-  return {
-    presets: null,
-    icons: null,
-    fields: null,
-    messages: null,
-  };
 }
 
 function savePresetsAndIcons(
