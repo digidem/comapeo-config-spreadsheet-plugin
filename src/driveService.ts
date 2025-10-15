@@ -18,6 +18,30 @@
  */
 const ZIP_DIGEST_LOGGING_PROPERTY_KEY = "ENABLE_ZIP_DIGEST_LOGGING";
 const MAX_DRIVE_FOLDER_DEPTH = 50;
+const ICON_HASH_PROPERTY_PREFIX = "ICON_HASH_V1_";
+
+interface IconHashMetadata {
+  hash: string;
+  fileId?: string;
+  fileUrl?: string;
+  updatedAt?: string;
+}
+
+type MaybeDriveFolder = GoogleAppsScript.Drive.Folder | null;
+
+interface SaveConfigOptions {
+  skipDriveWrites?: boolean;
+}
+
+interface ConfigFolders {
+  presets: MaybeDriveFolder;
+  icons: MaybeDriveFolder;
+  fields: MaybeDriveFolder;
+  messages: MaybeDriveFolder;
+}
+
+let iconHashCache: Record<string, IconHashMetadata> | null = null;
+let iconHashKeysUsedThisRun: Record<string, boolean> = {};
 function saveDriveFolderToZip(
   folderId,
   onProgress?: (message: string, detail?: string) => void,
@@ -428,12 +452,18 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
 function saveConfigToDrive(
   config: CoMapeoConfig,
   onProgress?: (message: string, detail?: string) => void,
+  options?: SaveConfigOptions,
 ): { url: string; id: string; zipBlobs: GoogleAppsScript.Base.Blob[] } {
-  const configFolder = getConfigFolder();
+  const skipDriveWrites = Boolean(options?.skipDriveWrites);
+  const shouldWriteToDrive = !skipDriveWrites;
   const folderName = `${slugify(config.metadata.version)}`;
-  console.log("[DRIVE] Saving config to drive:", folderName);
+  console.log(
+    `[DRIVE] Saving config to ${shouldWriteToDrive ? "drive" : "in-memory zip"}:`,
+    folderName,
+  );
   const startTime = new Date().getTime();
   const zipBlobs: GoogleAppsScript.Base.Blob[] = [];
+  resetIconHashTracking();
 
   // Progress callback helper
   const reportProgress = (message: string, detail?: string) => {
@@ -443,80 +473,99 @@ function saveConfigToDrive(
     }
   };
 
-  let rootFolder: GoogleAppsScript.Drive.Folder;
-  let retryCount = 0;
-  const maxRetries = 3;
+  const configFolder: MaybeDriveFolder = shouldWriteToDrive ? getConfigFolder() : null;
 
-  // Retry logic for folder creation (handles Drive API rate limits)
-  while (retryCount <= maxRetries) {
-    try {
-      const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
-        ? configFolder.getFoldersByName("rawBuilds").next()
-        : configFolder.createFolder("rawBuilds");
-      rootFolder = rawBuildsFolder.createFolder(folderName);
-      break; // Success, exit retry loop
-    } catch (error) {
-      retryCount++;
-      console.error(`[DRIVE] Error creating folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
+  let rootFolder: MaybeDriveFolder = null;
+  let folderId = "";
+  let folderUrl = "";
 
-      if (retryCount > maxRetries) {
-        throw new Error(
-          `Failed to create folder "${folderName}" in "rawBuilds" after ${maxRetries + 1} attempts. Please check your Drive permissions and quota, then try again. Original error: ${error.message}`,
-        );
+  if (shouldWriteToDrive && configFolder) {
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    // Retry logic for folder creation (handles Drive API rate limits)
+    while (retryCount <= maxRetries) {
+      try {
+        const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
+          ? configFolder.getFoldersByName("rawBuilds").next()
+          : configFolder.createFolder("rawBuilds");
+        rootFolder = rawBuildsFolder.createFolder(folderName);
+        break; // Success, exit retry loop
+      } catch (error) {
+        retryCount++;
+        console.error(`[DRIVE] Error creating folder (attempt ${retryCount}/${maxRetries + 1}):`, error.message);
+
+        if (retryCount > maxRetries) {
+          throw new Error(
+            `Failed to create folder "${folderName}" in "rawBuilds" after ${maxRetries + 1} attempts. Please check your Drive permissions and quota, then try again. Original error: ${error.message}`,
+          );
+        }
+
+        // Wait before retrying (exponential backoff)
+        const waitTime = 1000 * Math.pow(2, retryCount);
+        console.log(`[DRIVE] Waiting ${waitTime}ms before retry...`);
+        Utilities.sleep(waitTime);
       }
-
-      // Wait before retrying (exponential backoff)
-      const waitTime = 1000 * Math.pow(2, retryCount);
-      console.log(`[DRIVE] Waiting ${waitTime}ms before retry...`);
-      Utilities.sleep(waitTime);
     }
-  }
 
-  if (!rootFolder) {
-    throw new Error(
-      `Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`,
-    );
-  }
-  console.log("[DRIVE] Created folder:", rootFolder.getName(), "in rawBuilds");
+    if (!rootFolder) {
+      throw new Error(
+        `Failed to create folder "${folderName}" in "rawBuilds". Root folder is undefined.`,
+      );
+    }
+    console.log("[DRIVE] Created folder:", rootFolder.getName(), "in rawBuilds");
 
-  // Verify folder ID is valid before proceeding
-  const folderId = rootFolder.getId();
-  console.log("[DRIVE] Folder ID:", folderId);
+    // Verify folder ID is valid before proceeding
+    folderId = rootFolder.getId();
+    folderUrl = rootFolder.getUrl();
+    console.log("[DRIVE] Folder ID:", folderId);
 
-  if (!folderId) {
-    throw new Error("Failed to get valid folder ID from created folder");
+    if (!folderId) {
+      throw new Error("Failed to get valid folder ID from created folder");
+    }
+  } else {
+    reportProgress("Saving to Drive... (4/8)", "Staging files in memory (Drive writes skipped)...");
   }
 
   try {
-    reportProgress("Saving to Drive... (4/8)", "Creating folders...");
-    const folders = createSubFolders(rootFolder);
-    console.log("[DRIVE] ✅ Created subfolders successfully");
+    if (shouldWriteToDrive && rootFolder) {
+      reportProgress("Saving to Drive... (4/8)", "Creating folders...");
+    }
+    const folders: ConfigFolders =
+      shouldWriteToDrive && rootFolder
+        ? createSubFolders(rootFolder)
+        : createVirtualSubFolders();
+    if (shouldWriteToDrive && rootFolder) {
+      console.log("[DRIVE] ✅ Created subfolders successfully");
+    } else {
+      console.log("[DRIVE] Skipping Drive subfolder creation (in-memory mode)");
+    }
 
     // Process each step individually with better error handling and progress logging
     const iconSuffixes = ["-100px", "-24px"];
 
     reportProgress("Saving to Drive... (4/8)", `Saving ${config.presets.length} presets and icons...`);
     const presetsStart = new Date().getTime();
-    savePresetsAndIcons(config, folders, iconSuffixes, zipBlobs);
+    savePresetsAndIcons(config, folders, iconSuffixes, zipBlobs, shouldWriteToDrive);
     const presetsTime = ((new Date().getTime() - presetsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved presets and icons (${presetsTime}s)`);
 
     reportProgress("Saving to Drive... (4/8)", `Saving ${config.fields.length} fields...`);
     const fieldsStart = new Date().getTime();
-    saveFields(config.fields, folders.fields, zipBlobs);
+    saveFields(config.fields, folders.fields, zipBlobs, shouldWriteToDrive);
     const fieldsTime = ((new Date().getTime() - fieldsStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved ${config.fields.length} fields (${fieldsTime}s)`);
 
     const languageCount = Object.keys(config.messages).length;
     reportProgress("Saving to Drive... (4/8)", `Saving translations for ${languageCount} languages...`);
     const messagesStart = new Date().getTime();
-    saveMessages(config.messages, folders.messages, zipBlobs);
+    saveMessages(config.messages, folders.messages, zipBlobs, shouldWriteToDrive);
     const messagesTime = ((new Date().getTime() - messagesStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved messages for ${languageCount} languages (${messagesTime}s)`);
 
     reportProgress("Saving to Drive... (4/8)", "Saving metadata and package...");
     const metadataStart = new Date().getTime();
-    saveMetadataAndPackage(config, rootFolder, zipBlobs);
+    saveMetadataAndPackage(config, rootFolder, zipBlobs, shouldWriteToDrive);
     const metadataTime = ((new Date().getTime() - metadataStart) / 1000).toFixed(1);
     console.log(`[DRIVE] ✅ Saved metadata and package (${metadataTime}s)`);
 
@@ -532,15 +581,17 @@ function saveConfigToDrive(
       languageCount +
       2; // metadata.json + package.json
 
-    if (totalFilesCreated > 80) {
-      console.log(`[DRIVE] Created ${totalFilesCreated} files; waiting for Drive sync...`);
-      Utilities.sleep(2000);
-    } else {
-      console.log("[DRIVE] Skipping Drive sync wait (small batch)");
+    if (shouldWriteToDrive) {
+      if (totalFilesCreated > 80) {
+        console.log(`[DRIVE] Created ${totalFilesCreated} files; waiting for Drive sync...`);
+        Utilities.sleep(2000);
+      } else {
+        console.log("[DRIVE] Skipping Drive sync wait (small batch)");
+      }
     }
 
     return {
-      url: rootFolder.getUrl(),
+      url: folderUrl,
       id: folderId,
       zipBlobs,
     };
@@ -550,7 +601,7 @@ function saveConfigToDrive(
   }
 }
 
-function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
+function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder): ConfigFolders {
   return {
     presets: rootFolder.createFolder("presets"),
     icons: rootFolder.createFolder("icons"),
@@ -559,20 +610,33 @@ function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder) {
   };
 }
 
+function createVirtualSubFolders(): ConfigFolders {
+  return {
+    presets: null,
+    icons: null,
+    fields: null,
+    messages: null,
+  };
+}
+
 function savePresetsAndIcons(
   config: CoMapeoConfig,
-  folders: {
-    presets: GoogleAppsScript.Drive.Folder;
-    icons: GoogleAppsScript.Drive.Folder;
-  },
+  folders: ConfigFolders,
   suffixes: string[],
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
 ) {
   try {
     console.log("Saving presets...");
-    savePresets(config.presets, folders.presets, zipBlobs);
+    savePresets(config.presets, folders.presets, zipBlobs, shouldWriteToDrive);
     console.log("Saving icons from cached config...");
-    config.icons = saveExistingIconsToFolder(config, folders.icons, suffixes, zipBlobs);
+    config.icons = saveExistingIconsToFolder(
+      config,
+      folders.icons,
+      suffixes,
+      zipBlobs,
+      shouldWriteToDrive,
+    );
     console.log("Icons saved successfully");
   } catch (error) {
     console.error("Error in savePresetsAndIcons:", error);
@@ -582,9 +646,10 @@ function savePresetsAndIcons(
 
 function saveExistingIconsToFolder(
   config: CoMapeoConfig,
-  iconsFolder: GoogleAppsScript.Drive.Folder,
+  iconsFolder: MaybeDriveFolder,
   suffixes: string[],
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
 ): CoMapeoIcon[] {
   const iconMap = new Map<string, CoMapeoIcon>();
   for (const icon of config.icons) {
@@ -604,13 +669,14 @@ function saveExistingIconsToFolder(
       existingIcon?.svg ||
       generateNewIcon(categoryName, backgroundColor, presetSlug);
 
-    const savedUrl = saveIconToFolder(
+    const savedUrl = saveIconToFolderWithCaching(
       iconsFolder,
       categoryName,
       presetSlug,
       iconSource,
       suffixes,
       backgroundColor,
+      shouldWriteToDrive,
       zipBlobs,
     );
 
@@ -624,19 +690,368 @@ function saveExistingIconsToFolder(
     }
   });
 
+  pruneUnusedIconHashEntries();
   return updatedIcons;
+}
+
+function saveIconToFolderWithCaching(
+  folder: MaybeDriveFolder,
+  displayName: string,
+  presetSlug: string,
+  iconSvg: string,
+  suffixes: string[],
+  backgroundColor: string,
+  shouldWriteToDrive: boolean,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
+  depth = 0,
+): string {
+  console.log(`[ICON] Saving icon with caching for ${displayName} (slug: ${presetSlug})`);
+
+  const { iconContent, mimeType } = getIconContent({
+    svg: iconSvg,
+    name: presetSlug,
+  });
+
+  if (!iconContent) {
+    console.warn(`[ICON] Failed to resolve icon content for ${displayName}, generating fallback`);
+    const defaultBackground = backgroundColor || "#6d44d9";
+
+    if (depth > 0) {
+      console.error(`[ICON] Unable to generate icon for ${displayName} after retry, using fallback icon`);
+      return FALLBACK_ICON_SVG;
+    }
+
+    const fallbackSvg = generateNewIcon(
+      displayName,
+      defaultBackground,
+      presetSlug,
+    );
+    return saveIconToFolderWithCaching(
+      folder,
+      displayName,
+      presetSlug,
+      fallbackSvg,
+      suffixes,
+      defaultBackground,
+      shouldWriteToDrive,
+      zipBlobs,
+      depth + 1,
+    );
+  }
+
+  const effectiveSuffixes = suffixes.length > 0 ? suffixes : [""];
+  const allowSkipDriveWrite = !shouldWriteToDrive || Boolean(zipBlobs);
+  let resolvedUrl: string | null = null;
+
+  for (const suffix of effectiveSuffixes) {
+    const variantUrl = saveIconVariantWithCaching(
+      folder,
+      presetSlug,
+      suffix,
+      iconContent,
+      mimeType,
+      zipBlobs,
+      allowSkipDriveWrite,
+      shouldWriteToDrive,
+    );
+
+    if (!resolvedUrl && variantUrl) {
+      resolvedUrl = variantUrl;
+    }
+  }
+
+  if (!resolvedUrl) {
+    resolvedUrl = deriveInMemoryIconUrl(iconSvg, iconContent, mimeType, presetSlug);
+  }
+
+  if (!resolvedUrl) {
+    console.warn(`[ICON] Failed to determine icon URL for ${displayName}, returning fallback icon`);
+    return FALLBACK_ICON_SVG;
+  }
+
+  console.log(`[ICON] Icon ready for ${displayName}: ${resolvedUrl}`);
+  return resolvedUrl;
+}
+
+function saveIconVariantWithCaching(
+  folder: MaybeDriveFolder,
+  presetSlug: string,
+  suffix: string,
+  iconContent: string,
+  mimeType: string,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  allowSkipDriveWrite: boolean,
+  shouldWriteToDrive: boolean,
+): string | null {
+  const sanitizedSize = suffix ? suffix.replace("-", "") : "";
+  const propertyKey = getIconHashPropertyKey(presetSlug, sanitizedSize);
+  markIconHashUsage(propertyKey);
+  const iconHash = computeIconContentHash(iconContent, mimeType);
+  const existingMetadata = getIconHashMetadata(propertyKey);
+
+  if (!shouldWriteToDrive) {
+    pushIconContentToZip(zipBlobs, iconContent, mimeType, presetSlug, sanitizedSize);
+    if (
+      existingMetadata &&
+      existingMetadata.hash === iconHash &&
+      existingMetadata.fileUrl
+    ) {
+      persistIconHashMetadata(propertyKey, {
+        ...existingMetadata,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(
+        `[ICON] Reused cached icon metadata for ${presetSlug}${suffix ? suffix : ""} (in-memory mode)`,
+      );
+      return existingMetadata.fileUrl;
+    }
+
+    persistIconHashMetadata(propertyKey, {
+      hash: iconHash,
+      updatedAt: new Date().toISOString(),
+    });
+    return null;
+  }
+
+  if (
+    allowSkipDriveWrite &&
+    existingMetadata &&
+    existingMetadata.hash === iconHash
+  ) {
+    const reusedUrl = reuseExistingIconVariant(
+      propertyKey,
+      existingMetadata,
+      presetSlug,
+      sanitizedSize,
+      mimeType,
+      iconContent,
+      zipBlobs,
+    );
+    if (reusedUrl) {
+      console.log(
+        `[ICON] Reused cached icon for ${presetSlug}${suffix ? suffix : ""}`,
+      );
+      return reusedUrl;
+    }
+    console.warn(
+      `[ICON] Cached icon metadata invalid for ${presetSlug}${suffix ? suffix : ""}, regenerating`,
+    );
+  }
+
+  if (!folder) {
+    throw new Error("Icons folder is undefined while Drive writes are enabled");
+  }
+
+  const file = createIconFile(
+    folder,
+    presetSlug,
+    sanitizedSize,
+    iconContent,
+    mimeType,
+    zipBlobs,
+  );
+  const fileUrl = file.getUrl();
+  persistIconHashMetadata(propertyKey, {
+    hash: iconHash,
+    fileId: file.getId(),
+    fileUrl,
+    updatedAt: new Date().toISOString(),
+  });
+  return fileUrl;
+}
+
+function deriveInMemoryIconUrl(
+  originalIconValue: string,
+  iconContent: string,
+  mimeType: string,
+  presetSlug: string,
+): string | null {
+  if (originalIconValue && originalIconValue.startsWith("data:image")) {
+    return originalIconValue;
+  }
+
+  if (mimeType === MimeType.SVG) {
+    return `data:image/svg+xml,${encodeURIComponent(iconContent)}`;
+  }
+
+  if (mimeType === MimeType.PNG) {
+    const base64 = Utilities.base64Encode(
+      Utilities.newBlob(iconContent, mimeType, `${presetSlug}.png`).getBytes(),
+    );
+    return `data:image/png;base64,${base64}`;
+  }
+
+  return null;
+}
+
+function reuseExistingIconVariant(
+  propertyKey: string,
+  metadata: IconHashMetadata,
+  presetSlug: string,
+  sanitizedSize: string,
+  mimeType: string,
+  iconContent: string,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+): string | null {
+  pushIconContentToZip(zipBlobs, iconContent, mimeType, presetSlug, sanitizedSize);
+
+  let fileUrl = metadata.fileUrl || "";
+
+  if (metadata.fileId) {
+    try {
+      const existingFile = DriveApp.getFileById(metadata.fileId);
+      fileUrl = existingFile.getUrl();
+    } catch (error) {
+      console.warn(
+        `[ICON] Cached icon file ${metadata.fileId} inaccessible: ${error.message}`,
+      );
+      return null;
+    }
+  }
+
+  if (!fileUrl) {
+    console.warn("[ICON] Cached icon metadata missing file URL");
+    return null;
+  }
+
+  persistIconHashMetadata(propertyKey, {
+    ...metadata,
+    fileUrl,
+    updatedAt: new Date().toISOString(),
+  });
+  return fileUrl;
+}
+
+function pushIconContentToZip(
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  iconContent: string,
+  mimeType: string,
+  presetSlug: string,
+  sanitizedSize: string,
+): void {
+  if (!zipBlobs) {
+    return;
+  }
+
+  const fileName = buildIconFileName(presetSlug, sanitizedSize, mimeType);
+  const blob = Utilities.newBlob(iconContent, mimeType, fileName);
+  zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
+}
+
+function computeIconContentHash(
+  iconContent: string,
+  mimeType: string,
+): string {
+  const blob = Utilities.newBlob(iconContent, mimeType);
+  return computeBlobMd5Digest(blob);
+}
+
+function buildIconFileName(
+  presetSlug: string,
+  sanitizedSize: string,
+  mimeType: string,
+): string {
+  const extension = mimeType === MimeType.SVG ? "svg" : "png";
+  const suffixPart = sanitizedSize ? `-${sanitizedSize}` : "";
+  return `${presetSlug}${suffixPart}.${extension}`;
+}
+
+function getIconHashPropertyKey(
+  presetSlug: string,
+  sanitizedSize: string,
+): string {
+  const sizeKey = sanitizedSize || "default";
+  return `${ICON_HASH_PROPERTY_PREFIX}${presetSlug}::${sizeKey}`;
+}
+
+function markIconHashUsage(propertyKey: string): void {
+  iconHashKeysUsedThisRun[propertyKey] = true;
+}
+
+function resetIconHashTracking(): void {
+  iconHashCache = null;
+  iconHashKeysUsedThisRun = {};
+}
+
+function getIconHashCache(): Record<string, IconHashMetadata> {
+  if (iconHashCache) {
+    return iconHashCache;
+  }
+
+  const cache: Record<string, IconHashMetadata> = {};
+  const properties = PropertiesService.getScriptProperties().getProperties();
+
+  Object.keys(properties)
+    .filter((key) => key.startsWith(ICON_HASH_PROPERTY_PREFIX))
+    .forEach((key) => {
+      try {
+        cache[key] = JSON.parse(properties[key]) as IconHashMetadata;
+      } catch (error) {
+        console.warn(`[ICON] Failed to parse icon hash metadata for key "${key}": ${error.message}`);
+      }
+    });
+
+  iconHashCache = cache;
+  return iconHashCache;
+}
+
+function getIconHashMetadata(propertyKey: string): IconHashMetadata | null {
+  const cache = getIconHashCache();
+  return cache[propertyKey] || null;
+}
+
+function persistIconHashMetadata(
+  propertyKey: string,
+  metadata: IconHashMetadata,
+): void {
+  const cache = getIconHashCache();
+  cache[propertyKey] = metadata;
+  PropertiesService.getScriptProperties().setProperty(
+    propertyKey,
+    JSON.stringify(metadata),
+  );
+  markIconHashUsage(propertyKey);
+}
+
+function pruneUnusedIconHashEntries(): void {
+  const cache = getIconHashCache();
+  const propertiesService = PropertiesService.getScriptProperties();
+
+  Object.keys(cache).forEach((key) => {
+    if (!iconHashKeysUsedThisRun[key]) {
+      propertiesService.deleteProperty(key);
+      delete cache[key];
+    }
+  });
+}
+
+function clearIconHashCache(): void {
+  const propertiesService = PropertiesService.getScriptProperties();
+  const keys = Object.keys(propertiesService.getProperties()).filter((key) =>
+    key.startsWith(ICON_HASH_PROPERTY_PREFIX),
+  );
+
+  keys.forEach((key) => {
+    propertiesService.deleteProperty(key);
+  });
+
+  resetIconHashTracking();
+  console.log("[ICON] Cleared icon hash cache");
 }
 
 function savePresets(
   presets: CoMapeoPreset[],
-  presetsFolder: GoogleAppsScript.Drive.Folder,
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
-) {
+  presetsFolder: MaybeDriveFolder,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
+): void {
   for (const preset of presets) {
     const presetJson = JSON.stringify(preset, null, 2);
     const fileName = `${preset.icon}.json`;
     const blob = Utilities.newBlob(presetJson, MimeType.PLAIN_TEXT, fileName);
-    presetsFolder.createFile(blob);
+    if (shouldWriteToDrive && presetsFolder) {
+      presetsFolder.createFile(blob);
+    }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`presets/${fileName}`));
     }
@@ -645,14 +1060,17 @@ function savePresets(
 
 function saveFields(
   fields: CoMapeoField[],
-  fieldsFolder: GoogleAppsScript.Drive.Folder,
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
-) {
+  fieldsFolder: MaybeDriveFolder,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
+): void {
   for (const field of fields) {
     const fieldJson = JSON.stringify(field, null, 2);
     const fileName = `${field.tagKey}.json`;
     const blob = Utilities.newBlob(fieldJson, MimeType.PLAIN_TEXT, fileName);
-    fieldsFolder.createFile(blob);
+    if (shouldWriteToDrive && fieldsFolder) {
+      fieldsFolder.createFile(blob);
+    }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`fields/${fileName}`));
     }
@@ -661,14 +1079,17 @@ function saveFields(
 
 function saveMessages(
   messages: CoMapeoTranslations,
-  messagesFolder: GoogleAppsScript.Drive.Folder,
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
-) {
+  messagesFolder: MaybeDriveFolder,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
+): void {
   for (const [lang, langMessages] of Object.entries(messages)) {
     const messagesJson = JSON.stringify(langMessages, null, 2);
     const fileName = `${lang}.json`;
     const blob = Utilities.newBlob(messagesJson, MimeType.PLAIN_TEXT, fileName);
-    messagesFolder.createFile(blob);
+    if (shouldWriteToDrive && messagesFolder) {
+      messagesFolder.createFile(blob);
+    }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`messages/${fileName}`));
     }
@@ -677,15 +1098,18 @@ function saveMessages(
 
 function saveMetadataAndPackage(
   config: CoMapeoConfig,
-  rootFolder: GoogleAppsScript.Drive.Folder,
-  zipBlobs?: GoogleAppsScript.Base.Blob[],
-) {
+  rootFolder: MaybeDriveFolder,
+  zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  shouldWriteToDrive: boolean,
+): void {
   const metadataBlob = Utilities.newBlob(
     JSON.stringify(config.metadata, null, 2),
     MimeType.PLAIN_TEXT,
     "metadata.json",
   );
-  rootFolder.createFile(metadataBlob);
+  if (shouldWriteToDrive && rootFolder) {
+    rootFolder.createFile(metadataBlob);
+  }
   if (zipBlobs) {
     zipBlobs.push(metadataBlob.copyBlob().setName("metadata.json"));
   }
@@ -695,7 +1119,9 @@ function saveMetadataAndPackage(
     MimeType.PLAIN_TEXT,
     "package.json",
   );
-  rootFolder.createFile(packageBlob);
+  if (shouldWriteToDrive && rootFolder) {
+    rootFolder.createFile(packageBlob);
+  }
   if (zipBlobs) {
     zipBlobs.push(packageBlob.copyBlob().setName("package.json"));
   }

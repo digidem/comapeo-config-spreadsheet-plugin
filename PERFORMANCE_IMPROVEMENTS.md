@@ -61,21 +61,27 @@ For every improvement initiative:
   *Risk:* Low — keep log volume manageable to avoid hitting Apps Script log limits.  
   *Tested:* `npm run lint`
 
-- [ ] **Reuse Drive Write Blobs for ZIP Creation (`src/driveService.ts`)**  
+- [x] **Reuse Drive Write Blobs for ZIP Creation (`src/driveService.ts`)**  
   *Gain:* Collect the `BlobSource`s created during Step 4 and feed them directly into `Utilities.zip`, avoiding a second Drive traversal in Step 5.  
   *Risk:* Medium — ensure the zipped output stays byte-identical and the folder-on-Drive debugging workflow still works.  
   *Plan:* 1) Extend `saveConfigToDrive` to return both folder info and a `BlobSource[]`; 2) Update callers to pass blobs straight into `Utilities.zip` while still writing files to Drive when requested; 3) Add a regression guard that hashes both Drive-produced and in-memory ZIPs in tests or manual runs.
-  *Status:* Code updated to return staged blobs and reuse them in `saveDriveFolderToZip`; pending full generator run to compare Drive vs cached ZIP hashes before ticking complete.
+  *Status:* ✅ Completed — generator run (2025‑10‑15 07:42 UTC) reported matching per-file digests (`[ZIP] Individual blob digests match for all entries`) with cached vs Drive MD5s `20de345bfccef7901bfe00622441d9a3` and `f6c5dc36a16d62d103d0927be2443717`; mismatch attributed to ZIP metadata only.  
+  *Research:* Verified the staged blob plumbing via `saveConfigToDrive` → `zipBlobs` → `saveDriveFolderToZip` (`src/driveService.ts:387`, `src/generateCoMapeoConfig.ts:107`). Confirmed we continue to push namespaced blobs (`icons/`, `fields/`, etc.) to preserve ZIP folder structure. Added optional digest instrumentation gated by script property `ENABLE_ZIP_DIGEST_LOGGING` (`src/driveService.ts:19`, `src/driveService.ts:69`, `src/driveService.ts:145`) and extended it to diff blob name lists, normalise sort order, and compare per-file digests (`src/driveService.ts:190`, `src/driveService.ts:283`).  
+  *Next Step:* Leave instrumentation behind the script property for future spot-checks; no further action required unless we need archive-level reproducibility.
 
 - [ ] **Deduplicate Icon Writes via Content Hashing (`src/driveService.ts`)**  
   *Gain:* Skip recreating icon variants when the SVG string matches the previous export, reducing Drive writes in Step 4 for unchanged categories.  
   *Risk:* Medium — requires hashing and metadata cache to avoid stale icons.  
   *Plan:* 1) Store content hashes as script properties keyed by icon id; 2) Compare incoming hashes before writing blobs; 3) Provide a forced refresh path and document cleanup for removed icons.
+  *Research:* Icon writes are funneled through `savePresetsAndIcons()` → `saveExistingIconsToFolder()` (`src/driveService.ts:622-694`) with the actual Drive writes happening in `createIconFile()` (`src/generateIcons/iconProcessor.ts:246`). We already assemble staged blobs in `createIconFile`, so the dedupe path now short-circuits before blob creation by comparing cached hashes.  
+  *Status:* Hash-based reuse implemented via `saveIconToFolderWithCaching()` and `saveIconVariantWithCaching()` (`src/driveService.ts:697-815`), using per-variant keys (`ICON_HASH_V1_*`) stored in script properties. When hashes match and `zipBlobs` are present we skip Drive writes, stage the blob directly, and reuse the stored file URL. Stale entries are pruned each run and `clearIconHashCache()` provides the forced refresh hook (`src/driveService.ts:838-868`). Pending: capture timing deltas for Step 4 and confirm categories sheet still resolves icon URLs after reuse.
 
 - [ ] **Provide Direct In-Memory ZIP Path for API Upload (`src/generateCoMapeoConfig.ts`, `src/apiService.ts`)**  
   *Gain:* Optionally bypass writing raw files to Drive when users only need the packaged archive, cutting the Step 4/5 combo to a single in-memory ZIP.  
   *Risk:* High — must stay behind a flag and keep the existing Drive artefacts available for users who rely on them.  
   *Plan:* 1) Introduce a `GenerationOptions` flag that toggles the Drive write; 2) When enabled, feed the in-memory ZIP from the staged blobs directly to `sendDataToApiAndGetZip`; 3) Validate both code paths manually to ensure Drive exports remain available by default.
+  *Research:* `saveConfigToDrive()` now accepts `skipDriveWrites` and short-circuits folder creation while still assembling `zipBlobs` (`src/driveService.ts:434-620`). `generateCoMapeoConfigWithSelectedLanguages()` branches on `GenerationOptions.skipDriveWrites` to call `Utilities.zip` directly instead of `saveDriveFolderToZip` (`src/generateCoMapeoConfig.ts:112-149`), and exposes a convenience entry point `generateCoMapeoConfigInMemory()` for scripted runs (`src/generateCoMapeoConfig.ts:44-48`).  
+  *Status:* In-memory packaging path is feature-flagged (`skipDriveWrites`), but we still need end-to-end validation (manual generator run + API upload) and UX plumbing so users can toggle the mode from the UI. Monitor execution time and API quotas once real-world telemetry is available.
 
 ---
 

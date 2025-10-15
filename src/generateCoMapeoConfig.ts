@@ -1,6 +1,10 @@
 /// <reference path="./loggingHelpers.ts" />
 /// <reference path="./types.ts" />
 
+interface GenerationOptions {
+  skipDriveWrites?: boolean;
+}
+
 function recordTiming(operation: string, startTime: number): void {
   if (typeof AppLogger !== "undefined" && AppLogger && typeof AppLogger.timing === "function") {
     AppLogger.timing(operation, startTime);
@@ -31,14 +35,25 @@ function generateCoMapeoConfigSkipTranslation(): void {
   generateCoMapeoConfigWithSelectedLanguages([]);
 }
 
+function generateCoMapeoConfigInMemory(): void {
+  const log = getScopedLogger("ConfigGeneration");
+  log.info("Running CoMapeo generation in in-memory mode (Drive writes skipped)");
+  generateCoMapeoConfigWithSelectedLanguages([], { skipDriveWrites: true });
+}
+
 /**
  * Runs the full CoMapeo configuration pipeline after the user selects
  * languages to translate to.
  *
  * @param selectedLanguages - ISO codes of translation languages chosen by the user.
  */
-function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: TranslationLanguage[]): void {
+function generateCoMapeoConfigWithSelectedLanguages(
+  selectedLanguages: TranslationLanguage[],
+  options?: GenerationOptions,
+): void {
   const log = getScopedLogger("ConfigGeneration");
+  const generationOptions = options || {};
+  const skipDriveWrites = Boolean(generationOptions.skipDriveWrites);
   let createdFolderId: string | null = null;
 
   try {
@@ -102,20 +117,42 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages: Translati
 
     // Step 4: Save to Drive (with progress updates)
     showProcessingModalDialog(processingDialogTexts[3][locale]);
-    log.info("Step 4: Saving config to Drive...");
+    log.info(`Step 4: ${skipDriveWrites ? "Staging config in memory (Drive writes disabled)" : "Saving config to Drive"}...`);
     const saveDriveStart = Date.now();
-    const { id, zipBlobs } = saveConfigToDrive(config, updateProcessingDialogProgress);
+    const { id, zipBlobs } = saveConfigToDrive(
+      config,
+      updateProcessingDialogProgress,
+      { skipDriveWrites },
+    );
     recordTiming("saveConfigToDrive", saveDriveStart);
-    createdFolderId = id; // Track folder ID for cleanup
-    log.info("Saved to Drive", { folderId: id });
+    createdFolderId = skipDriveWrites ? null : id; // Track folder ID for cleanup
+    if (skipDriveWrites) {
+      log.info("Config staged in memory; Drive writes skipped");
+    } else {
+      log.info("Saved to Drive", { folderId: id });
+    }
 
     // Step 5: Create package (with progress updates)
     showProcessingModalDialog(processingDialogTexts[4][locale]);
-    log.info("Step 5: Creating ZIP package...");
+    log.info(`Step 5: Creating ZIP package${skipDriveWrites ? " (in-memory)" : ""}...`);
     const zipStart = Date.now();
-    const folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress, zipBlobs);
-    recordTiming("saveDriveFolderToZip", zipStart);
-    log.info("ZIP package created");
+    let folderZip: GoogleAppsScript.Base.Blob;
+    if (skipDriveWrites) {
+      updateProcessingDialogProgress?.(
+        "Creating package... (5/8)",
+        "Compressing staged files in memory...",
+      );
+      folderZip = Utilities.zip(
+        (zipBlobs || []).map((blob) => blob.copyBlob()),
+        `${slugify(config.metadata.version)}.zip`,
+      );
+      recordTiming("createInMemoryZip", zipStart);
+      log.info("ZIP package created in memory");
+    } else {
+      folderZip = saveDriveFolderToZip(id, updateProcessingDialogProgress, zipBlobs);
+      recordTiming("saveDriveFolderToZip", zipStart);
+      log.info("ZIP package created");
+    }
 
     // Step 6: Upload to API
     showProcessingModalDialog(processingDialogTexts[5][locale]);
