@@ -6,6 +6,7 @@ let menuTexts: Record<string, MainMenuText> = {
     addCustomLanguages: "Agregar lenguajes customizados",
     generateIcons: "Generar Íconos para Categorías",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
+    generateCoMapeoCategoryInMemory: "Generar Categorías (solo ZIP)",
     importCategoryFile: "Importar archivo de categoría",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
@@ -17,6 +18,7 @@ let menuTexts: Record<string, MainMenuText> = {
     addCustomLanguages: "Add Custom Languages",
     generateIcons: "Generate Category Icons",
     generateCoMapeoCategory: "Generate CoMapeo Category",
+    generateCoMapeoCategoryInMemory: "Generate CoMapeo Category (ZIP only)",
     importCategoryFile: "Import category file",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
@@ -76,6 +78,25 @@ let categoryMenuTexts: Record<string, MenuText> = {
       "This will generate a CoMapeo category based on the current spreadsheet data. It may take a few minutes to process. Continue?",
     error: "Error",
     errorText: "An error occurred while generating the configuration: ",
+  },
+};
+
+let categoryInMemoryMenuTexts: Record<string, MenuText> = {
+  es: {
+    action: "Generar ZIP sin guardar en Drive",
+    actionText:
+      "Esto generará el paquete de CoMapeo exclusivamente en memoria y lo enviará al API sin escribir archivos en Drive. ¿Continuar?",
+    error: "Error",
+    errorText:
+      "Ocurrió un error mientras se generaba la configuración en modo solo ZIP: ",
+  },
+  en: {
+    action: "Generate ZIP without Drive writes",
+    actionText:
+      "This will build the CoMapeo package entirely in memory and send it to the API without writing raw files to Drive. Continue?",
+    error: "Error",
+    errorText:
+      "An error occurred while generating the configuration in ZIP-only mode: ",
   },
 };
 

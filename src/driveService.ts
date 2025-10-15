@@ -40,6 +40,13 @@ interface ConfigFolders {
   messages: MaybeDriveFolder;
 }
 
+interface IconCacheStats {
+  reusedFromCache: number;
+  driveWrites: number;
+  inMemoryUrls: number;
+  generatedFallbacks: number;
+}
+
 let iconHashCache: Record<string, IconHashMetadata> | null = null;
 let iconHashKeysUsedThisRun: Record<string, boolean> = {};
 function saveDriveFolderToZip(
@@ -658,6 +665,7 @@ function saveExistingIconsToFolder(
 
   const { categories, backgroundColors, categoriesSheet } = getCategoryData();
   const updatedIcons: CoMapeoIcon[] = [];
+  const iconStats = createIconCacheStats();
 
   categories.forEach((category, index) => {
     const categoryName = category[0];
@@ -678,6 +686,7 @@ function saveExistingIconsToFolder(
       backgroundColor,
       shouldWriteToDrive,
       zipBlobs,
+      iconStats,
     );
 
     updateIconUrlInSheet(categoriesSheet, index + 2, 2, savedUrl);
@@ -691,6 +700,7 @@ function saveExistingIconsToFolder(
   });
 
   pruneUnusedIconHashEntries();
+  logIconCacheStats(iconStats, shouldWriteToDrive);
   return updatedIcons;
 }
 
@@ -704,6 +714,7 @@ function saveIconToFolderWithCaching(
   shouldWriteToDrive: boolean,
   zipBlobs?: GoogleAppsScript.Base.Blob[],
   depth = 0,
+  stats?: IconCacheStats,
 ): string {
   console.log(`[ICON] Saving icon with caching for ${displayName} (slug: ${presetSlug})`);
 
@@ -718,6 +729,9 @@ function saveIconToFolderWithCaching(
 
     if (depth > 0) {
       console.error(`[ICON] Unable to generate icon for ${displayName} after retry, using fallback icon`);
+      if (stats) {
+        stats.generatedFallbacks++;
+      }
       return FALLBACK_ICON_SVG;
     }
 
@@ -736,6 +750,7 @@ function saveIconToFolderWithCaching(
       shouldWriteToDrive,
       zipBlobs,
       depth + 1,
+      stats,
     );
   }
 
@@ -753,6 +768,7 @@ function saveIconToFolderWithCaching(
       zipBlobs,
       allowSkipDriveWrite,
       shouldWriteToDrive,
+      stats,
     );
 
     if (!resolvedUrl && variantUrl) {
@@ -761,11 +777,14 @@ function saveIconToFolderWithCaching(
   }
 
   if (!resolvedUrl) {
-    resolvedUrl = deriveInMemoryIconUrl(iconSvg, iconContent, mimeType, presetSlug);
+    resolvedUrl = deriveInMemoryIconUrl(iconSvg, iconContent, mimeType, presetSlug, stats);
   }
 
   if (!resolvedUrl) {
     console.warn(`[ICON] Failed to determine icon URL for ${displayName}, returning fallback icon`);
+    if (stats) {
+      stats.generatedFallbacks++;
+    }
     return FALLBACK_ICON_SVG;
   }
 
@@ -782,6 +801,7 @@ function saveIconVariantWithCaching(
   zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
   allowSkipDriveWrite: boolean,
   shouldWriteToDrive: boolean,
+  stats?: IconCacheStats,
 ): string | null {
   const sanitizedSize = suffix ? suffix.replace("-", "") : "";
   const propertyKey = getIconHashPropertyKey(presetSlug, sanitizedSize);
@@ -803,6 +823,9 @@ function saveIconVariantWithCaching(
       console.log(
         `[ICON] Reused cached icon metadata for ${presetSlug}${suffix ? suffix : ""} (in-memory mode)`,
       );
+      if (stats) {
+        stats.reusedFromCache++;
+      }
       return existingMetadata.fileUrl;
     }
 
@@ -828,6 +851,9 @@ function saveIconVariantWithCaching(
       zipBlobs,
     );
     if (reusedUrl) {
+      if (stats) {
+        stats.reusedFromCache++;
+      }
       console.log(
         `[ICON] Reused cached icon for ${presetSlug}${suffix ? suffix : ""}`,
       );
@@ -851,6 +877,9 @@ function saveIconVariantWithCaching(
     zipBlobs,
   );
   const fileUrl = file.getUrl();
+  if (stats) {
+    stats.driveWrites++;
+  }
   persistIconHashMetadata(propertyKey, {
     hash: iconHash,
     fileId: file.getId(),
@@ -865,12 +894,19 @@ function deriveInMemoryIconUrl(
   iconContent: string,
   mimeType: string,
   presetSlug: string,
+  stats?: IconCacheStats,
 ): string | null {
   if (originalIconValue && originalIconValue.startsWith("data:image")) {
+    if (stats) {
+      stats.inMemoryUrls++;
+    }
     return originalIconValue;
   }
 
   if (mimeType === MimeType.SVG) {
+    if (stats) {
+      stats.inMemoryUrls++;
+    }
     return `data:image/svg+xml,${encodeURIComponent(iconContent)}`;
   }
 
@@ -878,6 +914,9 @@ function deriveInMemoryIconUrl(
     const base64 = Utilities.base64Encode(
       Utilities.newBlob(iconContent, mimeType, `${presetSlug}.png`).getBytes(),
     );
+    if (stats) {
+      stats.inMemoryUrls++;
+    }
     return `data:image/png;base64,${base64}`;
   }
 
@@ -954,6 +993,24 @@ function buildIconFileName(
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
   const suffixPart = sanitizedSize ? `-${sanitizedSize}` : "";
   return `${presetSlug}${suffixPart}.${extension}`;
+}
+
+function createIconCacheStats(): IconCacheStats {
+  return {
+    reusedFromCache: 0,
+    driveWrites: 0,
+    inMemoryUrls: 0,
+    generatedFallbacks: 0,
+  };
+}
+
+function logIconCacheStats(
+  stats: IconCacheStats,
+  shouldWriteToDrive: boolean,
+): void {
+  console.log(
+    `[ICON] Cache summary (${shouldWriteToDrive ? "Drive" : "In-memory"} mode): reused=${stats.reusedFromCache}, driveWrites=${stats.driveWrites}, inlineUrls=${stats.inMemoryUrls}, fallbacks=${stats.generatedFallbacks}`,
+  );
 }
 
 function getIconHashPropertyKey(
