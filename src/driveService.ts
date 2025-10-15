@@ -997,7 +997,13 @@ function pushIconContentToZip(
 
   const fileName = buildIconFileName(presetSlug, sanitizedSize, mimeType);
   const blob = Utilities.newBlob(iconContent, mimeType, fileName);
-  zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
+  const targetName = `icons/${fileName}`;
+  for (let i = zipBlobs.length - 1; i >= 0; i--) {
+    if (zipBlobs[i].getName && zipBlobs[i].getName() === targetName) {
+      zipBlobs.splice(i, 1);
+    }
+  }
+  zipBlobs.push(blob.copyBlob().setName(targetName));
 }
 
 function getDefaultSharingPolicy(): SharingPolicy {
