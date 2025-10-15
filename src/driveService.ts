@@ -19,6 +19,8 @@
 const ZIP_DIGEST_LOGGING_PROPERTY_KEY = "ENABLE_ZIP_DIGEST_LOGGING";
 const MAX_DRIVE_FOLDER_DEPTH = 50;
 const ICON_HASH_PROPERTY_PREFIX = "ICON_HASH_V1_";
+const SHARING_POLICY_PROPERTY_KEY = "DEFAULT_SHARING_POLICY";
+const DEFAULT_SHARING_POLICY: SharingPolicy = "anyone";
 
 interface IconHashMetadata {
   hash: string;
@@ -47,8 +49,11 @@ interface IconCacheStats {
   generatedFallbacks: number;
 }
 
+type SharingPolicy = "inherit" | "anyone" | "off";
+
 let iconHashCache: Record<string, IconHashMetadata> | null = null;
 let iconHashKeysUsedThisRun: Record<string, boolean> = {};
+let cachedSharingPolicy: SharingPolicy | null = null;
 function saveDriveFolderToZip(
   folderId,
   onProgress?: (message: string, detail?: string) => void,
@@ -412,6 +417,7 @@ function getConfigFolder(): GoogleAppsScript.Drive.Folder {
   } else {
     configFolder = DriveApp.getRootFolder().createFolder(configFolderName);
   }
+  applyDefaultSharing(configFolder);
   return configFolder;
 }
 
@@ -423,8 +429,10 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   const buildsFolders = configFolder.getFoldersByName(buildsFolder);
   if (buildsFolders.hasNext()) {
     buildsFolderObj = buildsFolders.next();
+    applyDefaultSharing(buildsFolderObj);
   } else {
     buildsFolderObj = configFolder.createFolder(buildsFolder);
+    applyDefaultSharing(buildsFolderObj);
   }
   console.log("Saving ZIP file to Drive...");
   const fileName = `${version}.zip`;
@@ -432,6 +440,7 @@ function saveZipToDrive(zipBlob: GoogleAppsScript.Base.Blob, version): string {
   const zipFile = buildsFolderObj
     .createFile(doubleZippedBlob)
     .setName(fileName);
+  applyDefaultSharing(zipFile);
   const fileUrl = zipFile.getUrl();
   console.log(`Download the ZIP file here: ${fileUrl}`);
 
@@ -496,7 +505,9 @@ function saveConfigToDrive(
         const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
           ? configFolder.getFoldersByName("rawBuilds").next()
           : configFolder.createFolder("rawBuilds");
+        applyDefaultSharing(rawBuildsFolder);
         rootFolder = rawBuildsFolder.createFolder(folderName);
+        applyDefaultSharing(rootFolder);
         break; // Success, exit retry loop
       } catch (error) {
         retryCount++;
@@ -609,12 +620,19 @@ function saveConfigToDrive(
 }
 
 function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder): ConfigFolders {
-  return {
+  const folders = {
     presets: rootFolder.createFolder("presets"),
     icons: rootFolder.createFolder("icons"),
     fields: rootFolder.createFolder("fields"),
     messages: rootFolder.createFolder("messages"),
   };
+
+  applyDefaultSharing(folders.presets);
+  applyDefaultSharing(folders.icons);
+  applyDefaultSharing(folders.fields);
+  applyDefaultSharing(folders.messages);
+
+  return folders;
 }
 
 function createVirtualSubFolders(): ConfigFolders {
@@ -939,6 +957,7 @@ function reuseExistingIconVariant(
   if (metadata.fileId) {
     try {
       const existingFile = DriveApp.getFileById(metadata.fileId);
+      applyDefaultSharing(existingFile);
       fileUrl = existingFile.getUrl();
     } catch (error) {
       console.warn(
@@ -975,6 +994,80 @@ function pushIconContentToZip(
   const fileName = buildIconFileName(presetSlug, sanitizedSize, mimeType);
   const blob = Utilities.newBlob(iconContent, mimeType, fileName);
   zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
+}
+
+function getDefaultSharingPolicy(): SharingPolicy {
+  if (cachedSharingPolicy) {
+    return cachedSharingPolicy;
+  }
+
+  try {
+    const rawPolicy = PropertiesService.getScriptProperties().getProperty(
+      SHARING_POLICY_PROPERTY_KEY,
+    );
+    if (!rawPolicy) {
+      cachedSharingPolicy = DEFAULT_SHARING_POLICY;
+      return cachedSharingPolicy;
+    }
+
+    const normalized = rawPolicy.toLowerCase();
+    if (normalized === "anyone" || normalized === "inherit" || normalized === "off") {
+      cachedSharingPolicy = normalized as SharingPolicy;
+      return cachedSharingPolicy;
+    }
+
+    console.warn(
+      `[SHARING] Unrecognized sharing policy "${rawPolicy}", falling back to "${DEFAULT_SHARING_POLICY}"`,
+    );
+    cachedSharingPolicy = DEFAULT_SHARING_POLICY;
+  } catch (error) {
+    console.warn(`[SHARING] Failed to read sharing policy: ${error.message}`);
+    cachedSharingPolicy = DEFAULT_SHARING_POLICY;
+  }
+
+  return cachedSharingPolicy;
+}
+
+function applyDefaultSharing(
+  target: GoogleAppsScript.Drive.Folder | GoogleAppsScript.Drive.File | null,
+): void {
+  if (!target) {
+    return;
+  }
+
+  const policy = getDefaultSharingPolicy();
+  if (policy === "off") {
+    return;
+  }
+
+  try {
+    if (policy === "anyone") {
+      target.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return;
+    }
+
+    if (policy === "inherit") {
+      applySpreadsheetSharingToTarget(target);
+    }
+  } catch (error) {
+    console.warn(
+      `[SHARING] Failed to apply ${policy} sharing to ${target.getName ? target.getName() : "target"}: ${error.message}`,
+    );
+  }
+}
+
+function applySpreadsheetSharingToTarget(
+  target: GoogleAppsScript.Drive.Folder | GoogleAppsScript.Drive.File,
+): void {
+  try {
+    const spreadsheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
+    const spreadsheetFile = DriveApp.getFileById(spreadsheetId);
+    const access = spreadsheetFile.getSharingAccess();
+    const permission = spreadsheetFile.getSharingPermission();
+    target.setSharing(access, permission);
+  } catch (error) {
+    console.warn(`[SHARING] Unable to inherit spreadsheet sharing: ${error.message}`);
+  }
 }
 
 function computeIconContentHash(
@@ -1107,7 +1200,8 @@ function savePresets(
     const fileName = `${preset.icon}.json`;
     const blob = Utilities.newBlob(presetJson, MimeType.PLAIN_TEXT, fileName);
     if (shouldWriteToDrive && presetsFolder) {
-      presetsFolder.createFile(blob);
+      const file = presetsFolder.createFile(blob);
+      applyDefaultSharing(file);
     }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`presets/${fileName}`));
@@ -1126,7 +1220,8 @@ function saveFields(
     const fileName = `${field.tagKey}.json`;
     const blob = Utilities.newBlob(fieldJson, MimeType.PLAIN_TEXT, fileName);
     if (shouldWriteToDrive && fieldsFolder) {
-      fieldsFolder.createFile(blob);
+      const file = fieldsFolder.createFile(blob);
+      applyDefaultSharing(file);
     }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`fields/${fileName}`));
@@ -1145,7 +1240,8 @@ function saveMessages(
     const fileName = `${lang}.json`;
     const blob = Utilities.newBlob(messagesJson, MimeType.PLAIN_TEXT, fileName);
     if (shouldWriteToDrive && messagesFolder) {
-      messagesFolder.createFile(blob);
+      const file = messagesFolder.createFile(blob);
+      applyDefaultSharing(file);
     }
     if (zipBlobs) {
       zipBlobs.push(blob.copyBlob().setName(`messages/${fileName}`));
@@ -1165,7 +1261,8 @@ function saveMetadataAndPackage(
     "metadata.json",
   );
   if (shouldWriteToDrive && rootFolder) {
-    rootFolder.createFile(metadataBlob);
+    const metadataFile = rootFolder.createFile(metadataBlob);
+    applyDefaultSharing(metadataFile);
   }
   if (zipBlobs) {
     zipBlobs.push(metadataBlob.copyBlob().setName("metadata.json"));
@@ -1177,7 +1274,8 @@ function saveMetadataAndPackage(
     "package.json",
   );
   if (shouldWriteToDrive && rootFolder) {
-    rootFolder.createFile(packageBlob);
+    const packageFile = rootFolder.createFile(packageBlob);
+    applyDefaultSharing(packageFile);
   }
   if (zipBlobs) {
     zipBlobs.push(packageBlob.copyBlob().setName("package.json"));

@@ -256,6 +256,13 @@ function createIconFile(
   const fileName = `${slug}${sanitizedSize}.${extension}`;
   const blob = Utilities.newBlob(content, mimeType, fileName);
   const file = folder.createFile(blob);
+  if (typeof applyDefaultSharing === "function") {
+    try {
+      applyDefaultSharing(file);
+    } catch (error) {
+      console.warn(`Failed to apply sharing for icon file ${fileName}: ${error.message}`);
+    }
+  }
   if (zipBlobs) {
     zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
   }
