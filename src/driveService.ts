@@ -660,7 +660,7 @@ function savePresetsAndIcons(
       folders.icons,
       suffixes,
       zipBlobs,
-      shouldWriteToDrive,
+      true,
     );
     console.log("Icons saved successfully");
   } catch (error) {
@@ -702,7 +702,7 @@ function saveExistingIconsToFolder(
       iconSource,
       suffixes,
       backgroundColor,
-      shouldWriteToDrive,
+      true,
       zipBlobs,
       iconStats,
     );
@@ -779,7 +779,7 @@ function saveIconToFolderWithCaching(
   }
 
   const effectiveSuffixes = suffixes.length > 0 ? suffixes : [""];
-  const allowSkipDriveWrite = !shouldWriteToDrive || Boolean(zipBlobs);
+  const allowSkipDriveWrite = Boolean(zipBlobs);
   let resolvedUrl: string | null = null;
 
   for (const suffix of effectiveSuffixes) {
@@ -791,7 +791,7 @@ function saveIconToFolderWithCaching(
       mimeType,
       zipBlobs,
       allowSkipDriveWrite,
-      shouldWriteToDrive,
+      true,
       stats,
     );
 
