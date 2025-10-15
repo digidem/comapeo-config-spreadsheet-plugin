@@ -6,7 +6,7 @@ let menuTexts: Record<string, MainMenuText> = {
     addCustomLanguages: "Agregar lenguajes customizados",
     generateIcons: "Generar Íconos para Categorías",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
-    generateCoMapeoCategoryInMemory: "Generar Categorías (solo ZIP)",
+    generateCoMapeoCategoryDebug: "Generar Categorías (depuración rawBuild)",
     importCategoryFile: "Importar archivo de categoría",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
@@ -17,8 +17,8 @@ let menuTexts: Record<string, MainMenuText> = {
     translateCoMapeoCategory: "Translate CoMapeo Category",
     addCustomLanguages: "Add Custom Languages",
     generateIcons: "Generate Category Icons",
-    generateCoMapeoCategory: "Generate CoMapeo Category",
-    generateCoMapeoCategoryInMemory: "Generate CoMapeo Category (ZIP only)",
+    generateCoMapeoCategory: "Generate CoMapeo Category (ZIP only)",
+    generateCoMapeoCategoryDebug: "Generate CoMapeo Category (debug rawBuild)",
     importCategoryFile: "Import category file",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
@@ -81,22 +81,22 @@ let categoryMenuTexts: Record<string, MenuText> = {
   },
 };
 
-let categoryInMemoryMenuTexts: Record<string, MenuText> = {
+let categoryDebugMenuTexts: Record<string, MenuText> = {
   es: {
-    action: "Generar ZIP sin guardar en Drive",
+    action: "Generar Categorías de CoMapeo (depuración)",
     actionText:
-      "Esto generará el paquete de CoMapeo exclusivamente en memoria y lo enviará al API sin escribir archivos en Drive. ¿Continuar?",
+      "Esto generará la carpeta rawBuild con todos los archivos individuales (presets, fields, mensajes) para depuración. ¿Continuar?",
     error: "Error",
     errorText:
-      "Ocurrió un error mientras se generaba la configuración en modo solo ZIP: ",
+      "Ocurrió un error mientras se generaba la configuración en modo depuración: ",
   },
   en: {
-    action: "Generate ZIP without Drive writes",
+    action: "Generate CoMapeo Category (debug)",
     actionText:
-      "This will build the CoMapeo package entirely in memory and send it to the API without writing raw files to Drive. Continue?",
+      "This will create the rawBuild folder with all individual files (presets, fields, messages) for debugging. Continue?",
     error: "Error",
     errorText:
-      "An error occurred while generating the configuration in ZIP-only mode: ",
+      "An error occurred while generating the configuration in debug mode: ",
   },
 };
 

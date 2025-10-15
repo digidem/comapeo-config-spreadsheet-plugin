@@ -5,6 +5,8 @@ interface GenerationOptions {
   skipDriveWrites?: boolean;
 }
 
+let pendingGenerationOptions: GenerationOptions | null = null;
+
 function recordTiming(operation: string, startTime: number): void {
   if (typeof AppLogger !== "undefined" && AppLogger && typeof AppLogger.timing === "function") {
     AppLogger.timing(operation, startTime);
@@ -20,9 +22,13 @@ function recordTiming(operation: string, startTime: number): void {
  * Displays the language selection dialog and delegates the rest of the
  * pipeline to {@link generateCoMapeoConfigWithSelectedLanguages}.
  */
-function generateCoMapeoConfig(): void {
-  // First, show the translation language selection dialog
+function startCoMapeoGeneration(options: GenerationOptions): void {
+  pendingGenerationOptions = options;
   showSelectTranslationLanguagesDialog();
+}
+
+function generateCoMapeoConfig(): void {
+  startCoMapeoGeneration({ skipDriveWrites: true });
 }
 
 /**
@@ -38,7 +44,12 @@ function generateCoMapeoConfigSkipTranslation(): void {
 function generateCoMapeoConfigInMemory(): void {
   const log = getScopedLogger("ConfigGeneration");
   log.info("Running CoMapeo generation in in-memory mode (Drive writes skipped)");
+  pendingGenerationOptions = { skipDriveWrites: true };
   generateCoMapeoConfigWithSelectedLanguages([], { skipDriveWrites: true });
+}
+
+function generateCoMapeoConfigWithDriveWrites(): void {
+  startCoMapeoGeneration({ skipDriveWrites: false });
 }
 
 /**
@@ -52,7 +63,8 @@ function generateCoMapeoConfigWithSelectedLanguages(
   options?: GenerationOptions,
 ): void {
   const log = getScopedLogger("ConfigGeneration");
-  const generationOptions = options || {};
+  const generationOptions = options || pendingGenerationOptions || {};
+  pendingGenerationOptions = null;
   const skipDriveWrites = Boolean(generationOptions.skipDriveWrites);
   let createdFolderId: string | null = null;
 

@@ -31,8 +31,8 @@ function onOpen() {
       "generateCoMapeoCategory",
     )
     .addItem(
-      menuTexts[locale].generateCoMapeoCategoryInMemory,
-      "generateCoMapeoCategoryInMemoryMenu",
+      menuTexts[locale].generateCoMapeoCategoryDebug,
+      "generateCoMapeoCategoryDebug",
     )
     .addItem(menuTexts[locale].importCategoryFile, "importCategoryFile")
     .addSeparator()
@@ -157,21 +157,21 @@ function generateCoMapeoCategory() {
   }
 }
 
-function generateCoMapeoCategoryInMemoryMenu() {
+function generateCoMapeoCategoryDebug() {
   const ui = SpreadsheetApp.getUi();
   const result = ui.alert(
-    categoryInMemoryMenuTexts[locale].action,
-    categoryInMemoryMenuTexts[locale].actionText,
+    categoryDebugMenuTexts[locale].action,
+    categoryDebugMenuTexts[locale].actionText,
     ui.ButtonSet.YES_NO,
   );
 
   if (result === ui.Button.YES) {
     try {
-      generateCoMapeoConfigInMemory();
+      generateCoMapeoConfigWithDriveWrites();
     } catch (error) {
       ui.alert(
-        categoryInMemoryMenuTexts[locale].error,
-        categoryInMemoryMenuTexts[locale].errorText + error.message,
+        categoryDebugMenuTexts[locale].error,
+        categoryDebugMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }

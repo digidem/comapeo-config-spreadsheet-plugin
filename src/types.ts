@@ -77,7 +77,7 @@ interface MainMenuText {
   addCustomLanguages: string;
   generateIcons: string;
   generateCoMapeoCategory: string;
-  generateCoMapeoCategoryInMemory: string;
+  generateCoMapeoCategoryDebug: string;
   importCategoryFile: string;
   lintAllSheets: string;
   cleanAllSheets: string;

@@ -501,11 +501,9 @@ function saveConfigToDrive(
   // Retry logic for folder creation (handles Drive API rate limits)
   while (retryCount <= maxRetries) {
     try {
-      const rawBuildsFolder = configFolder.getFoldersByName("rawBuilds").hasNext()
-        ? configFolder.getFoldersByName("rawBuilds").next()
-        : configFolder.createFolder("rawBuilds");
+      const rawBuildsFolder = getOrCreateSubFolder(configFolder, "rawBuilds");
       applyDefaultSharing(rawBuildsFolder);
-      rootFolder = rawBuildsFolder.createFolder(folderName);
+      rootFolder = getOrCreateSubFolder(rawBuildsFolder, folderName, true);
       applyDefaultSharing(rootFolder);
       break; // Success, exit retry loop
     } catch (error) {
@@ -547,7 +545,7 @@ function saveConfigToDrive(
 
   try {
     reportProgress("Saving to Drive... (4/8)", "Creating folders...");
-    const folders = createSubFolders(rootFolder);
+    const folders = createSubFolders(rootFolder, shouldWriteToDrive);
     console.log("[DRIVE] ✅ Created subfolders successfully");
 
     // Process each step individually with better error handling and progress logging
@@ -610,20 +608,36 @@ function saveConfigToDrive(
   }
 }
 
-function createSubFolders(rootFolder: GoogleAppsScript.Drive.Folder): ConfigFolders {
-  const folders = {
-    presets: rootFolder.createFolder("presets"),
-    icons: rootFolder.createFolder("icons"),
-    fields: rootFolder.createFolder("fields"),
-    messages: rootFolder.createFolder("messages"),
+function createSubFolders(
+  rootFolder: GoogleAppsScript.Drive.Folder,
+  shouldWriteToDrive: boolean,
+): ConfigFolders {
+  const iconsFolder = getOrCreateSubFolder(rootFolder, "icons");
+  applyDefaultSharing(iconsFolder);
+
+  if (!shouldWriteToDrive) {
+    return {
+      presets: null,
+      icons: iconsFolder,
+      fields: null,
+      messages: null,
+    };
+  }
+
+  const presetsFolder = getOrCreateSubFolder(rootFolder, "presets");
+  const fieldsFolder = getOrCreateSubFolder(rootFolder, "fields");
+  const messagesFolder = getOrCreateSubFolder(rootFolder, "messages");
+
+  applyDefaultSharing(presetsFolder);
+  applyDefaultSharing(fieldsFolder);
+  applyDefaultSharing(messagesFolder);
+
+  return {
+    presets: presetsFolder,
+    icons: iconsFolder,
+    fields: fieldsFolder,
+    messages: messagesFolder,
   };
-
-  applyDefaultSharing(folders.presets);
-  applyDefaultSharing(folders.icons);
-  applyDefaultSharing(folders.fields);
-  applyDefaultSharing(folders.messages);
-
-  return folders;
 }
 
 function savePresetsAndIcons(
@@ -1122,6 +1136,21 @@ function getIconHashPropertyKey(
 ): string {
   const sizeKey = sanitizedSize || "default";
   return `${ICON_HASH_PROPERTY_PREFIX}${presetSlug}::${sizeKey}`;
+}
+
+function getOrCreateSubFolder(
+  parent: GoogleAppsScript.Drive.Folder,
+  name: string,
+  allowExisting = true,
+): GoogleAppsScript.Drive.Folder {
+  const folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) {
+    if (!allowExisting) {
+      throw new Error(`Folder "${name}" already exists under ${parent.getName()}`);
+    }
+    return folders.next();
+  }
+  return parent.createFolder(name);
 }
 
 function markIconHashUsage(propertyKey: string): void {
