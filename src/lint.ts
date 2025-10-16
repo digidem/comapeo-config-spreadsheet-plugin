@@ -25,6 +25,104 @@ function setInvalidCellBackground(
   sheet.getRange(row, col).setBackground(color);
 }
 
+const LINT_WARNING_BACKGROUND_COLORS = [
+  "#FFC7CE",
+  "#FFEB9C",
+  "#FFFFCC",
+  "#FFF2CC",
+];
+const LINT_WARNING_FONT_COLORS = ["red", "#FF0000"];
+const LINT_NOTE_PREFIX = "[Lint] ";
+
+function clearRangeBackgroundIfMatches(
+  range: GoogleAppsScript.Spreadsheet.Range,
+  colorsToClear: string[],
+): void {
+  if (!range) return;
+  if (range.getNumRows() === 0 || range.getNumColumns() === 0) return;
+
+  const normalized = colorsToClear.map((color) => color.toUpperCase());
+  const backgrounds = range.getBackgrounds();
+  let updated = false;
+
+  for (let row = 0; row < backgrounds.length; row++) {
+    for (let col = 0; col < backgrounds[row].length; col++) {
+      const background = backgrounds[row][col];
+      if (
+        background &&
+        normalized.includes(background.toUpperCase())
+      ) {
+        backgrounds[row][col] = null;
+        updated = true;
+      }
+    }
+  }
+
+  if (updated) {
+    range.setBackgrounds(backgrounds);
+  }
+}
+
+function clearRangeFontColorIfMatches(
+  range: GoogleAppsScript.Spreadsheet.Range,
+  colorsToClear: string[],
+): void {
+  if (!range) return;
+  if (range.getNumRows() === 0 || range.getNumColumns() === 0) return;
+
+  const normalized = colorsToClear.map((color) => color.toUpperCase());
+  const fontColors = range.getFontColors();
+  let updated = false;
+
+  for (let row = 0; row < fontColors.length; row++) {
+    for (let col = 0; col < fontColors[row].length; col++) {
+      const fontColor = fontColors[row][col];
+      if (
+        fontColor &&
+        normalized.includes(fontColor.toUpperCase())
+      ) {
+        fontColors[row][col] = null;
+        updated = true;
+      }
+    }
+  }
+
+  if (updated) {
+    range.setFontColors(fontColors);
+  }
+}
+
+function clearRangeNotesWithPrefix(
+  range: GoogleAppsScript.Spreadsheet.Range,
+  prefix: string,
+): void {
+  if (!range) return;
+  if (range.getNumRows() === 0 || range.getNumColumns() === 0) return;
+
+  const notes = range.getNotes();
+  let updated = false;
+
+  for (let row = 0; row < notes.length; row++) {
+    for (let col = 0; col < notes[row].length; col++) {
+      const note = notes[row][col];
+      if (
+        note &&
+        (note.startsWith(prefix) ||
+          note.includes("Icon slug \"") ||
+          note.includes("No SVG icon found") ||
+          note.includes("Unable to determine an icon name"))
+      ) {
+        notes[row][col] = "";
+        updated = true;
+      }
+    }
+  }
+
+  if (updated) {
+    range.setNotes(notes);
+  }
+}
+
 function isEmptyOrWhitespace(value: any): boolean {
   return (
     value === undefined ||
@@ -108,6 +206,7 @@ function checkForDuplicates(
     lastRow - startRow + 1,
     1,
   );
+  clearRangeBackgroundIfMatches(range, ["#FFC7CE"]);
   const values = range
     .getValues()
     .map((row) => row[0].toString().trim().toLowerCase());
@@ -154,6 +253,11 @@ function checkUnreferencedDetails(): void {
     // Get all detail names from Details sheet
     const detailsLastRow = detailsSheet.getLastRow();
     if (detailsLastRow <= 1) return; // No details to check
+
+    clearRangeBackgroundIfMatches(
+      detailsSheet.getRange(2, 1, detailsLastRow - 1, 1),
+      ["#FFFFCC"],
+    );
 
     const detailNames = detailsSheet
       .getRange(2, 1, detailsLastRow - 1, 1)
@@ -243,6 +347,11 @@ function checkDuplicateTranslationSlugs(): void {
       const lastCol = sheet.getLastColumn();
       if (lastCol < 4) continue; // Need at least Name, ISO, Source, and one translation
 
+      clearRangeBackgroundIfMatches(
+        sheet.getRange(2, 4, lastRow - 1, lastCol - 3),
+        ["#FFEB9C"],
+      );
+
       // Check each translation column (starting from column 4)
       for (let col = 4; col <= lastCol; col++) {
         const values = sheet
@@ -301,6 +410,10 @@ function validateTranslationHeaders(): void {
       if (lastCol < 4) continue; // Need at least Name, ISO, Source columns
 
       const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      clearRangeBackgroundIfMatches(
+        sheet.getRange(1, 1, 1, lastCol),
+        ["#FFC7CE", "#FFEB9C"],
+      );
 
       // Check language columns (starting from column 4, index 3)
       for (let i = 3; i < headers.length; i++) {
@@ -364,6 +477,23 @@ function lintSheet(
   }
 
   try {
+    if (lastRow > 1 && columnValidations.length > 0) {
+      const lintRange = sheet.getRange(
+        2,
+        1,
+        lastRow - 1,
+        columnValidations.length,
+      );
+      clearRangeBackgroundIfMatches(
+        lintRange,
+        LINT_WARNING_BACKGROUND_COLORS,
+      );
+      clearRangeFontColorIfMatches(
+        lintRange,
+        LINT_WARNING_FONT_COLORS,
+      );
+    }
+
     // First clean any whitespace-only cells
     console.time(`Cleaning whitespace cells for ${sheetName}`);
     cleanWhitespaceOnlyCells(
@@ -485,6 +615,11 @@ function validateCategoryIcons(): void {
     console.log("No category rows available for icon validation");
     return;
   }
+
+  const iconRange = categoriesSheet.getRange(2, 2, lastRow - 1, 1);
+  clearRangeBackgroundIfMatches(iconRange, ["#FFC7CE"]);
+  clearRangeFontColorIfMatches(iconRange, LINT_WARNING_FONT_COLORS);
+  clearRangeNotesWithPrefix(iconRange, LINT_NOTE_PREFIX);
 
   const presetValues = categoriesSheet
     .getRange(2, 1, lastRow - 1, 1)
@@ -634,7 +769,7 @@ function validateCategoryIcons(): void {
   rowIssues.forEach((messages, rowNumber) => {
     const cell = categoriesSheet.getRange(rowNumber, 2);
     cell.setBackground("#FFC7CE");
-    cell.setNote(messages.join("\n"));
+    cell.setNote(`${LINT_NOTE_PREFIX}${messages.join("\n")}`);
     console.warn(
       `Icon issue in Categories row ${rowNumber}: ${messages.join(" | ")}`,
     );
@@ -650,6 +785,24 @@ function lintCategoriesSheet(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const categoriesSheetRef = spreadsheet.getSheetByName("Categories");
   const detailsSheetRef = spreadsheet.getSheetByName("Details");
+
+  if (categoriesSheetRef) {
+    const lastRow = categoriesSheetRef.getLastRow();
+    if (lastRow > 1) {
+      clearRangeBackgroundIfMatches(
+        categoriesSheetRef.getRange(2, 2, lastRow - 1, 1),
+        ["#FFC7CE"],
+      );
+      clearRangeFontColorIfMatches(
+        categoriesSheetRef.getRange(2, 2, lastRow - 1, 1),
+        LINT_WARNING_FONT_COLORS,
+      );
+      clearRangeBackgroundIfMatches(
+        categoriesSheetRef.getRange(2, 3, lastRow - 1, 1),
+        ["#FFC7CE"],
+      );
+    }
+  }
 
   let cachedDetailNames: string[] = [];
   if (detailsSheetRef) {
@@ -763,6 +916,29 @@ function lintDetailsSheet(): void {
   if (!sheet) {
     console.log("Details sheet not found");
     return;
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const lastColumn = sheet.getLastColumn();
+    if (lastColumn >= 3) {
+      clearRangeBackgroundIfMatches(
+        sheet.getRange(2, 3, lastRow - 1, 1),
+        ["#FFC7CE"],
+      );
+    }
+    if (lastColumn >= 4) {
+      clearRangeBackgroundIfMatches(
+        sheet.getRange(2, 4, lastRow - 1, 1),
+        ["#FFC7CE"],
+      );
+    }
+    if (lastColumn >= 6) {
+      clearRangeBackgroundIfMatches(
+        sheet.getRange(2, 6, lastRow - 1, 1),
+        ["#FFC7CE"],
+      );
+    }
   }
 
   // Check for unreferenced details (details not used by any category)
@@ -1077,6 +1253,18 @@ function validateSheetConsistency(
     // OPTIMIZATION: Read row counts once
     const sourceRowCount = sourceSheet.getLastRow();
     const translationRowCount = translationSheet.getLastRow();
+
+    if (translationRowCount > 0 && translationSheet.getLastColumn() > 0) {
+      clearRangeBackgroundIfMatches(
+        translationSheet.getRange(
+          1,
+          1,
+          translationRowCount,
+          translationSheet.getLastColumn(),
+        ),
+        ["#FFC7CE", "#FFF2CC"],
+      );
+    }
 
     // Check row count consistency (excluding header)
     if (sourceRowCount !== translationRowCount) {
