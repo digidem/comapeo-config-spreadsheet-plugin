@@ -382,15 +382,24 @@ function lintSheet(
 
     console.time(`Getting data for ${sheetName}`);
     // Get all data from the sheet, excluding the header row
-    const data = sheet
-      .getRange(2, 1, lastRow - 1, columnValidations.length)
-      .getValues();
+    const dataRange = sheet.getRange(2, 1, lastRow - 1, columnValidations.length);
+    const data = dataRange.getValues();
     console.timeEnd(`Getting data for ${sheetName}`);
 
     console.time(`Validating cells for ${sheetName}`);
 
     // Highlight required fields in batches before running column validations
     if (requiredColumns.length > 0) {
+      const rangesToReset: string[] = [];
+      requiredColumns.forEach((colIndex) => {
+        const columnLetter = columnNumberToLetter(colIndex + 1);
+        rangesToReset.push(`${columnLetter}2:${columnLetter}${lastRow}`);
+      });
+
+      if (rangesToReset.length > 0) {
+        sheet.getRangeList(rangesToReset).setBackground(null);
+      }
+
       const requiredHighlights = new Map<number, number[]>();
       requiredColumns.forEach((colIndex) => {
         requiredHighlights.set(colIndex, []);
