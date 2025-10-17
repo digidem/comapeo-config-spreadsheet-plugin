@@ -296,6 +296,15 @@ After addressing all issues:
 | 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `docs/metrics/baseline.md`. |
 | 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-14 | ✅ Completed | Applied naming/logging helpers across translation, preset, and import flows; smoke tests pending regression harness. |
 
+### Pre-Merge Checklist (Outstanding)
+
+- Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `docs/REGRESSION-STRATEGY.md` to unblock automated checks (`Immediate Action #4`).
+- Stand up the regression test suite (export, import, translation, icon flows), capture pass/fail matrices, and fold them into the regression strategy once the clone exists (`Immediate Action #5`).
+- Record the export pipeline baseline by timing three end-to-end runs (Drive writes, ZIP build, API upload) and publish metrics in `docs/metrics/baseline.md` (`Immediate Action #6`).
+- Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `PERFORMANCE_IMPROVEMENTS.md` (Deduplicate Icon Writes entry).
+- Exercise both Drive-backed and in-memory packaging flows, confirm API uploads succeed, capture comparative timings, and note any gating configuration in `PERFORMANCE_IMPROVEMENTS.md` (Direct In-Memory ZIP entry).
+- Complete the final PR review, resolve any lingering feedback, and merge once the above checkpoints are satisfied.
+
 ### Implementation (Next 8-12 Weeks)
 1. Stand up regression environment and baseline metrics before major refactors (Tasks 4-6) by 2025-10-24.
 2. Kick off Phase 4 testing improvements (unit tests, isolation harness) starting 2025-10-27.

@@ -16,6 +16,18 @@ function recordTiming(operation: string, startTime: number): void {
   console.log(`[TIMING] ${operation} took ${duration}ms`);
 }
 
+function handleLanguageSelection(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): void {
+  if (pendingGenerationOptions !== null) {
+    const options = pendingGenerationOptions;
+    generateCoMapeoConfigWithSelectedLanguages(selection, options);
+    return;
+  }
+
+  manageLanguagesAndTranslate(selection);
+}
+
 /**
  * Entry point for the CoMapeo category generation workflow.
  *
@@ -38,7 +50,7 @@ function generateCoMapeoConfigSkipTranslation(): void {
   const log = getScopedLogger("ConfigGeneration");
   log.info("User chose to skip translation");
   log.debug("Passing empty array to generateCoMapeoConfigWithSelectedLanguages()");
-  generateCoMapeoConfigWithSelectedLanguages([]);
+  handleLanguageSelection([]);
 }
 
 function generateCoMapeoConfigInMemory(): void {
@@ -59,7 +71,7 @@ function generateCoMapeoConfigWithDriveWrites(): void {
  * @param selectedLanguages - ISO codes of translation languages chosen by the user.
  */
 function generateCoMapeoConfigWithSelectedLanguages(
-  selectedLanguages: TranslationLanguage[],
+  selectedLanguages: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
   options?: GenerationOptions,
 ): void {
   const log = getScopedLogger("ConfigGeneration");
@@ -67,6 +79,9 @@ function generateCoMapeoConfigWithSelectedLanguages(
   pendingGenerationOptions = null;
   const skipDriveWrites = Boolean(generationOptions.skipDriveWrites);
   let createdFolderId: string | null = null;
+  const languageSelection = normalizeLanguageSelection(selectedLanguages);
+  const autoTranslateLanguages = languageSelection.autoTranslateLanguages;
+  const customLanguages = languageSelection.customLanguages;
 
   try {
     // Pre-flight validation checks
@@ -92,8 +107,10 @@ function generateCoMapeoConfigWithSelectedLanguages(
     // Step 1: Initialize (merges validation and linting)
     showProcessingModalDialog(processingDialogTexts[0][locale]);
     log.info("Step 1: Initializing...");
-    log.debug("Selected languages:", selectedLanguages);
-    log.debug("Language count:", selectedLanguages.length);
+    log.debug("Auto-translate languages:", autoTranslateLanguages);
+    log.debug("Auto-translate count:", autoTranslateLanguages.length);
+    log.debug("Custom languages:", customLanguages);
+    log.debug("Custom language count:", customLanguages.length);
 
     // Lint spreadsheet
     log.info("Linting sheets...");
@@ -102,12 +119,19 @@ function generateCoMapeoConfigWithSelectedLanguages(
     recordTiming("lintAllSheets", lintStart);
     log.info("Linting completed");
 
+    if (customLanguages.length > 0) {
+      log.info("Adding custom language columns across translation sheets", customLanguages);
+      addCustomLanguagesToTranslationSheets(customLanguages);
+    } else {
+      log.info("No custom languages requested for this run");
+    }
+
     // Step 2: Auto translate (conditional - only if languages selected)
-    if (selectedLanguages.length > 0) {
+    if (autoTranslateLanguages.length > 0) {
       showProcessingModalDialog(processingDialogTexts[1][locale]);
-      log.info("Starting translation process...", { languages: selectedLanguages });
+      log.info("Starting translation process...", { languages: autoTranslateLanguages });
       const translationStart = Date.now();
-      autoTranslateSheetsBidirectional(selectedLanguages);
+      autoTranslateSheetsBidirectional(autoTranslateLanguages);
       recordTiming("autoTranslateSheetsBidirectional", translationStart);
       log.info("Translation process completed");
     } else {

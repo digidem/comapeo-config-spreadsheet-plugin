@@ -2,8 +2,7 @@
 let menuTexts: Record<string, MainMenuText> = {
   es: {
     menu: "Herramientas CoMapeo",
-    translateCoMapeoCategory: "Traducir Categorías de CoMapeo",
-    addCustomLanguages: "Agregar lenguajes customizados",
+    translateCoMapeoCategory: "Gestionar idiomas y traducir",
     generateIcons: "Generar Íconos para Categorías",
     generateCoMapeoCategory: "Generar Categorías de CoMapeo",
     generateCoMapeoCategoryDebug: "Generar Categorías (depuración rawBuild)",
@@ -14,8 +13,7 @@ let menuTexts: Record<string, MainMenuText> = {
   },
   en: {
     menu: "CoMapeo Tools",
-    translateCoMapeoCategory: "Translate CoMapeo Category",
-    addCustomLanguages: "Add Custom Languages",
+    translateCoMapeoCategory: "Manage Languages & Translate",
     generateIcons: "Generate Category Icons",
     generateCoMapeoCategory: "Generate CoMapeo Category (ZIP only)",
     generateCoMapeoCategoryDebug: "Generate CoMapeo Category (debug rawBuild)",
@@ -28,7 +26,7 @@ let menuTexts: Record<string, MainMenuText> = {
 
 let translateMenuTexts: Record<string, MenuText> = {
   es: {
-    action: "Traducir Categoría de CoMapeo",
+    action: "Gestionar idiomas y traducir",
     actionText:
       "Esto traducirá todas las celdas vacías en todas las otras columnas de traducción de lenguages. Continuar?",
     completed: "Traducción Completada",
@@ -37,7 +35,7 @@ let translateMenuTexts: Record<string, MenuText> = {
     errorText: "Ocurrió un error durante la traducción: ",
   },
   en: {
-    action: "Translate CoMapeo Category",
+    action: "Manage Languages & Translate",
     actionText:
       "This will translate all empty cells in the other translation language columns. Continue?",
     completed: "Translation Complete",

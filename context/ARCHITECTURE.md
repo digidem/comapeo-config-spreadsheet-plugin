@@ -100,8 +100,7 @@ The plugin expects a Google Spreadsheet with specific sheets:
 
 When the spreadsheet is opened, the plugin adds a custom menu with several options:
 
-- **Translate CoMapeo Category**: Automatically translates content between languages.
-- **Add Custom Languages**: Allows adding support for additional languages.
+- **Manage Languages & Translate**: Lets users choose auto-translate targets and add custom language columns across all translation sheets.
 - **Generate Icons**: Generates icons for categories.
 - **Generate CoMapeo Category**: Creates the final CoMapeo configuration file.
 - **Lint All Sheets**: Validates and formats the data in all sheets.
@@ -137,11 +136,12 @@ When the user selects "Generate Icons", the following process occurs:
 
 ### 5. Translation Process
 
-When the user selects "Translate CoMapeo Category", the following process occurs:
+When the user selects "Manage Languages & Translate", the following process occurs:
 
 1. **Language Detection**: The plugin detects the primary language of the spreadsheet.
-2. **Translation**: The plugin uses Google Translate to translate content to other languages.
-3. **Updating Sheets**: The translation sheets are updated with the translated content.
+2. **Custom Language Columns (Optional)**: Any manual languages entered in the dialog are added to every translation sheet so they can be filled in later.
+3. **Translation**: The plugin uses Google Translate to translate content to the selected auto-translate languages.
+4. **Updating Sheets**: The translation sheets are updated with the translated content.
 
 ## Deployment
 

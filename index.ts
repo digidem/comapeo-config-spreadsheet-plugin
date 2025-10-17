@@ -23,7 +23,6 @@ function onOpen() {
       menuTexts[locale].translateCoMapeoCategory,
       "translateCoMapeoCategory",
     )
-    .addItem(menuTexts[locale].addCustomLanguages, "addCustomLanguages")
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addSeparator()
     .addItem(
@@ -89,18 +88,6 @@ function translateToSelectedLanguages(selectedLanguages: string[]) {
 }
 
 // This function is defined in generateCoMapeoConfig.ts and will be available globally
-
-function addCustomLanguages() {
-  try {
-    showAddLanguagesDialog();
-  } catch (error) {
-    SpreadsheetApp.getUi().alert(
-      "Error",
-      `An error occurred while adding languages: ${error.message}`,
-      SpreadsheetApp.getUi().ButtonSet.OK,
-    );
-  }
-}
 
 function generateIcons() {
   const ui = SpreadsheetApp.getUi();

@@ -1,46 +1,53 @@
-let addLanguageDialogText: Record<string, DialogText> = {
-  es: {
-    title: "Agregar lenguajes para traducir",
-    buttonText: "Agregar lenguages",
-    message: [
-      "Agregá lenguages propios para traducir. Ingresa el lenguage y su código ISO, o selecciona de una lista de lenguajes comúnes. Haz Click en 'Agrega otro lenguage' para agregar más",
-      "Selecciona un lenguaje",
-      "Agrega otro lenguage",
-    ],
-  },
-  en: {
-    title: "Add Languages for Translation",
-    buttonText: "Add languages",
-    message: [
-      "Add custom languages for translation. Enter the language name and ISO code, or select from common languages. Click 'Add Another Language' to add more.",
-      "Select a common language",
-      "Add another language",
-    ],
-  },
-};
-
-let selectTranslationLanguagesDialogText: Record<string, DialogText & { skipButtonText: string }> = {
+let selectTranslationLanguagesDialogText: Record<string, SelectTranslationDialogText> = {
   es: {
     title: "Seleccionar idiomas de destino",
     buttonText: "Traducir",
-    skipButtonText: "Saltar traducción",
+    skipButtonText: "Continuar sin traducir",
     message: [
-      "Selecciona los idiomas a los que deseas traducir desde {{sourceLanguage}}:",
-      "Todos los idiomas disponibles se muestran abajo. Selecciona uno o más idiomas de destino.",
-      "Las traducciones se realizarán automáticamente para las celdas vacías en las columnas de idioma seleccionadas.",
-      "Si prefieres continuar sin traducir, puedes hacer clic en 'Saltar traducción'.",
+      "Selecciona los idiomas a los que deseas traducir automáticamente desde {{sourceLanguage}}:",
+      "Las traducciones se aplicarán solo a los idiomas marcados abajo.",
+      "Si quieres trabajar con nuevos idiomas manualmente, agrégalos en la sección inferior.",
     ],
+    manualSectionTitle: "Idiomas personalizados (sin traducción automática)",
+    manualSectionDescription: [
+      "Agrega columnas para idiomas adicionales en todas las hojas de traducción.",
+      "Estos idiomas no se traducen automáticamente; podrás completarlos manualmente más tarde.",
+    ],
+    manualDropdownPlaceholder: "Selecciona un idioma común",
+    manualAddButton: "Agregar otro idioma",
+    manualNamePlaceholder: "Nombre del idioma (ej. Quechua)",
+    manualIsoPlaceholder: "Código ISO (ej. qu)",
+    validationMessages: {
+      noAutoSelection: "Selecciona al menos un idioma para traducir o usa 'Continuar sin traducir'.",
+      missingCustomFields: "Completa el nombre y el código ISO para cada idioma personalizado.",
+      duplicateCustomIso: "Hay códigos ISO personalizados duplicados. Verifica e intenta nuevamente.",
+      invalidCustomIso: "Algunos códigos ISO personalizados no tienen formato válido. Usa letras (a-z) y guiones bajos.",
+    },
   },
   en: {
     title: "Select Target Languages",
     buttonText: "Translate",
     skipButtonText: "Skip Translation",
     message: [
-      "Select the languages you want to translate to from {{sourceLanguage}}:",
-      "All available languages are shown below. Select one or more target languages.",
-      "Translations will be performed automatically for empty cells in the selected language columns.",
-      "If you prefer to continue without translating, you can click 'Skip Translation'.",
+      "Choose the languages you want to auto-translate from {{sourceLanguage}}:",
+      "Only the languages you select below will receive automatic translations.",
+      "Add any manual-only languages in the section underneath.",
     ],
+    manualSectionTitle: "Custom languages (manual columns)",
+    manualSectionDescription: [
+      "Add additional language columns across every translation sheet.",
+      "These languages are not auto-translated—you can fill them in later.",
+    ],
+    manualDropdownPlaceholder: "Select a common language",
+    manualAddButton: "Add another language",
+    manualNamePlaceholder: "Language name (e.g. Quechua)",
+    manualIsoPlaceholder: "ISO code (e.g. qu)",
+    validationMessages: {
+      noAutoSelection: "Select at least one language to translate or use 'Skip Translation'.",
+      missingCustomFields: "Please fill in both the language name and ISO code for each custom language.",
+      duplicateCustomIso: "Duplicate custom ISO codes detected. Please ensure each custom language has a unique code.",
+      invalidCustomIso: "Custom ISO codes should contain letters and optional hyphens (e.g. qu, quz, pt-br).",
+    },
   },
 };
 
@@ -94,7 +101,7 @@ let helpDialogTexts: Record<string, DialogText & DialogInstructions> = {
     instructions: [
       // TODO: sheets shouls also be translated
       "Edita las hojas llamadas 'Categories' y 'Details' para definir sus categorías propias y sus detalles asociados. Note que el color de fondo que seleccione para las categorías e íconos se verá reflejado en la app de CoMapeo",
-      "Usa la opción 'Traducir Categorías de CoMapeo' para generar traducciones automáticamente para celdas vacías en otras columnas de lenguaje",
+      "Usa la opción 'Gestionar idiomas y traducir' para agregar idiomas personalizados y generar traducciones automáticamente para las celdas vacías",
       "Revise y refine las traducciones auto-generadas cuánto sea necesario",
       "Use la opción 'Generar Íconos para Categorías' para crear íconos para sus categorías. El color de fondo de los íconos coincidirá con el color que eliga en la planilla.",
       "Revise los íconos generados en la caerpa de íconos y modífiquelos usando la <br /><a href='https://icons.earthdefenderstoolkit.com' target='_blank'>Icon Generator App</a>  de ser necessario",
@@ -115,7 +122,7 @@ let helpDialogTexts: Record<string, DialogText & DialogInstructions> = {
     ],
     instructions: [
       "Edit the 'Categories' and 'Details' sheets to define your custom categories and their associated details. Note that the background color you set for categories and icons will reflect their color in the CoMapeo app.",
-      "Use the 'Translate CoMapeo Category' option to automatically generate translations for empty cells in other language columns.",
+      "Use the 'Manage Languages & Translate' option to add manual language columns and automatically translate empty cells in other language columns.",
       "Review and refine the auto-generated translations as needed.",
       "Use the 'Generate Icons' option to create icons for your categories. The background color of the icons will match the color you set in the spreadsheet.",
       "Check the generated icons in the icons folder and modify them using the <br /><a href='https://icons.earthdefenderstoolkit.com' target='_blank'>Icon Generator App</a> if necessary.",

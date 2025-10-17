@@ -74,7 +74,6 @@ type TranslationLanguage = string;
 interface MainMenuText {
   menu: string;
   translateCoMapeoCategory: string;
-  addCustomLanguages: string;
   generateIcons: string;
   generateCoMapeoCategory: string;
   generateCoMapeoCategoryDebug: string;
@@ -82,6 +81,16 @@ interface MainMenuText {
   lintAllSheets: string;
   cleanAllSheets: string;
   openHelpPage: string;
+}
+
+interface CustomLanguageInput {
+  name: string;
+  iso: string;
+}
+
+interface LanguageSelectionPayload {
+  autoTranslateLanguages: TranslationLanguage[];
+  customLanguages: CustomLanguageInput[];
 }
 
 interface MenuText {
@@ -97,6 +106,22 @@ interface DialogText {
   title: string;
   message: string[];
   buttonText?: string;
+}
+
+interface SelectTranslationDialogText extends DialogText {
+  skipButtonText: string;
+  manualSectionTitle: string;
+  manualSectionDescription: string[];
+  manualDropdownPlaceholder: string;
+  manualAddButton: string;
+  manualNamePlaceholder: string;
+  manualIsoPlaceholder: string;
+  validationMessages: {
+    noAutoSelection: string;
+    missingCustomFields: string;
+    duplicateCustomIso: string;
+    invalidCustomIso: string;
+  };
 }
 
 interface DialogInstructions {

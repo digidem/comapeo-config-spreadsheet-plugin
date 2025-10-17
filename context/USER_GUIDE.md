@@ -170,10 +170,10 @@ The exported `.comapeocat` file contains:
 
 4. **Translate**: Fill in translations for each row
 
-5. **Auto-Translate** (Optional):
-   - Click **CoMapeo Config** → **Translate CoMapeo Category**
-   - Select source and target languages
-   - Plugin uses Google Translate for automatic translation
+5. **Manage Languages & Translate** (Optional):
+   - Click **CoMapeo Config** → **Manage Languages & Translate**
+   - Select the languages to auto-translate and add any manual-only languages you want to maintain yourself
+   - The plugin adds manual languages to every translation sheet and uses Google Translate for the selected targets
    - **Note**: Always review auto-translations for accuracy
 
 ### Translation Best Practices

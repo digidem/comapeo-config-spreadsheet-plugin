@@ -179,3 +179,7 @@ dist
 
 # Auto-generated version info
 .version.json
+
+# Agent tooling metadata
+.serena/
+.beads/*.db

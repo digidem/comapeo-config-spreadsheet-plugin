@@ -11,10 +11,77 @@ const MAIN_LANGUAGE_COLUMN = "A";
 const CATEGORIES_SHEET = "Categories";
 const DETAILS_SHEET = "Details";
 const CATEGORY_TRANSLATIONS_SHEET = "Category Translations";
+const DETAIL_LABEL_TRANSLATIONS_SHEET = "Detail Label Translations";
 const DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET = "Detail Helper Text Translations";
 const DETAIL_OPTION_TRANSLATIONS_SHEET = "Detail Option Translations";
 const DETAILS_HELPER_TEXT_COLUMN = "B";
 const DETAILS_OPTIONS_COLUMN = "D";
+
+function normalizeLanguageSelection(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): LanguageSelectionPayload {
+  if (Array.isArray(selection)) {
+    const autoLanguages = selection
+      .map((lang) => (typeof lang === "string" ? lang.trim() : ""))
+      .filter((lang): lang is TranslationLanguage => Boolean(lang));
+    return { autoTranslateLanguages: autoLanguages, customLanguages: [] };
+  }
+
+  if (!selection) {
+    return { autoTranslateLanguages: [], customLanguages: [] };
+  }
+
+  const autoTranslateLanguages = Array.isArray(selection.autoTranslateLanguages)
+    ? selection.autoTranslateLanguages
+        .map((lang) => (typeof lang === "string" ? lang.trim() : ""))
+        .filter((lang): lang is TranslationLanguage => Boolean(lang))
+    : [];
+
+  const customLanguages = Array.isArray(selection.customLanguages)
+    ? selection.customLanguages.map((lang) => ({
+        name: typeof lang?.name === "string" ? lang.name : "",
+        iso: typeof lang?.iso === "string" ? lang.iso : "",
+      }))
+    : [];
+
+  return { autoTranslateLanguages, customLanguages };
+}
+
+function manageLanguagesAndTranslate(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): void {
+  const log = getTranslationServiceLogger();
+  const { autoTranslateLanguages, customLanguages } = normalizeLanguageSelection(selection);
+
+  log.info("[LANGUAGE MANAGEMENT] Received selection", {
+    autoTranslateLanguages,
+    customLanguages,
+  });
+
+  if (customLanguages.length > 0) {
+    log.info("[LANGUAGE MANAGEMENT] Adding custom language columns", customLanguages);
+    addCustomLanguagesToTranslationSheets(customLanguages);
+  } else {
+    log.info("[LANGUAGE MANAGEMENT] No custom languages requested");
+  }
+
+  if (autoTranslateLanguages.length > 0) {
+    log.info("[LANGUAGE MANAGEMENT] Running bidirectional translation", autoTranslateLanguages);
+    autoTranslateSheetsBidirectional(autoTranslateLanguages);
+  } else {
+    log.info("[LANGUAGE MANAGEMENT] No auto-translate languages selected; skipping translation");
+  }
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (spreadsheet) {
+    const appliedUpdates = customLanguages.length > 0 || autoTranslateLanguages.length > 0;
+    const toastTitle = "Language Manager";
+    const toastMessage = appliedUpdates
+      ? "Language updates applied successfully."
+      : "No language changes detected.";
+    spreadsheet.toast(toastMessage, toastTitle, 5);
+  }
+}
 
 /**
  * Translates a sheet from source language to a single target language
@@ -617,43 +684,139 @@ function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]
   }
 }
 
+function normalizeCustomLanguages(newLanguages: CustomLanguageInput[] | null | undefined): CustomLanguageInput[] {
+  if (!newLanguages || newLanguages.length === 0) {
+    return [];
+  }
+
+  const log = getTranslationServiceLogger();
+  const seenIso = new Set<string>();
+  const isoPattern = /^[a-z]{2,8}(?:-[a-z]{2,8})?$/;
+  const normalized: CustomLanguageInput[] = [];
+
+  for (const lang of newLanguages) {
+    if (!lang) {
+      continue;
+    }
+
+    const name = (lang.name || "").trim();
+    const iso = (lang.iso || "").trim().toLowerCase();
+
+    if (!name || !iso) {
+      log.warn("Skipping custom language with missing name or ISO", lang);
+      continue;
+    }
+
+    if (!isoPattern.test(iso)) {
+      log.warn(`Skipping custom language with invalid ISO code: ${iso}`);
+      continue;
+    }
+
+    if (seenIso.has(iso)) {
+      log.info(`Skipping duplicate custom language ISO: ${iso}`);
+      continue;
+    }
+
+    seenIso.add(iso);
+    normalized.push({ name, iso });
+  }
+
+  return normalized;
+}
+
+function addCustomLanguagesToSheet(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  languagesToAdd: CustomLanguageInput[],
+): void {
+  if (!sheet) {
+    return;
+  }
+
+  const log = getTranslationServiceLogger();
+  const currentLastColumn = sheet.getLastColumn();
+  const headerWidth = Math.max(currentLastColumn, 1);
+  const headers = sheet.getRange(1, 1, 1, headerWidth).getValues()[0];
+  const headerSet = new Set(headers);
+  const updatedHeaders = headers.slice();
+
+  for (const lang of languagesToAdd) {
+    const headerText = `${lang.name} - ${lang.iso}`;
+    if (headerSet.has(headerText)) {
+      continue;
+    }
+    headerSet.add(headerText);
+    updatedHeaders.push(headerText);
+  }
+
+  if (updatedHeaders.length === headers.length) {
+    log.info(`No new custom language columns required for ${sheet.getName()}`);
+    return;
+  }
+
+  const additionalColumns = updatedHeaders.length - currentLastColumn;
+  if (additionalColumns > 0) {
+    if (currentLastColumn === 0) {
+      sheet.insertColumns(1, additionalColumns);
+    } else {
+      sheet.insertColumnsAfter(currentLastColumn, additionalColumns);
+    }
+  }
+
+  sheet.getRange(1, 1, 1, updatedHeaders.length).setValues([updatedHeaders]);
+
+  if (additionalColumns > 0) {
+    const boldStart = Math.max(currentLastColumn, 1) + 1;
+    sheet.getRange(1, boldStart, 1, additionalColumns).setFontWeight("bold");
+  }
+
+  log.info(`Added ${additionalColumns} custom language columns to ${sheet.getName()}`);
+}
+
+function addCustomLanguagesToTranslationSheets(newLanguages: CustomLanguageInput[]): void {
+  const normalized = normalizeCustomLanguages(newLanguages);
+  if (normalized.length === 0) {
+    return;
+  }
+
+  const log = getTranslationServiceLogger();
+  log.info(`Preparing to add ${normalized.length} custom languages`, normalized);
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categorySheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET) || createCategoryTranslationsSheet();
+  addCustomLanguagesToSheet(categorySheet, normalized);
+
+  const translationSheetConfigs = [
+    {
+      name: DETAIL_LABEL_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: MAIN_LANGUAGE_COLUMN,
+    },
+    {
+      name: DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: DETAILS_HELPER_TEXT_COLUMN,
+    },
+    {
+      name: DETAIL_OPTION_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: DETAILS_OPTIONS_COLUMN,
+    },
+  ];
+
+  for (const config of translationSheetConfigs) {
+    let sheet = spreadsheet.getSheetByName(config.name);
+    if (!sheet) {
+      sheet = createTranslationSheet(config.name, [], config.sourceSheet, config.sourceColumn);
+    }
+    addCustomLanguagesToSheet(sheet, normalized);
+  }
+}
+
 /**
- * Adds custom language columns to the Category Translations sheet
+ * Adds custom language columns across all translation sheets.
  *
- * Adds new language columns in custom format: "Language Name - ISO".
- * Finds first empty column after D and adds new headers there.
- * Skips languages that already exist in the sheet.
- *
- * @param newLanguages - Array of language objects with name and ISO code
- *
- * @example
- * addNewLanguages([
- *   { name: "Kichwa", iso: "qu" },
- *   { name: "Quechua", iso: "quz" }
- * ]);
- * // Adds "Kichwa - qu" and "Quechua - quz" columns to Category Translations
+ * Deprecated alias maintained for backward compatibility with older dialogs.
  */
 function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
-  getTranslationServiceLogger().info("Adding new languages...", newLanguages);
-  const sheet = createCategoryTranslationsSheet();
-
-  // Get current headers
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-  // Find first empty column after D
-  let startCol = 4; // Start from column D
-  while (startCol <= headers.length && headers[startCol - 1] !== "") {
-    startCol++;
-  }
-
-  // Add new language columns
-  for (const lang of newLanguages) {
-    const headerText = `${lang.name} - ${lang.iso}`;
-    // Skip if language already exists
-    if (headers.includes(headerText)) continue;
-
-    // Add new header
-    sheet.getRange(1, startCol).setValue(headerText).setFontWeight("bold");
-    startCol++;
-  }
+  addCustomLanguagesToTranslationSheets(newLanguages);
 }

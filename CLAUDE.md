@@ -142,7 +142,7 @@ Core TypeScript interfaces:
 Custom menu in spreadsheet UI provides access to all plugin functions:
 - Generate CoMapeo Category (main export flow)
 - Import Category File (reverse import)
-- Translate CoMapeo Category (batch translation)
+- Manage Languages & Translate (batch translation + manual language setup)
 - Generate Icons (icon fetching/processing)
 - Lint/Clean operations
 

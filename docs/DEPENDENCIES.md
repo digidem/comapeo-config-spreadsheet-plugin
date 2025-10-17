@@ -593,11 +593,13 @@ User sees icons in Drive folder
 ### Translation Flow
 
 ```
-User Action (Menu: "Translate CoMapeo Category")
+User Action (Menu: "Manage Languages & Translate")
   ↓
-dialog.ts → Show language selection dialog
+dialog.ts → Show combined language management dialog
   ↓
-User selects target languages
+User selects auto-translate targets and optional custom languages
+  ↓
+translation.ts → addCustomLanguagesToTranslationSheets()
   ↓
 translation.ts → autoTranslateSheetsBidirectional()
   │
