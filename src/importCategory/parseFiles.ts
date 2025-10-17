@@ -20,95 +20,212 @@ function restructureTranslations(flatMessages: any): any {
 		return {};
 	}
 
+	const toScalar = (input: any, fallback: string): string => {
+		if (input === undefined || input === null) {
+			return fallback;
+		}
+		if (typeof input === "string") {
+			return input;
+		}
+		if (typeof input === "object") {
+			if (typeof (input as { message?: unknown }).message === "string") {
+				return (input as { message: string }).message;
+			}
+			const nestedMessage = (input as { message?: { label?: string } }).message;
+			if (nestedMessage && typeof nestedMessage.label === "string") {
+				return nestedMessage.label;
+			}
+			if (typeof (input as { label?: unknown }).label === "string") {
+				return (input as { label: string }).label;
+			}
+		}
+		try {
+			return String(input);
+		} catch (_error) {
+			return fallback;
+		}
+	};
+
+	const normalizeOption = (rawValue: any, optionId: string) => {
+		const label = toScalar(rawValue, "");
+		let value = optionId;
+		if (rawValue && typeof rawValue === "object") {
+			const nestedMessage = (rawValue as { message?: { value?: string } }).message;
+			if (nestedMessage && typeof nestedMessage.value === "string") {
+				value = nestedMessage.value;
+			} else if (typeof (rawValue as { value?: string }).value === "string") {
+				value = (rawValue as { value: string }).value;
+			}
+		}
+		return { label, value };
+	};
+
+	const mergeOptionMap = (
+		container: Record<string, any>,
+		source: Record<string, any>,
+	) => {
+		if (!source || typeof source !== "object") {
+			return;
+		}
+		container.options = container.options || {};
+		for (const [optionId, optionValue] of Object.entries(source)) {
+			container.options[optionId] = normalizeOption(optionValue, optionId);
+		}
+	};
+
+	const mergeScalarProps = (
+		target: Record<string, any>,
+		source: Record<string, any>,
+	) => {
+		if (!source || typeof source !== "object") {
+			return;
+		}
+		for (const [prop, value] of Object.entries(source)) {
+			if (prop === "options") {
+				mergeOptionMap(target, value as Record<string, any>);
+			} else if (value !== undefined) {
+				target[prop] = toScalar(value, "");
+			}
+		}
+	};
+
+	const hasTranslationValue = (input: any): boolean => {
+		if (typeof input === "string") {
+			return input.trim() !== "";
+		}
+		if (Array.isArray(input)) {
+			return input.some((item) => hasTranslationValue(item));
+		}
+		if (input && typeof input === "object") {
+			if (typeof (input as { label?: string }).label === "string" && (input as { label: string }).label.trim() !== "") {
+				return true;
+			}
+			for (const [key, value] of Object.entries(input)) {
+				if (key === "value") {
+					continue;
+				}
+				if (hasTranslationValue(value)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
 	const restructured: any = {};
 
-	for (const lang in flatMessages) {
-		if (!flatMessages.hasOwnProperty(lang)) continue;
-
-		// Initialize nested structure for this language
-		restructured[lang] = {
-			presets: {
-				presets: {},
-				fields: {},
-			},
-		};
-
+	for (const lang of Object.keys(flatMessages)) {
 		const langMessages = flatMessages[lang];
 		if (!langMessages || typeof langMessages !== "object") {
 			console.warn(`Invalid messages for language: ${lang}`);
 			continue;
 		}
 
-		for (const key in langMessages) {
-			if (!langMessages.hasOwnProperty(key)) continue;
+		const langResult = {
+			presets: {
+				presets: {} as Record<string, any>,
+				fields: {} as Record<string, any>,
+			},
+		};
 
-			const value = langMessages[key];
-			const parts = key.split(".");
+		const nestedPresets =
+			langMessages?.presets && typeof langMessages.presets === "object"
+				? langMessages.presets
+				: undefined;
+		const nestedFields =
+			langMessages?.fields && typeof langMessages.fields === "object"
+				? langMessages.fields
+				: undefined;
 
-			// Extract message value (handle both string and object formats)
-			const messageValue =
-				typeof value === "object" && value.message
-					? value.message
-					: value;
-
-			if (parts[0] === "presets" && parts.length >= 3) {
-				const itemId = parts[1];
-				const property = parts[2];
-
-				// Initialize preset object if needed
-				if (!restructured[lang].presets.presets[itemId]) {
-					restructured[lang].presets.presets[itemId] = {};
-				}
-
-				if (parts.length === 3) {
-					// Handle: presets.water.name
-					restructured[lang].presets.presets[itemId][property] =
-						messageValue;
-					console.log(
-						`Restructured preset ${lang}.${itemId}.${property}`,
-					);
-				} else if (parts[3] === "options" && parts.length >= 5) {
-					// Handle: presets.water.options.clean
-					if (!restructured[lang].presets.presets[itemId].options) {
-						restructured[lang].presets.presets[itemId].options = {};
-					}
-					const optionId = parts[4];
-					restructured[lang].presets.presets[itemId].options[
-						optionId
-					] = messageValue;
-					console.log(
-						`Restructured preset option ${lang}.${itemId}.options.${optionId}`,
-					);
-				}
-			} else if (parts[0] === "fields" && parts.length >= 3) {
-				const itemId = parts[1];
-				const property = parts[2];
-
-				// Initialize field object if needed
-				if (!restructured[lang].presets.fields[itemId]) {
-					restructured[lang].presets.fields[itemId] = {};
-				}
-
-				if (parts.length === 3) {
-					// Handle: fields.waterType.label, fields.waterType.helperText
-					restructured[lang].presets.fields[itemId][property] =
-						messageValue;
-					console.log(
-						`Restructured field ${lang}.${itemId}.${property}`,
-					);
-				} else if (parts[3] === "options" && parts.length >= 5) {
-					// Handle: fields.waterType.options.river
-					if (!restructured[lang].presets.fields[itemId].options) {
-						restructured[lang].presets.fields[itemId].options = {};
-					}
-					const optionId = parts[4];
-					restructured[lang].presets.fields[itemId].options[optionId] =
-						messageValue;
-					console.log(
-						`Restructured field option ${lang}.${itemId}.options.${optionId}`,
-					);
+		if (nestedPresets) {
+			if (nestedPresets.presets && typeof nestedPresets.presets === "object") {
+				for (const [presetId, presetValue] of Object.entries(nestedPresets.presets)) {
+					const targetPreset = langResult.presets.presets[presetId] || {};
+					mergeScalarProps(targetPreset, presetValue as Record<string, any>);
+					langResult.presets.presets[presetId] = targetPreset;
 				}
 			}
+			if (nestedPresets.categories && typeof nestedPresets.categories === "object") {
+				for (const [presetId, presetValue] of Object.entries(nestedPresets.categories)) {
+					const targetPreset = langResult.presets.presets[presetId] || {};
+					mergeScalarProps(targetPreset, presetValue as Record<string, any>);
+					langResult.presets.presets[presetId] = targetPreset;
+				}
+			}
+			if (nestedPresets.fields && typeof nestedPresets.fields === "object") {
+				for (const [fieldId, fieldValue] of Object.entries(nestedPresets.fields)) {
+					const targetField = langResult.presets.fields[fieldId] || {};
+					mergeScalarProps(targetField, fieldValue as Record<string, any>);
+					langResult.presets.fields[fieldId] = targetField;
+				}
+			}
+			for (const [maybePresetId, presetValue] of Object.entries(nestedPresets)) {
+				if (maybePresetId === "presets" || maybePresetId === "fields" || maybePresetId === "categories") {
+					continue;
+				}
+				if (!presetValue || typeof presetValue !== "object") {
+					continue;
+				}
+				const targetPreset = langResult.presets.presets[maybePresetId] || {};
+				mergeScalarProps(targetPreset, presetValue as Record<string, any>);
+				langResult.presets.presets[maybePresetId] = targetPreset;
+			}
+		}
+
+		if (nestedFields) {
+			for (const [fieldId, fieldValue] of Object.entries(nestedFields)) {
+				const targetField = langResult.presets.fields[fieldId] || {};
+				mergeScalarProps(targetField, fieldValue as Record<string, any>);
+				langResult.presets.fields[fieldId] = targetField;
+			}
+		}
+
+		for (const [rawKey, rawValue] of Object.entries(langMessages)) {
+			if (typeof rawKey !== "string" || !rawKey.includes(".")) {
+				continue;
+			}
+			const parts = rawKey.split(".");
+			if (parts.length < 3) {
+				continue;
+			}
+			const messageValue =
+				typeof rawValue === "object" && rawValue !== null && "message" in rawValue
+					? (rawValue as any).message
+					: rawValue;
+
+			if (parts[0] === "presets") {
+				const itemId = parts[1];
+				const property = parts[2];
+				const targetPreset = langResult.presets.presets[itemId] || {};
+				if (parts[3] === "options" && parts.length >= 5) {
+					mergeOptionMap(targetPreset, {
+						[parts[4]]: messageValue,
+					});
+				} else {
+					targetPreset[property] = toScalar(messageValue, "");
+				}
+				langResult.presets.presets[itemId] = targetPreset;
+			} else if (parts[0] === "fields") {
+				const itemId = parts[1];
+				const property = parts[2];
+				const targetField = langResult.presets.fields[itemId] || {};
+				if (parts[3] === "options" && parts.length >= 5) {
+					mergeOptionMap(targetField, {
+						[parts[4]]: messageValue,
+					});
+				} else {
+					targetField[property] = toScalar(messageValue, "");
+				}
+				langResult.presets.fields[itemId] = targetField;
+			}
+		}
+
+		const hasPresets = hasTranslationValue(langResult.presets.presets);
+		const hasFields = hasTranslationValue(langResult.presets.fields);
+		if (hasPresets || hasFields) {
+			restructured[lang] = langResult;
+		} else {
+			console.log(`Skipping language ${lang} with no translation values`);
 		}
 	}
 
@@ -244,14 +361,15 @@ function parseExtractedFiles(
 							}
 						}
 
-							configData.fields.push({
-								id: fieldId,
-								tagKey: fieldId,
-								label: field.label || fieldId,
-								type: fieldType,
-								helperText: field.helperText || field.placeholder || "",
-								options: options,
-							});
+					configData.fields.push({
+						id: fieldId,
+						tagKey: fieldId,
+						label: field.label || fieldId,
+						type: fieldType,
+						helperText: field.helperText || field.placeholder || "",
+						placeholder: field.placeholder || field.helperText || "",
+						options: options,
+					});
 						}
 					}
 				}
