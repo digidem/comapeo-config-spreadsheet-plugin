@@ -3,6 +3,21 @@
  */
 
 /**
+ * Result of SVG sprite processing with error tracking
+ */
+interface SpriteProcessingResult {
+  /** Successfully extracted icons */
+  icons: { name: string; svg: string; id: string }[];
+
+  /** Errors encountered during processing */
+  errors: Array<{
+    symbolId: string;
+    error: string;
+    context?: Record<string, any>;
+  }>;
+}
+
+/**
  * Safe debug logger that falls back to Logger if debugLog is not available
  */
 function safeDebugLog(message: string, forceFlush = false) {
@@ -29,12 +44,17 @@ function safeDebugLog(message: string, forceFlush = false) {
  * Processes an SVG sprite blob and extracts individual icons
  * @param tempFolder - The temporary folder to save the extracted icons
  * @param iconsSvgBlob - Optional blob containing the icons.svg file
- * @returns An array of icon objects with name and URL
+ * @returns Result object with icons and errors
  */
 function processIconSpriteBlob(
   tempFolder: GoogleAppsScript.Drive.Folder,
   iconsSvgBlob?: GoogleAppsScript.Base.Blob,
-): { name: string; svg: string; id: string }[] {
+): SpriteProcessingResult {
+  const result: SpriteProcessingResult = {
+    icons: [],
+    errors: []
+  };
+
   try {
     console.log("Processing icons.svg sprite blob");
 
@@ -85,6 +105,7 @@ function processIconSpriteBlob(
     const icons = deconstructSvgSprite(
       iconsSvgFolder.getId(),
       iconsOutputFolder.getId(),
+      result.errors,  // Pass errors array for tracking
     );
 
     console.log(`Extracted ${icons.length} icons from sprite`);
@@ -141,10 +162,16 @@ function processIconSpriteBlob(
     });
 
     console.log(`Successfully moved ${permanentIcons.length} icons to permanent folder`);
-    return permanentIcons;
+    result.icons = permanentIcons;
+    return result;
   } catch (error) {
     console.error("Error processing icon sprite blob:", error);
-    return [];
+    result.errors.push({
+      symbolId: "sprite-processing",
+      error: `Failed to process SVG sprite: ${error.message}`,
+      context: { stack: error.stack }
+    });
+    return result;
   }
 }
 
@@ -166,11 +193,13 @@ function fileExistsInFolder(
  * Deconstructs an SVG sprite (icons.svg) stored in a Google Drive folder into separate SVG icons as files.
  * @param configFolderId - Google Drive folder ID containing icons.svg
  * @param outputFolderId - Google Drive folder ID to save the individual icons into a subfolder called 'icons'
+ * @param errors - Optional array to collect errors during processing
  * @returns An array of icon objects with name and URL
  */
 function deconstructSvgSprite(
   configFolderId: string,
   outputFolderId: string,
+  errors?: Array<{ symbolId: string; error: string; context?: Record<string, any> }>,
 ): { name: string; svg: string; id: string }[] {
   try {
     safeDebugLog(
@@ -229,7 +258,18 @@ function deconstructSvgSprite(
     safeDebugLog(`Found ${symbols.length} symbols in SVG sprite`);
 
     if (!symbols || symbols.length === 0) {
-      safeDebugLog("No <symbol> children in SVG");
+      const errorMsg = "No <symbol> children in SVG";
+      safeDebugLog(errorMsg);
+      if (errors) {
+        errors.push({
+          symbolId: "sprite",
+          error: errorMsg,
+          context: {
+            rootChildren: allChildren.map((c) => c.getName()),
+            totalChildren: allChildren.length
+          }
+        });
+      }
       return [];
     }
 
@@ -264,9 +304,6 @@ function deconstructSvgSprite(
     // Process each icon
     const iconObjects: { name: string; svg: string; id: string }[] = [];
 
-    // Track failed symbols for diagnostics
-    const failedSymbols: { id: string; error: string }[] = [];
-
     safeDebugLog(`\n=== SVG ICON EXTRACTION (${symbols.length} symbols) ===`);
 
     for (let i = 0; i < symbols.length; i++) {
@@ -275,8 +312,15 @@ function deconstructSvgSprite(
         const idAttr = symbol.getAttribute("id");
 
         if (!idAttr) {
+          const symbolId = `symbol-${i + 1}`;
           safeDebugLog(`⚠️  Symbol #${i + 1}: No id attribute, skipping`);
-          failedSymbols.push({ id: `symbol-${i + 1}`, error: "Missing id attribute" });
+          if (errors) {
+            errors.push({
+              symbolId,
+              error: "Missing id attribute",
+              context: { symbolIndex: i }
+            });
+          }
           continue;
         }
 
@@ -375,7 +419,13 @@ function deconstructSvgSprite(
           safeDebugLog(`✓ Namespace present in generated SVG`);
         } else {
           safeDebugLog(`✗ WARNING: Namespace missing in generated SVG!`);
-          failedSymbols.push({ id, error: "Missing namespace in generated SVG" });
+          if (errors) {
+            errors.push({
+              symbolId: id,
+              error: "Missing namespace in generated SVG",
+              context: { symbolIndex: i }
+            });
+          }
           continue;
         }
 
@@ -404,7 +454,13 @@ function deconstructSvgSprite(
         safeDebugLog(`❌ ERROR processing symbol #${i + 1} (${symbolId}): ${error}`);
         safeDebugLog(`   Stack: ${error.stack || "No stack trace"}`);
         console.error(`Failed to process symbol ${symbolId}:`, error);
-        failedSymbols.push({ id: symbolId, error: String(error) });
+        if (errors) {
+          errors.push({
+            symbolId,
+            error: String(error),
+            context: { symbolIndex: i, stack: error.stack }
+          });
+        }
         // Continue processing other symbols
         continue;
       }
@@ -414,11 +470,11 @@ function deconstructSvgSprite(
     safeDebugLog(`\n=== SVG EXTRACTION RESULTS ===`);
     safeDebugLog(`✓ Successfully extracted: ${iconObjects.length}/${symbols.length} icons`);
 
-    if (failedSymbols.length > 0) {
-      safeDebugLog(`❌ Failed to extract: ${failedSymbols.length}/${symbols.length} icons`);
+    if (errors && errors.length > 0) {
+      safeDebugLog(`❌ Failed to extract: ${errors.length}/${symbols.length} icons`);
       safeDebugLog(`\n=== FAILED SYMBOLS ===`);
-      failedSymbols.forEach((failed, index) => {
-        safeDebugLog(`  ${index + 1}. Symbol "${failed.id}": ${failed.error}`);
+      errors.forEach((failed, index) => {
+        safeDebugLog(`  ${index + 1}. Symbol "${failed.symbolId}": ${failed.error}`);
       });
       safeDebugLog(`These icons will fall back to PNG extraction if available.`);
       safeDebugLog(`=== END FAILED SYMBOLS ===`);
