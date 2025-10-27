@@ -297,6 +297,23 @@ function generateCoMapeoConfigWithSelectedLanguages(
     // Step 8: Complete
     showProcessingModalDialog(processingDialogTexts[7][locale]);
     log.info("Step 8: Finalizing...");
+
+    // Check if there were icon errors and show report
+    const errorSummaryJson = PropertiesService.getScriptProperties().getProperty("lastIconErrorSummary");
+    if (errorSummaryJson) {
+      try {
+        const errorSummary = JSON.parse(errorSummaryJson);
+        if (errorSummary.errorCount > 0) {
+          log.info(`Showing icon error dialog with ${errorSummary.errorCount} errors`);
+          showIconErrorDialog(errorSummary);
+        }
+        // Clear after showing
+        PropertiesService.getScriptProperties().deleteProperty("lastIconErrorSummary");
+      } catch (e) {
+        log.warn("Failed to parse icon error summary", e);
+      }
+    }
+
     showConfigurationGeneratedDialog(configUrl);
     log.info("===== CoMapeo Config Generation Complete =====");
   } catch (error) {
@@ -354,8 +371,19 @@ function processDataForCoMapeo(data: SheetData): CoMapeoConfig {
   const presets = processPresets(data, categoriesSheet, fields);
   log.info(`Done processing ${presets.length} presets`);
   log.info("Processing icons...");
-  const icons = processIcons();
+  const iconResult = processIcons();  // Now returns IconProcessingResult
+  const icons = iconResult.icons;
   log.info(`Done processing ${icons.length} icons`);
+
+  // Check for icon errors and store for later display
+  if (iconResult.errorSummary.errorCount > 0) {
+    log.warn(`Icon processing completed with ${iconResult.errorSummary.errorCount} errors`);
+    // Store error summary for later display
+    PropertiesService.getScriptProperties().setProperty(
+      "lastIconErrorSummary",
+      JSON.stringify(iconResult.errorSummary)
+    );
+  }
   log.info("Processing metadata...");
   const { metadata, packageJson } = processMetadata(data);
   log.info("Processing translations...");
