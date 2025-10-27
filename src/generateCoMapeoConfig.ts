@@ -7,6 +7,72 @@ interface GenerationOptions {
 
 let pendingGenerationOptions: GenerationOptions | null = null;
 
+/**
+ * PropertiesService key for storing pending generation options across async calls.
+ * Apps Script doesn't preserve global variables across google.script.run callbacks,
+ * so we use PropertiesService to persist state.
+ */
+const PENDING_OPTIONS_KEY = "pendingGenerationOptions";
+
+/**
+ * Store generation options in PropertiesService for retrieval in async callbacks.
+ * This is necessary because Google Apps Script doesn't preserve global variables
+ * across google.script.run execution contexts.
+ */
+function storePendingOptions(options: GenerationOptions): void {
+  const log = getScopedLogger("ConfigGeneration");
+  try {
+    const optionsJson = JSON.stringify(options);
+    PropertiesService.getScriptProperties().setProperty(PENDING_OPTIONS_KEY, optionsJson);
+    log.debug("Stored pending options in PropertiesService:", options);
+  } catch (error) {
+    log.error("Failed to store pending options:", error);
+    throw new Error("Failed to persist generation options: " + error.message);
+  }
+}
+
+/**
+ * Retrieve and clear pending generation options from PropertiesService.
+ * Returns null if no options are stored.
+ */
+function retrievePendingOptions(): GenerationOptions | null {
+  const log = getScopedLogger("ConfigGeneration");
+  try {
+    const optionsJson = PropertiesService.getScriptProperties().getProperty(PENDING_OPTIONS_KEY);
+    if (!optionsJson) {
+      log.debug("No pending options found in PropertiesService");
+      return null;
+    }
+
+    const options = JSON.parse(optionsJson) as GenerationOptions;
+    log.debug("Retrieved pending options from PropertiesService:", options);
+
+    // Clear immediately after retrieval to prevent reuse
+    clearPendingOptions();
+
+    return options;
+  } catch (error) {
+    log.error("Failed to retrieve pending options:", error);
+    // Clear potentially corrupted data
+    clearPendingOptions();
+    return null;
+  }
+}
+
+/**
+ * Clear pending generation options from PropertiesService.
+ * Call this after successful retrieval or to cleanup after errors.
+ */
+function clearPendingOptions(): void {
+  const log = getScopedLogger("ConfigGeneration");
+  try {
+    PropertiesService.getScriptProperties().deleteProperty(PENDING_OPTIONS_KEY);
+    log.debug("Cleared pending options from PropertiesService");
+  } catch (error) {
+    log.warn("Failed to clear pending options (non-fatal):", error);
+  }
+}
+
 function recordTiming(operation: string, startTime: number): void {
   if (typeof AppLogger !== "undefined" && AppLogger && typeof AppLogger.timing === "function") {
     AppLogger.timing(operation, startTime);
@@ -19,12 +85,25 @@ function recordTiming(operation: string, startTime: number): void {
 function handleLanguageSelection(
   selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
 ): void {
-  if (pendingGenerationOptions !== null) {
-    const options = pendingGenerationOptions;
+  const log = getScopedLogger("ConfigGeneration");
+  log.debug("handleLanguageSelection called with selection:", selection);
+
+  // Try to retrieve options from PropertiesService (for async callbacks)
+  // Falls back to global variable (for synchronous calls in same execution context)
+  let options = retrievePendingOptions();
+
+  if (!options && pendingGenerationOptions !== null) {
+    log.debug("Using options from global variable (synchronous call)");
+    options = pendingGenerationOptions;
+  }
+
+  if (options) {
+    log.info("Found generation options, continuing with config generation");
     generateCoMapeoConfigWithSelectedLanguages(selection, options);
     return;
   }
 
+  log.warn("No generation options found, treating as standalone language management");
   manageLanguagesAndTranslate(selection);
 }
 
@@ -33,9 +112,18 @@ function handleLanguageSelection(
  *
  * Displays the language selection dialog and delegates the rest of the
  * pipeline to {@link generateCoMapeoConfigWithSelectedLanguages}.
+ *
+ * Stores options in PropertiesService because google.script.run callbacks
+ * execute in a new context where global variables are reset.
  */
 function startCoMapeoGeneration(options: GenerationOptions): void {
+  const log = getScopedLogger("ConfigGeneration");
+
+  // Store in both global (for synchronous calls) and PropertiesService (for async callbacks)
   pendingGenerationOptions = options;
+  storePendingOptions(options);
+
+  log.info("Starting CoMapeo generation with options:", options);
   showSelectTranslationLanguagesDialog();
 }
 
@@ -76,7 +164,11 @@ function generateCoMapeoConfigWithSelectedLanguages(
 ): void {
   const log = getScopedLogger("ConfigGeneration");
   const generationOptions = options || pendingGenerationOptions || {};
+
+  // Clear both global variable and PropertiesService to prevent reuse
   pendingGenerationOptions = null;
+  clearPendingOptions();
+
   const skipDriveWrites = Boolean(generationOptions.skipDriveWrites);
   let createdFolderId: string | null = null;
   const languageSelection = normalizeLanguageSelection(selectedLanguages);
