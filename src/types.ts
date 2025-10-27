@@ -128,3 +128,10 @@ interface DialogInstructions {
   instructions: string[];
   footer: string;
 }
+
+interface IconErrorDialogText {
+  title: string;
+  downloadButtonText: string;
+  continueButtonText: string;
+  okButtonText: string;
+}

@@ -161,6 +161,21 @@ let importCategoryDialogTexts: Record<string, DialogText> = {
   },
 };
 
+let iconErrorDialogTexts: Record<string, IconErrorDialogText> = {
+  en: {
+    title: "Icon Processing Report",
+    downloadButtonText: "Download Error Report",
+    continueButtonText: "Continue Anyway",
+    okButtonText: "OK",
+  },
+  es: {
+    title: "Reporte de Procesamiento de Íconos",
+    downloadButtonText: "Descargar Reporte de Errores",
+    continueButtonText: "Continuar de Todos Modos",
+    okButtonText: "OK",
+  },
+};
+
 let processingDialogTexts: Record<string, DialogText>[] = [
   // Step 1: Initializing (merges old steps 1-4)
   {

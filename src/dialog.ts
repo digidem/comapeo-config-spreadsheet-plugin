@@ -886,3 +886,147 @@ function showSelectTranslationLanguagesDialog() {
   );
   showModalDialogSafe(html, title, 820, 950, "Translation Language Selection");
 }
+
+/**
+ * Get user-friendly label for error type
+ */
+function getErrorTypeLabel(errorType: string): string {
+  const labels: Record<string, string> = {
+    format: "📄 Format Errors",
+    permission: "🔒 Permission Errors",
+    api: "🌐 API Errors",
+    drive: "💾 Drive Errors",
+    validation: "✓ Validation Errors",
+    network: "📡 Network Errors",
+    timeout: "⏱️ Timeout Errors",
+    unknown: "❓ Unknown Errors",
+  };
+  return labels[errorType] || errorType;
+}
+
+/**
+ * Show icon processing error report dialog
+ * @param errorSummary - Summary of icon errors from processing
+ */
+function showIconErrorDialog(errorSummary: IconErrorSummary): void {
+  const title = iconErrorDialogTexts[locale].title;
+
+  // Build summary message
+  const summaryLines: string[] = [];
+  if (errorSummary.errorCount === 0) {
+    summaryLines.push(
+      `<p class="success">✅ All ${errorSummary.totalProcessed} icons processed successfully</p>`,
+    );
+  } else {
+    summaryLines.push(
+      `<p>Processed <strong>${errorSummary.totalProcessed}</strong> icon(s):</p>`,
+    );
+    summaryLines.push(`<ul>`);
+    summaryLines.push(
+      `  <li>✅ <strong>${errorSummary.successCount}</strong> successful</li>`,
+    );
+    summaryLines.push(
+      `  <li>⚠️ <strong>${errorSummary.errorCount}</strong> with issues</li>`,
+    );
+    if (errorSummary.fallbackCount > 0) {
+      summaryLines.push(
+        `  <li>🔄 <strong>${errorSummary.fallbackCount}</strong> using fallback icon</li>`,
+      );
+    }
+    summaryLines.push(`</ul>`);
+  }
+
+  // Group errors by type
+  const errorsByType = errorSummary.errorsByType;
+  const errorSections: string[] = [];
+
+  if (errorsByType.size > 0) {
+    errorSections.push(`<h3>Issues by Category:</h3>`);
+
+    errorsByType.forEach((errors, errorType) => {
+      errorSections.push(`<div class="error-category">`);
+      errorSections.push(
+        `  <h4>${getErrorTypeLabel(errorType)} (${errors.length})</h4>`,
+      );
+      errorSections.push(`  <ul class="error-list">`);
+
+      // Show first 5 errors, collapse rest
+      const visibleErrors = errors.slice(0, 5);
+      visibleErrors.forEach((error) => {
+        errorSections.push(`    <li>`);
+        errorSections.push(
+          `      <strong>${escapeHtml(error.iconName)}</strong>: ${escapeHtml(error.userMessage)}`,
+        );
+        errorSections.push(
+          `      <br/><span class="suggestion">→ ${escapeHtml(error.suggestedAction)}</span>`,
+        );
+        if (error.context && error.context.fileId) {
+          errorSections.push(
+            `      <br/><span class="context">File ID: ${escapeHtml(error.context.fileId)}</span>`,
+          );
+        }
+        errorSections.push(`    </li>`);
+      });
+
+      if (errors.length > 5) {
+        errorSections.push(
+          `    <li class="more-errors">... and ${errors.length - 5} more</li>`,
+        );
+      }
+
+      errorSections.push(`  </ul>`);
+      errorSections.push(`</div>`);
+    });
+  }
+
+  const message = `
+    <div class="icon-error-report">
+      ${summaryLines.join("\n")}
+      ${errorSections.join("\n")}
+      ${errorSummary.hasCriticalErrors
+        ? `<div class="critical-warning">⚠️ Critical errors detected. Please address permission and validation issues.</div>`
+        : ""}
+    </div>
+    <style>
+      .icon-error-report { text-align: left; }
+      .success { color: #4caf50; font-size: 1.1em; }
+      .error-category { margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; }
+      .error-category h4 { margin: 5px 0; color: #ff9800; }
+      .error-list { list-style: none; padding-left: 10px; }
+      .error-list li { margin: 8px 0; padding: 5px; background: rgba(255,255,255,0.02); border-left: 3px solid #ff9800; }
+      .suggestion { color: #81c784; font-size: 0.9em; }
+      .context { color: #90caf9; font-size: 0.85em; }
+      .more-errors { font-style: italic; color: #999; }
+      .critical-warning { margin-top: 20px; padding: 15px; background: rgba(255,152,0,0.2); border: 2px solid #ff9800; border-radius: 5px; font-weight: bold; }
+    </style>
+  `;
+
+  const html = generateDialog(
+    title,
+    message,
+    iconErrorDialogTexts[locale].downloadButtonText,
+    undefined,
+    "downloadIconErrorReport",
+    errorSummary.errorCount > 0
+      ? iconErrorDialogTexts[locale].continueButtonText
+      : iconErrorDialogTexts[locale].okButtonText,
+    "google.script.host.close",
+  );
+
+  showModalDialogSafe(html, title, 800, 600, "Icon Error Report");
+}
+
+/**
+ * Download icon error report as CSV
+ * Called from the error dialog
+ */
+function downloadIconErrorReport(): void {
+  // This function would be called from the dialog
+  // It should retrieve the error summary and trigger CSV download
+  console.log(
+    "Download icon error report - implementation depends on error storage strategy",
+  );
+  // Note: Full implementation requires error summary to be stored in PropertiesService
+  // and retrieved here, then converted to CSV using collector.toCSV()
+  google.script.host.close();
+}
