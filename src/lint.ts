@@ -459,6 +459,7 @@ function lintSheet(
   sheetName: string,
   columnValidations: ((value: string, row: number, col: number) => void)[],
   requiredColumns: number[] = [],
+  preserveBackgroundColumns: number[] = [],
 ): void {
   console.time(`Linting ${sheetName}`);
 
@@ -478,20 +479,17 @@ function lintSheet(
 
   try {
     if (lastRow > 1 && columnValidations.length > 0) {
-      const lintRange = sheet.getRange(
-        2,
-        1,
-        lastRow - 1,
-        columnValidations.length,
-      );
-      clearRangeBackgroundIfMatches(
-        lintRange,
-        LINT_WARNING_BACKGROUND_COLORS,
-      );
-      clearRangeFontColorIfMatches(
-        lintRange,
-        LINT_WARNING_FONT_COLORS,
-      );
+      // Clear backgrounds and font colors for all columns except those that should be preserved
+      for (let col = 0; col < columnValidations.length; col++) {
+        // Skip columns that should preserve their backgrounds (e.g., Categories icon column with user colors)
+        const shouldClearBackground = !preserveBackgroundColumns.includes(col);
+        const colRange = sheet.getRange(2, col + 1, lastRow - 1, 1);
+
+        if (shouldClearBackground) {
+          clearRangeBackgroundIfMatches(colRange, LINT_WARNING_BACKGROUND_COLORS);
+        }
+        clearRangeFontColorIfMatches(colRange, LINT_WARNING_FONT_COLORS);
+      }
     }
 
     // First clean any whitespace-only cells
@@ -522,8 +520,11 @@ function lintSheet(
     if (requiredColumns.length > 0) {
       const rangesToReset: string[] = [];
       requiredColumns.forEach((colIndex) => {
-        const columnLetter = columnNumberToLetter(colIndex + 1);
-        rangesToReset.push(`${columnLetter}2:${columnLetter}${lastRow}`);
+        // Skip columns that should preserve their backgrounds
+        if (!preserveBackgroundColumns.includes(colIndex)) {
+          const columnLetter = columnNumberToLetter(colIndex + 1);
+          rangesToReset.push(`${columnLetter}2:${columnLetter}${lastRow}`);
+        }
       });
 
       if (rangesToReset.length > 0) {
@@ -532,12 +533,16 @@ function lintSheet(
 
       const requiredHighlights = new Map<number, number[]>();
       requiredColumns.forEach((colIndex) => {
-        requiredHighlights.set(colIndex, []);
+        // Skip columns that should preserve their backgrounds
+        if (!preserveBackgroundColumns.includes(colIndex)) {
+          requiredHighlights.set(colIndex, []);
+        }
       });
 
       data.forEach((row, rowIndex) => {
         requiredColumns.forEach((colIndex) => {
-          if (isEmptyOrWhitespace(row[colIndex])) {
+          // Skip columns that should preserve their backgrounds
+          if (!preserveBackgroundColumns.includes(colIndex) && isEmptyOrWhitespace(row[colIndex])) {
             const rows = requiredHighlights.get(colIndex);
             if (rows) {
               rows.push(rowIndex + 2); // +2 accounts for header row
@@ -617,7 +622,7 @@ function validateCategoryIcons(): void {
   }
 
   const iconRange = categoriesSheet.getRange(2, 2, lastRow - 1, 1);
-  clearRangeBackgroundIfMatches(iconRange, ["#FFC7CE"]);
+  // Do NOT clear background colors in icon column - they are user data (category colors)
   clearRangeFontColorIfMatches(iconRange, LINT_WARNING_FONT_COLORS);
   clearRangeNotesWithPrefix(iconRange, LINT_NOTE_PREFIX);
 
@@ -768,7 +773,7 @@ function validateCategoryIcons(): void {
 
   rowIssues.forEach((messages, rowNumber) => {
     const cell = categoriesSheet.getRange(rowNumber, 2);
-    cell.setBackground("#FFC7CE");
+    cell.setFontColor("red");
     cell.setNote(`${LINT_NOTE_PREFIX}${messages.join("\n")}`);
     console.warn(
       `Icon issue in Categories row ${rowNumber}: ${messages.join(" | ")}`,
@@ -789,14 +794,12 @@ function lintCategoriesSheet(): void {
   if (categoriesSheetRef) {
     const lastRow = categoriesSheetRef.getLastRow();
     if (lastRow > 1) {
-      clearRangeBackgroundIfMatches(
-        categoriesSheetRef.getRange(2, 2, lastRow - 1, 1),
-        ["#FFC7CE"],
-      );
+      // Clear font colors in icon column (column 2) but preserve background colors (they are user data)
       clearRangeFontColorIfMatches(
         categoriesSheetRef.getRange(2, 2, lastRow - 1, 1),
         LINT_WARNING_FONT_COLORS,
       );
+      // Clear background colors in fields column (column 3)
       clearRangeBackgroundIfMatches(
         categoriesSheetRef.getRange(2, 3, lastRow - 1, 1),
         ["#FFC7CE"],
@@ -843,9 +846,11 @@ function lintCategoriesSheet(): void {
         // Check if icon is missing or whitespace-only
         if (isEmptyOrWhitespace(value)) {
           console.log("Missing icon at row " + row);
-          categoriesSheetRef
-            ?.getRange(row, col)
-            .setBackground("#FFC7CE"); // Light red for missing required icon
+          const cell = categoriesSheetRef?.getRange(row, col);
+          if (cell) {
+            cell.setFontColor("red");
+            cell.setNote(`${LINT_NOTE_PREFIX}Icon is required but missing or empty`);
+          }
           return;
         }
 
@@ -859,7 +864,11 @@ function lintCategoriesSheet(): void {
 
         if (!isValidGoogleDriveUrl(value)) {
           console.log("Invalid icon URL: " + value);
-          categoriesSheetRef?.getRange(row, col).setFontColor("red");
+          const cell = categoriesSheetRef?.getRange(row, col);
+          if (cell) {
+            cell.setFontColor("red");
+            cell.setNote(`${LINT_NOTE_PREFIX}Invalid icon URL. Must be a valid Google Drive URL`);
+          }
         }
       } catch (error) {
         console.error(
@@ -888,9 +897,11 @@ function lintCategoriesSheet(): void {
             console.log(
               "Invalid fields in row " + row + ": " + invalidFields.join(", "),
             );
-            categoriesSheetRef
-              ?.getRange(row, col)
-              .setBackground("#FFC7CE");
+            const cell = categoriesSheetRef?.getRange(row, col);
+            if (cell) {
+              cell.setFontColor("red");
+              cell.setNote(`${LINT_NOTE_PREFIX}Invalid fields: ${invalidFields.join(", ")}. These fields do not exist in the Details sheet`);
+            }
           }
         }
       } catch (error) {
@@ -907,7 +918,8 @@ function lintCategoriesSheet(): void {
   ];
 
   // Category name and icon are required
-  lintSheet("Categories", categoriesValidations, [0, 1]);
+  // Preserve backgrounds in icon column (index 1) because they are user-set category colors
+  lintSheet("Categories", categoriesValidations, [0, 1], [1]);
   validateCategoryIcons();
 }
 
@@ -1695,8 +1707,9 @@ function lintAllSheets(showAlerts: boolean = true): void {
         "Linting Complete",
         "All sheets have been linted. Please check for:\n" +
           "- Yellow highlighted cells: Required fields missing, unreferenced details, or translation row mismatches\n" +
-          "- Red highlighted cells: Invalid values, missing icons, missing options, invalid Universal flags, or invalid translation headers\n" +
-          "- Red text: Invalid URLs\n" +
+          "- Red highlighted cells: Invalid values, missing options, invalid Universal flags, or invalid translation headers\n" +
+          "- Red text in Categories icon column: Missing or invalid icons (hover for details)\n" +
+          "- Red text in Categories fields column: Invalid field references (hover for details)\n" +
           "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches\n" +
           "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes",
         ui.ButtonSet.OK,
