@@ -128,7 +128,9 @@ function startCoMapeoGeneration(options: GenerationOptions): void {
 }
 
 function generateCoMapeoConfig(): void {
-  startCoMapeoGeneration({ skipDriveWrites: true });
+  const log = getScopedLogger("ConfigGeneration");
+  log.info("Running CoMapeo generation with ZIP-only mode (Drive writes skipped, translation skipped)");
+  generateCoMapeoConfigWithSelectedLanguages([], { skipDriveWrites: true });
 }
 
 /**
@@ -149,7 +151,9 @@ function generateCoMapeoConfigInMemory(): void {
 }
 
 function generateCoMapeoConfigWithDriveWrites(): void {
-  startCoMapeoGeneration({ skipDriveWrites: false });
+  const log = getScopedLogger("ConfigGeneration");
+  log.info("Running CoMapeo generation with debug mode (Drive writes enabled, translation skipped)");
+  generateCoMapeoConfigWithSelectedLanguages([], { skipDriveWrites: false });
 }
 
 /**

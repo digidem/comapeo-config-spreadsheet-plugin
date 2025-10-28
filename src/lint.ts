@@ -622,7 +622,7 @@ function validateCategoryIcons(): void {
   }
 
   const iconRange = categoriesSheet.getRange(2, 2, lastRow - 1, 1);
-  // Do NOT clear background colors in icon column - they are user data (category colors)
+  // Clear icon column font colors and notes, but preserve backgrounds (not stored in this column)
   clearRangeFontColorIfMatches(iconRange, LINT_WARNING_FONT_COLORS);
   clearRangeNotesWithPrefix(iconRange, LINT_NOTE_PREFIX);
 
@@ -794,7 +794,7 @@ function lintCategoriesSheet(): void {
   if (categoriesSheetRef) {
     const lastRow = categoriesSheetRef.getLastRow();
     if (lastRow > 1) {
-      // Clear font colors in icon column (column 2) but preserve background colors (they are user data)
+      // Clear font colors in icon column (column 2) for lint warnings
       clearRangeFontColorIfMatches(
         categoriesSheetRef.getRange(2, 2, lastRow - 1, 1),
         LINT_WARNING_FONT_COLORS,
@@ -918,8 +918,8 @@ function lintCategoriesSheet(): void {
   ];
 
   // Category name and icon are required
-  // Preserve backgrounds in icon column (index 1) because they are user-set category colors
-  lintSheet("Categories", categoriesValidations, [0, 1], [1]);
+  // Preserve backgrounds in category name column (index 0) because they are user-set category colors
+  lintSheet("Categories", categoriesValidations, [0, 1], [0]);
   validateCategoryIcons();
 }
 

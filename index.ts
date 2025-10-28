@@ -29,15 +29,15 @@ function onOpen() {
       menuTexts[locale].generateCoMapeoCategory,
       "generateCoMapeoCategory",
     )
-    .addItem(
-      menuTexts[locale].generateCoMapeoCategoryDebug,
-      "generateCoMapeoCategoryDebug",
-    )
     .addItem(menuTexts[locale].importCategoryFile, "importCategoryFile")
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
     .addSeparator()
+    .addItem(
+      menuTexts[locale].generateCoMapeoCategoryDebug,
+      "generateCoMapeoCategoryDebug",
+    )
     .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
     .addItem("About / Version", "showVersionInfo")
     .addToUi();

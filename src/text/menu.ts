@@ -4,8 +4,8 @@ let menuTexts: Record<string, MainMenuText> = {
     menu: "Herramientas CoMapeo",
     translateCoMapeoCategory: "Gestionar idiomas y traducir",
     generateIcons: "Generar Íconos para Categorías",
-    generateCoMapeoCategory: "Generar Categorías de CoMapeo",
-    generateCoMapeoCategoryDebug: "Generar Categorías (depuración rawBuild)",
+    generateCoMapeoCategory: "Generar Categoría CoMapeo",
+    generateCoMapeoCategoryDebug: "Debug: Exportar Archivos Sin Procesar",
     importCategoryFile: "Importar archivo de categoría",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
@@ -15,8 +15,8 @@ let menuTexts: Record<string, MainMenuText> = {
     menu: "CoMapeo Tools",
     translateCoMapeoCategory: "Manage Languages & Translate",
     generateIcons: "Generate Category Icons",
-    generateCoMapeoCategory: "Generate CoMapeo Category (ZIP only)",
-    generateCoMapeoCategoryDebug: "Generate CoMapeo Category (debug rawBuild)",
+    generateCoMapeoCategory: "Generate CoMapeo Category",
+    generateCoMapeoCategoryDebug: "Debug: Export Raw Files",
     importCategoryFile: "Import category file",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
@@ -81,17 +81,17 @@ let categoryMenuTexts: Record<string, MenuText> = {
 
 let categoryDebugMenuTexts: Record<string, MenuText> = {
   es: {
-    action: "Generar Categorías de CoMapeo (depuración)",
+    action: "Debug: Exportar Archivos Sin Procesar",
     actionText:
-      "Esto generará la carpeta rawBuild con todos los archivos individuales (presets, fields, mensajes) para depuración. ¿Continuar?",
+      "Esto creará la carpeta rawBuild en Google Drive con todos los archivos individuales (presets, fields, mensajes) para depuración. ¿Continuar?",
     error: "Error",
     errorText:
       "Ocurrió un error mientras se generaba la configuración en modo depuración: ",
   },
   en: {
-    action: "Generate CoMapeo Category (debug)",
+    action: "Debug: Export Raw Files",
     actionText:
-      "This will create the rawBuild folder with all individual files (presets, fields, messages) for debugging. Continue?",
+      "This will create the rawBuild folder in Google Drive with all individual files (presets, fields, messages) for debugging. Continue?",
     error: "Error",
     errorText:
       "An error occurred while generating the configuration in debug mode: ",
