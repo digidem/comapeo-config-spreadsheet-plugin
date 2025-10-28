@@ -1,14 +1,22 @@
 /// <reference path="./types.ts" />
+/// <reference path="./languageLookup.ts" />
+/// <reference path="./spreadsheetData.ts" />
 
 /**
  * Validation utilities for user inputs and sheet data
  *
  * This module provides validation functions for:
- * - Language codes and names
+ * - Language codes and names (supports both English and native names with caching)
  * - Field types and configurations
  * - Category data
  * - Configuration schemas
+ *
+ * ## Performance Notes
+ * - Uses cached lookup from spreadsheetData.ts via getLanguageLookup() for O(1) lookups
+ * - Maintains language names cache for error message generation
+ * - All caches are cleared via clearLanguagesCache() in spreadsheetData.ts
  */
+
 
 /**
  * Valid CoMapeo field types
@@ -20,6 +28,87 @@ type FieldType = typeof VALID_FIELD_TYPES[number];
  * Valid geometry types for CoMapeo presets
  */
 const VALID_GEOMETRY_TYPES = ["point", "line", "area"] as const;
+
+/**
+ * Calculates Levenshtein distance between two strings
+ * Used for fuzzy matching and "Did you mean..." suggestions
+ *
+ * @param str1 - First string
+ * @param str2 - Second string
+ * @returns Edit distance (number of single-character edits needed)
+ *
+ * @example
+ * levenshteinDistance("portugese", "portuguese") // => 1
+ * levenshteinDistance("spanish", "español") // => 5
+ */
+function levenshteinDistance(str1: string, str2: string): number {
+  const len1 = str1.length;
+  const len2 = str2.length;
+
+  // Create a 2D array for dynamic programming
+  const matrix: number[][] = [];
+
+  // Initialize first row and column
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Fill in the rest of the matrix
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,      // deletion
+        matrix[i][j - 1] + 1,      // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+
+  return matrix[len1][len2];
+}
+
+/**
+ * Finds the closest matching strings using Levenshtein distance
+ *
+ * @param target - The string to find matches for
+ * @param candidates - Array of candidate strings to match against
+ * @param maxResults - Maximum number of results to return (default: 3 for UI readability)
+ * @param maxDistance - Maximum edit distance to consider (default: 3 for reasonable typos)
+ * @returns Array of closest matches sorted by distance
+ *
+ * @example
+ * findClosestMatches("portugese", ["Portuguese", "Spanish", "French"])
+ * // => ["Portuguese"]
+ *
+ * @example
+ * // With proportional distance for longer strings
+ * findClosestMatches("malayalaam", languages, 3, 4)
+ * // => ["Malayalam"] (10 chars, allows 4 edits = 40% tolerance)
+ */
+function findClosestMatches(
+  target: string,
+  candidates: string[],
+  maxResults: number = 3, // Limit suggestions for UI readability
+  maxDistance: number = 3, // Allow reasonable typos (1-3 character errors)
+): string[] {
+  const targetLower = target.toLowerCase();
+
+  // Calculate distances and filter by maxDistance
+  const distances = candidates
+    .map(candidate => ({
+      value: candidate,
+      distance: levenshteinDistance(targetLower, candidate.toLowerCase()),
+    }))
+    .filter(item => item.distance <= maxDistance)
+    .sort((a, b) => a.distance - b.distance);
+
+  // Return top matches
+  return distances.slice(0, maxResults).map(item => item.value);
+}
 
 /**
  * Validation result interface
@@ -65,18 +154,65 @@ function validateLanguageCode(
 }
 
 /**
+ * Cache for all language names (English + native) to avoid expensive rebuilding
+ * Populated lazily and cleared when language data is refreshed
+ */
+let _allLanguageNamesCache: string[] | null = null;
+
+/**
+ * Gets all language names (English + native) with caching
+ * Used for fuzzy matching suggestions in error messages
+ *
+ * @returns Array of all language names (both English and native)
+ */
+function getAllLanguageNamesCached(): string[] {
+  if (!_allLanguageNamesCache) {
+    const lookup = getLanguageLookup();
+    const allCodes = lookup.getAllCodes();
+    const allNames: string[] = [];
+
+    for (const langCode of allCodes) {
+      const names = lookup.getNamesByCode(langCode);
+      if (names) {
+        allNames.push(names.english);
+        if (names.english !== names.native) {
+          allNames.push(names.native);
+        }
+      }
+    }
+
+    _allLanguageNamesCache = allNames;
+  }
+
+  return _allLanguageNamesCache;
+}
+
+/**
+ * Clears the language names cache
+ * Should be called when language data is refreshed
+ */
+function clearLanguageNamesCache(): void {
+  _allLanguageNamesCache = null;
+}
+
+/**
  * Validates a language name against supported languages
  *
- * @param languageName - The language name to validate (e.g., "English", "Spanish")
- * @param supportedLanguages - Map of supported language codes to names
+ * Now supports BOTH English and native language names (e.g., "Portuguese" OR "Português").
+ * Uses case-insensitive matching for better user experience.
+ * Uses cached lookup for O(1) performance.
+ *
+ * @param languageName - The language name to validate in any form
  * @returns Validation result with the matched language code if valid
  *
  * @example
- * validateLanguageName("English", getAllLanguages()) // { valid: true, code: "en" }
+ * validateLanguageName("English") // { valid: true, code: "en" }
+ * validateLanguageName("Português") // { valid: true, code: "pt" }
+ * validateLanguageName("Portuguese") // { valid: true, code: "pt" }
+ * validateLanguageName("PORTUGUESE") // { valid: true, code: "pt" }
  */
 function validateLanguageName(
   languageName: string,
-  supportedLanguages: LanguageMap,
 ): ValidationResult & { code?: string } {
   if (!languageName || languageName.trim() === "") {
     return {
@@ -87,36 +223,66 @@ function validateLanguageName(
 
   const normalizedName = languageName.trim();
 
-  // Find matching language code
-  const matchedEntry = Object.entries(supportedLanguages).find(
-    ([_, name]) => name === normalizedName,
-  );
+  // Use cached lookup for O(1) performance
+  const lookup = getLanguageLookup();
 
-  if (!matchedEntry) {
+  // Try to find language code using enhanced lookup (supports both English and native names)
+  const code = lookup.getCodeByName(normalizedName);
+
+  if (!code) {
+    // Build helpful error message with fuzzy matching suggestions
+    const allLanguageNames = getAllLanguageNamesCached();
+
+    // Calculate proportional max distance based on input length
+    // Allows up to 30% edit distance, minimum 2, maximum 5
+    const maxDistance = Math.min(5, Math.max(2, Math.floor(normalizedName.length * 0.3)));
+
+    // Find close matches using fuzzy matching with proportional distance
+    const suggestions = findClosestMatches(normalizedName, allLanguageNames, 3, maxDistance);
+
+    let errorMessage = `Unsupported language: "${languageName}".`;
+
+    if (suggestions.length > 0) {
+      errorMessage += ` Did you mean: ${suggestions.map(s => `"${s}"`).join(", ")}?`;
+    } else {
+      // Fallback to examples if no close matches
+      const allCodes = lookup.getAllCodes();
+      const exampleLanguages = allCodes.slice(0, 3).map(c => {
+        const names = lookup.getNamesByCode(c);
+        return names ? `"${names.english}"` : `"${c}"`;
+      }).join(", ");
+      errorMessage += ` Examples: ${exampleLanguages}`;
+    }
+
     return {
       valid: false,
-      error: `Unsupported language: "${languageName}". Please use a valid language name from the supported list.`,
+      error: errorMessage,
     };
   }
 
   return {
     valid: true,
-    code: matchedEntry[0],
+    code,
   };
 }
 
 /**
  * Validates the primary language from cell A1
  *
+ * Supports both English and native language names.
+ *
  * @param primaryLanguage - The primary language from cell A1
- * @param supportedLanguages - Map of supported language codes to names
  * @returns Validation result
+ *
+ * @example
+ * validatePrimaryLanguage("Portuguese") // { valid: true }
+ * validatePrimaryLanguage("Português")  // { valid: true }
+ * validatePrimaryLanguage("Invalid")    // { valid: false, error: "..." }
  */
 function validatePrimaryLanguage(
   primaryLanguage: string,
-  supportedLanguages: LanguageMap,
 ): ValidationResult {
-  const result = validateLanguageName(primaryLanguage, supportedLanguages);
+  const result = validateLanguageName(primaryLanguage);
 
   if (!result.valid) {
     return {
@@ -204,11 +370,11 @@ function validateFieldOptions(
  * Validates a complete field definition
  *
  * @param fieldData - Array representing a field row from the Details sheet
- * @param rowIndex - The row index for error reporting
- * @returns Validation result
+ * @param rowIndex - The row index for error reporting (1-based, for user display)
+ * @returns Validation result with any warnings
  */
 function validateFieldDefinition(
-  fieldData: any[],
+  fieldData: FieldRow,
   rowIndex: number,
 ): ValidationResult {
   const warnings: string[] = [];
@@ -277,11 +443,11 @@ function validateCategoryName(
  * Validates a complete category definition
  *
  * @param categoryData - Array representing a category row from the Categories sheet
- * @param rowIndex - The row index for error reporting
- * @returns Validation result
+ * @param rowIndex - The row index for error reporting (1-based, for user display)
+ * @returns Validation result with any warnings
  */
 function validateCategoryDefinition(
-  categoryData: any[],
+  categoryData: CategoryRow,
   rowIndex: number,
 ): ValidationResult {
   const warnings: string[] = [];
@@ -315,10 +481,10 @@ function validateCategoryDefinition(
 /**
  * Validates the entire sheet data before processing
  *
- * @param data - The SheetData object
+ * @param data - The SheetData object containing all sheet data
  * @returns Validation result with all errors and warnings
  */
-function validateSheetData(data: any): ValidationResult {
+function validateSheetData(data: SheetData): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -327,8 +493,8 @@ function validateSheetData(data: any): ValidationResult {
     errors.push("Categories sheet is empty or has no data rows");
   } else {
     // Skip header row, validate data rows
-    data.Categories.slice(1).forEach((category: any[], index: number) => {
-      const result = validateCategoryDefinition(category, index + 2); // +2 for header and 0-index
+    data.Categories.slice(1).forEach((category, index: number) => {
+      const result = validateCategoryDefinition(category as CategoryRow, index + 2); // +2 for header and 0-index
       if (!result.valid && result.error) {
         errors.push(result.error);
       }
@@ -343,8 +509,8 @@ function validateSheetData(data: any): ValidationResult {
     errors.push("Details sheet is empty or has no data rows");
   } else {
     // Skip header row, validate data rows
-    data.Details.slice(1).forEach((field: any[], index: number) => {
-      const result = validateFieldDefinition(field, index + 2); // +2 for header and 0-index
+    data.Details.slice(1).forEach((field, index: number) => {
+      const result = validateFieldDefinition(field as FieldRow, index + 2); // +2 for header and 0-index
       if (!result.valid && result.error) {
         errors.push(result.error);
       }
@@ -371,10 +537,10 @@ function validateSheetData(data: any): ValidationResult {
 /**
  * Validates configuration data schema
  *
- * @param config - The CoMapeoConfig object
- * @returns Validation result
+ * @param config - The CoMapeoConfig object to validate
+ * @returns Validation result indicating schema compliance
  */
-function validateConfigSchema(config: any): ValidationResult {
+function validateConfigSchema(config: CoMapeoConfig): ValidationResult {
   const errors: string[] = [];
 
   // Validate required top-level properties

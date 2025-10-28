@@ -38,6 +38,27 @@ The spreadsheet contains several sheets:
 - **Detail Option Translations**: Translations for dropdown options
 - **Metadata**: Configuration metadata (dataset ID, name, version)
 
+### Setting the Primary Language
+
+**Cell A1 of the Categories sheet** determines the primary language for your configuration.
+
+**Important**: You can now use **either the English name or the native name** of a language:
+- ✅ "Portuguese" or "Português" both work for Portuguese
+- ✅ "Spanish" or "Español" both work for Spanish
+- ✅ "French" or "Français" both work for French
+- ✅ Case-insensitive: "PORTUGUESE", "portuguese", or "Portuguese" all work
+
+**Example:**
+```
+Cell A1: Portuguese    (English form)
+Cell A1: Português     (Native form)
+Cell A1: PORTUGUESE    (Any case)
+```
+
+All three examples above will correctly set Portuguese as the primary language.
+
+**Supported Languages**: The plugin supports 142 languages. If you enter an unsupported language, you'll see a helpful error message with suggestions.
+
 ---
 
 ## Creating a New Configuration
@@ -278,6 +299,26 @@ The linter automatically:
 3. For option translations, verify option counts match
 4. Run the linter to check for duplicate slugs
 5. Review auto-translations for accuracy and context
+
+### Language Recognition Issues
+
+**Problem**: Error says language is not supported
+
+**Solutions**:
+1. You can use either English or native language names (e.g., "Portuguese" or "Português")
+2. Check for typos in the language name
+3. Language names are case-insensitive ("PORTUGUESE" works the same as "Portuguese")
+4. The error message will show you examples of valid language names
+5. Supported languages include all major world languages (142 total)
+
+**Example Valid Inputs for Common Languages**:
+- Portuguese: "Portuguese", "Português", "portuguese", "PORTUGUÊS"
+- Spanish: "Spanish", "Español", "SPANISH", "español"
+- French: "French", "Français", "FRENCH", "français"
+- German: "German", "Deutsch", "GERMAN", "deutsch"
+- Chinese: "Chinese Simplified", "简体中文", "Chinese Traditional", "繁體中文"
+- Japanese: "Japanese", "日本語", "JAPANESE"
+- Arabic: "Arabic", "العربية", "ARABIC"
 
 ### Performance Issues
 

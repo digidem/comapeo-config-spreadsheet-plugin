@@ -53,6 +53,8 @@ function onOpen() {
       .addItem("Test Category Import", "testImportCategory")
       .addItem("Test Details and Icons", "testDetailsAndIcons")
       .addItem("Test Field Extraction", "testFieldExtraction")
+      .addSeparator()
+      .addItem("Clear Language Cache", "clearLanguagesCacheMenuItem")
       .addToUi();
   }
 }
@@ -237,6 +239,36 @@ function importCategoryFile() {
       ui.alert(
         importCategoryMenuTexts[locale].error,
         importCategoryMenuTexts[locale].errorText + error.message,
+        ui.ButtonSet.OK,
+      );
+    }
+  }
+}
+
+/**
+ * Menu item handler for clearing language cache
+ * Useful for debugging or forcing fresh language data fetch
+ */
+function clearLanguagesCacheMenuItem() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    "Clear Language Cache",
+    "This will clear the cached language data, forcing a fresh fetch from the remote source on next use. This is useful for debugging. Continue?",
+    ui.ButtonSet.YES_NO,
+  );
+
+  if (result === ui.Button.YES) {
+    try {
+      clearLanguagesCache();
+      ui.alert(
+        "Cache Cleared",
+        "Language cache has been successfully cleared. Next language operation will fetch fresh data.",
+        ui.ButtonSet.OK,
+      );
+    } catch (error) {
+      ui.alert(
+        "Error",
+        "An error occurred while clearing the cache: " + error.message,
         ui.ButtonSet.OK,
       );
     }

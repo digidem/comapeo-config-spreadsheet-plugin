@@ -76,6 +76,69 @@ Each processor handles a specific part of the CoMapeo configuration:
   - `translateSheetBidirectional()`: Translates sheet to/from selected languages
   - `autoTranslateSheetsBidirectional()`: Batch translates all sheets
 
+### Language Recognition System (`src/languageLookup.ts`, `src/spreadsheetData.ts`, `src/validation.ts`)
+
+**NEW: Dual-name language recognition** - Users can now enter language names in either English or native form (e.g., "Portuguese" OR "Português").
+
+**Key Components:**
+
+1. **Enhanced Data Structure** (`src/types.ts`)
+   - `LanguageData`: Stores both `englishName` and `nativeName` for each language
+   - `LanguageMapEnhanced`: Maps language codes to both name forms
+   - `LanguageMap`: Legacy format for backward compatibility
+
+2. **Bidirectional Lookup** (`src/languageLookup.ts`)
+   - `createLanguageLookup()`: Creates efficient Map-based bidirectional index
+   - `getCodeByName()`: Find language code from any name form (case-insensitive)
+   - `getNamesByCode()`: Get both English and native names for a code
+   - `getAllAliases()`: Get all recognized name forms for a language
+   - O(1) lookup performance using normalized Map keys
+
+3. **Enhanced Data Fetching** (`src/spreadsheetData.ts`)
+   - `getAllLanguagesEnhanced()`: Fetches both English and native names from remote source
+   - `getLanguageDisplayName()`: Returns appropriate name based on preference
+   - `getLanguageNames()`: Returns both name forms for UI display
+   - `getPrimaryLanguage()`: Now supports both English and native names in cell A1
+
+4. **Validation** (`src/validation.ts`)
+   - `validateLanguageName()`: Uses lookup system for dual-name validation
+   - Case-insensitive matching ("Portuguese", "PORTUGUESE", "portuguese" all work)
+   - Helpful error messages with examples in both forms
+   - Full support for non-Latin scripts (Japanese, Chinese, Arabic, etc.)
+
+5. **Fallback Data** (`src/data/languagesFallback.ts`)
+   - 142 languages with both English and native names
+   - Used when remote fetch fails or cache is unavailable
+   - Includes accurate native names for all major world languages
+
+**Example Usage:**
+```typescript
+// Cell A1 can contain any of these:
+"Portuguese" → recognized as "pt"
+"Português"  → recognized as "pt"
+"PORTUGUESE" → recognized as "pt" (case-insensitive)
+"português"  → recognized as "pt" (case-insensitive)
+
+// Get display names
+getLanguageDisplayName("pt", false) // => "Portuguese"
+getLanguageDisplayName("pt", true)  // => "Português"
+
+// Validation
+validateLanguageName("Português", allLanguages) // => { valid: true, code: "pt" }
+```
+
+**Benefits:**
+- **User-friendly**: Users can use their native language name
+- **Case-insensitive**: "PORTUGUESE" and "portuguese" both work
+- **Backward compatible**: Existing spreadsheets continue to work
+- **Performance**: O(1) lookups using Map-based indexes
+- **Comprehensive**: Supports 142 languages with full Unicode support
+
+**Testing:**
+- Unit tests: `src/test/testLanguageLookup.ts` (17 comprehensive tests)
+- Integration tests: `src/test/testLanguageRecognitionIntegration.ts` (15 end-to-end tests)
+- Quick smoke tests available for both test suites
+
 ### Import System (`src/importCategory/`)
 
 Reverse flow: imports existing `.comapeocat` files back into spreadsheet format.
@@ -119,6 +182,9 @@ Core TypeScript interfaces:
 - `CoMapeoMetadata`, `CoMapeoPackageJson`: Package metadata
 - `CoMapeoConfig`: Complete configuration object
 - `SheetData`: Spreadsheet data representation
+- **`LanguageData`**: Enhanced language data with both English and native names
+- **`LanguageMapEnhanced`**: Map of language codes to `LanguageData` objects
+- `LanguageMap`: Legacy format (single name per code) for backward compatibility
 
 ## Key Patterns
 

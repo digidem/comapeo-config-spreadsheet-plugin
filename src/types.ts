@@ -3,6 +3,28 @@ interface SheetData {
 }
 
 type LanguageCode = string;
+
+/**
+ * Enhanced language data with both English and native names
+ * @example { englishName: "Portuguese", nativeName: "Português" }
+ */
+interface LanguageData {
+  englishName: string;
+  nativeName: string;
+}
+
+/**
+ * Enhanced language map with dual-name support
+ * Maps language code to both English and native names
+ * @example { "pt": { englishName: "Portuguese", nativeName: "Português" } }
+ */
+type LanguageMapEnhanced = Record<LanguageCode, LanguageData>;
+
+/**
+ * Legacy language map for backward compatibility
+ * Maps language code to a single name (either English or native)
+ * @deprecated Use LanguageMapEnhanced for new code
+ */
 type LanguageMap = Record<LanguageCode, string>;
 
 interface CoMapeoField {
@@ -134,4 +156,42 @@ interface IconErrorDialogText {
   downloadButtonText: string;
   continueButtonText: string;
   okButtonText: string;
+}
+
+/**
+ * Field row data structure from Details sheet
+ * Represents a single row (excluding header) from the spreadsheet
+ *
+ * Column mapping:
+ * [0] = Field Name (A)
+ * [1] = Helper Text (B)
+ * [2] = Type (C) - e.g., "Text", "Number", "Select One", "Multiple Choice"
+ * [3] = Options (D) - comma-separated for select fields
+ * [4+] = Additional columns (translations, etc.)
+ */
+interface FieldRow extends Array<string | number | boolean> {
+  0: string;  // Field Name (required)
+  1?: string; // Helper Text (optional)
+  2: string;  // Type (required)
+  3?: string; // Options (required for select fields)
+}
+
+/**
+ * Category row data structure from Categories sheet
+ * Represents a single row (excluding header) from the spreadsheet
+ *
+ * Column mapping:
+ * [0] = Category Name (A)
+ * [1] = Icon (B)
+ * [2] = Fields (C) - comma-separated field names
+ * [3] = Color (D)
+ * [4] = Geometry (E) - e.g., "point", "line", "area"
+ * [5+] = Additional columns (translations, etc.)
+ */
+interface CategoryRow extends Array<string | number | boolean> {
+  0: string;  // Category Name (required)
+  1?: string; // Icon (optional)
+  2?: string; // Fields (optional)
+  3?: string; // Color (optional)
+  4?: string; // Geometry (optional)
 }

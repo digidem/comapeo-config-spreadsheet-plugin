@@ -4,22 +4,34 @@
  */
 
 const versionData = {
-  "version": "1.0.0+3df1062",
-  "commit": "3df1062",
+  "version": "1.0.0+5680f69",
+  "commit": "5680f69",
   "branch": "import-category",
-  "isDirty": false,
-  "buildDate": "2025-10-27T19:37:43.995Z"
+  "isDirty": true,
+  "buildDate": "2025-10-28T17:29:09.679Z"
 };
 
-export function getVersionInfo(): string {
+/**
+ * Gets the version info string
+ * @returns Version string with commit and branch info
+ */
+function getVersionInfo(): string {
   const dirty = versionData.isDirty ? ' (dirty)' : '';
   return `${versionData.version}${dirty} (${versionData.commit} on ${versionData.branch})`;
 }
 
-export function getFullVersionInfo(): string {
+/**
+ * Gets the full version info with build date
+ * @returns Full version string with build timestamp
+ */
+function getFullVersionInfo(): string {
   return `Compiled using ${versionData.version} at ${versionData.buildDate}`;
 }
 
-export const VERSION = versionData.version;
-export const COMMIT = versionData.commit;
-export const BRANCH = versionData.branch;
+/**
+ * Global version constants
+ * These are available throughout the Apps Script project
+ */
+const VERSION = versionData.version;
+const COMMIT = versionData.commit;
+const BRANCH = versionData.branch;
