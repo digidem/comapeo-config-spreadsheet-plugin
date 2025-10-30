@@ -57,6 +57,31 @@ function createPresetSlug(presetName: string, index?: number): string {
 }
 
 /**
+ * Normalizes icon slugs by removing size suffix variants (e.g., "-100px", "-medium", "-large").
+ * Used to match icon filenames with preset slugs during validation.
+ *
+ * @param slug - The slug to normalize
+ * @returns Normalized slug without size suffixes
+ */
+function normalizeIconSlug(slug: string): string {
+  if (!slug) return "";
+
+  const parts = slug.split("-").filter((part) => part !== "");
+
+  // Remove trailing size indicators like "100px", "2x", "small", "medium", "large"
+  while (parts.length > 0) {
+    const last = parts[parts.length - 1];
+    if (/^(?:\d+px|\d+x|small|medium|large)$/.test(last)) {
+      parts.pop();
+      continue;
+    }
+    break;
+  }
+
+  return parts.join("-");
+}
+
+/**
  * Determines the field type based on the type string.
  * @param typeString The type string from the spreadsheet (e.g., "Text", "Number", "Multiple choice", "Select one").
  * @returns The CoMapeo field type.

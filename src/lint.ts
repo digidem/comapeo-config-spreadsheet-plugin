@@ -175,22 +175,7 @@ function columnNumberToLetter(columnNumber: number): string {
   return columnName;
 }
 
-function normalizeIconSlug(slug: string): string {
-  if (!slug) return "";
-
-  const parts = slug.split("-").filter((part) => part !== "");
-
-  while (parts.length > 0) {
-    const last = parts[parts.length - 1];
-    if (/^(?:\d+px|\d+x|small|medium|large)$/.test(last)) {
-      parts.pop();
-      continue;
-    }
-    break;
-  }
-
-  return parts.join("-");
-}
+// normalizeIconSlug is now defined in utils.ts and imported via reference path
 
 function checkForDuplicates(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,

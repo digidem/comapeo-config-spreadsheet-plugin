@@ -59,7 +59,7 @@ function processIcons(
       return icons;
     }
 
-    const iconSvg = processIconImage(name, iconImage, backgroundColor, presetSlug, collector);
+    const iconSvg = processIconImage(name, iconImage, backgroundColor, presetSlug, collector, folder);
     let iconUrl = iconSvg;
 
     // Validate icon result before proceeding
@@ -121,32 +121,146 @@ function getCategoryData() {
   return { categories, backgroundColors, iconUrls, categoriesSheet };
 }
 
+/**
+ * Validates and fixes Drive icon filename to match preset slug.
+ * Combines access validation and filename validation to avoid duplicate Drive API calls.
+ *
+ * @param iconUrl - Google Drive URL
+ * @param name - Category display name
+ * @param presetSlug - Expected slug for the icon file
+ * @param targetFolder - Optional folder where corrected icon should be placed
+ * @param collector - Error collector
+ * @returns Updated Drive URL (either original or corrected file)
+ */
+function validateAndFixIconFilename(
+  iconUrl: string,
+  name: string,
+  presetSlug: string,
+  targetFolder: GoogleAppsScript.Drive.Folder | undefined,
+  collector: IconErrorCollector,
+): string {
+  try {
+    const fileId = iconUrl.split("/d/")[1].split("/")[0];
+
+    // Single Drive API call - validate access AND get file info
+    let file: GoogleAppsScript.Drive.File;
+    try {
+      file = DriveApp.getFileById(fileId);
+    } catch (error) {
+      // Access validation failed
+      collector.addPermissionError(
+        name,
+        `Drive file not accessible: ${error.message}`,
+        false,
+        { fileId, url: iconUrl }
+      );
+      return iconUrl; // Return original URL, caller will handle fallback
+    }
+
+    const fileName = file.getName();
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    const currentSlug = normalizeIconSlug(slugify(nameWithoutExt));
+
+    // If filename already matches expected slug, return as-is
+    if (currentSlug === presetSlug) {
+      console.log(`Icon filename "${fileName}" matches preset slug "${presetSlug}" ✓`);
+      return iconUrl;
+    }
+
+    console.log(`Icon filename mismatch for ${name}: expected "${presetSlug}", found "${currentSlug}"`);
+
+    // Get file extension and construct correct filename
+    const extension = fileName.match(/\.[^/.]+$/)?.[0] || ".svg";
+    const correctFileName = `${presetSlug}${extension}`;
+
+    // Determine target folder for the corrected file
+    let folder: GoogleAppsScript.Drive.Folder;
+    if (targetFolder) {
+      // Use the provided config folder
+      folder = targetFolder;
+    } else {
+      // Fallback: Use file's first parent, or create in root
+      const parents = file.getParents();
+      if (parents.hasNext()) {
+        folder = parents.next();
+      } else {
+        // File has no parent - shouldn't happen in normal use
+        console.warn(`Icon file "${fileName}" has no parent folder, using Drive root`);
+        folder = DriveApp.getRootFolder();
+      }
+    }
+
+    // Check if correctly-named file already exists in target folder
+    const existingFiles = folder.getFilesByName(correctFileName);
+    if (existingFiles.hasNext()) {
+      const existingFile = existingFiles.next();
+      console.log(`Using existing correctly-named icon: ${correctFileName}`);
+      return existingFile.getUrl();
+    }
+
+    // Create a copy with the correct name
+    console.log(`Creating corrected icon copy: ${correctFileName}`);
+    const newFile = file.makeCopy(correctFileName, folder);
+
+    // Apply sharing settings if available
+    if (typeof applyDefaultSharing === "function") {
+      try {
+        applyDefaultSharing(newFile);
+      } catch (error) {
+        console.warn(`Failed to apply sharing for ${correctFileName}: ${error.message}`);
+      }
+    }
+
+    const newUrl = newFile.getUrl();
+    console.log(`Created corrected icon: ${correctFileName} ✓`);
+
+    return newUrl;
+  } catch (error) {
+    console.error(`Error validating icon filename for ${name}: ${error.message}`);
+    collector.addUnknownError(
+      name,
+      `Failed to validate/fix icon filename: ${error.message}`,
+      false,
+      { originalUrl: iconUrl }
+    );
+    // Return original URL, caller will handle fallback
+    return iconUrl;
+  }
+}
+
 function processIconImage(
   name: string,
   iconImage: any,
   backgroundColor: string,
   presetSlug: string,
   collector: IconErrorCollector,
+  targetFolder?: GoogleAppsScript.Drive.Folder,
 ): string {
   try {
     if (isGoogleDriveIcon(iconImage)) {
-      console.log(`Using existing Google Drive icon for ${name}: ${iconImage}`);
-      // Validate that we can access this Drive file before using it
+      // Only process Drive URLs (not data URIs)
       if (iconImage.startsWith("https://drive.google.com/file/d/")) {
-        const fileId = iconImage.split("/d/")[1].split("/")[0];
-        const accessValidation = validateDriveAccess(fileId);
+        console.log(`Processing existing Drive icon for ${name}: ${iconImage}`);
 
-        if (!accessValidation.valid) {
-          collector.addPermissionError(
-            name,
-            accessValidation.error || "Drive file not accessible",
-            true,  // Will generate fallback
-            { fileId, url: iconImage, ...accessValidation.context }
-          );
-          return generateNewIcon(name, backgroundColor, presetSlug, collector);
+        // Validate access AND filename in single operation
+        const validatedUrl = validateAndFixIconFilename(
+          iconImage,
+          name,
+          presetSlug,
+          targetFolder,
+          collector
+        );
+
+        // If validation returned different URL, it means we created/found corrected file
+        if (validatedUrl !== iconImage) {
+          console.log(`Using corrected icon URL for ${name}`);
+          return validatedUrl;
         }
-        return iconImage; // Return the URL if we can access it
+
+        // Same URL returned - validation passed or failed gracefully
+        return iconImage;
       }
+      // Non-standard Drive URL format - return as-is
       return iconImage;
     } else if (isCellImage(iconImage)) {
       return processCellImage(name, iconImage, backgroundColor, presetSlug, collector);
