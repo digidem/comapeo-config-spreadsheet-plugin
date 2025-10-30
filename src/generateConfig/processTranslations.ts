@@ -7,6 +7,76 @@ function getProcessTranslationsLogger() {
     : console;
 }
 
+function normalizeComparisonKey(value: unknown): string {
+  if (typeof value === "string") {
+    return value.trim().toLowerCase();
+  }
+  if (value === null || value === undefined) return "";
+  return String(value).trim().toLowerCase();
+}
+
+function buildPresetLookup(presets: CoMapeoPreset[]) {
+  const byName = new Map<string, CoMapeoPreset>();
+  const byIcon = new Map<string, CoMapeoPreset>();
+
+  presets.forEach((preset) => {
+    if (preset?.name) {
+      const key = normalizeComparisonKey(preset.name);
+      if (key) byName.set(key, preset);
+    }
+    if (preset?.icon) {
+      const key = normalizeComparisonKey(preset.icon);
+      if (key) byIcon.set(key, preset);
+    }
+  });
+
+  return {
+    find(candidate: unknown): CoMapeoPreset | undefined {
+      const key = normalizeComparisonKey(candidate);
+      if (!key) return undefined;
+      return byName.get(key) || byIcon.get(key);
+    },
+  };
+}
+
+function resolvePresetForTranslationRow(
+  translationValues: string[],
+  presets: CoMapeoPreset[],
+  translationIndex: number,
+  columnToLanguageMap: Record<number, string>,
+  primaryLanguageCode: string,
+  lookup: ReturnType<typeof buildPresetLookup>,
+  log: any,
+): CoMapeoPreset | undefined {
+  const fallbackPreset = presets[translationIndex];
+
+  const primaryColumnIndexEntry = Object.entries(columnToLanguageMap).find(
+    ([, lang]) => lang === primaryLanguageCode,
+  );
+  const primaryColumnIndex = primaryColumnIndexEntry
+    ? parseInt(primaryColumnIndexEntry[0], 10)
+    : 0;
+
+  const primaryCell =
+    translationValues[primaryColumnIndex] ??
+    translationValues[0] ??
+    "";
+
+  const matchedPreset = lookup.find(primaryCell);
+  if (matchedPreset) {
+    return matchedPreset;
+  }
+
+  if (fallbackPreset) {
+    const debugValue = primaryCell || "(empty primary cell)";
+    log.warn(
+      `⚠️  Could not match category translation row ${translationIndex + 2} using value "${debugValue}". Falling back to row order.`,
+    );
+  }
+
+  return fallbackPreset;
+}
+
 /**
  * Build column-to-language mapping for a specific translation sheet.
  * This function reads the header row of a sheet and maps column indexes to language codes.
@@ -107,6 +177,7 @@ function buildColumnMapForSheet(sheetName: string): {
 function processTranslations(data, fields, presets) {
   const log = getProcessTranslationsLogger();
   log.info("Starting processTranslations...");
+  const primaryLanguage = getPrimaryLanguage();
 
   // Build initial column map from Category Translations to determine available languages
   const initialMapping = buildColumnMapForSheet("Category Translations");
@@ -131,6 +202,7 @@ function processTranslations(data, fields, presets) {
 
   const translationSheets = sheets(true);
   log.info("Processing translation sheets:", translationSheets);
+  const presetLookup = buildPresetLookup(presets);
 
   for (const sheetName of translationSheets) {
     log.info(`\nProcessing sheet: ${sheetName}`);
@@ -180,7 +252,9 @@ function processTranslations(data, fields, presets) {
       translationIndex++
     ) {
       const translationRow = translations[translationIndex];
-      const translation = translationRow.map((t) => t.toString().trim());
+      const translation = translationRow.map((t) =>
+        t === null || t === undefined ? "" : t.toString().trim(),
+      );
       log.info(
         `\nProcessing translation ${translationIndex + 1}/${translations.length}:`,
         translation,
@@ -199,10 +273,29 @@ function processTranslations(data, fields, presets) {
         const messageType = sheetName.startsWith("Category")
           ? "presets"
           : "fields";
-        const item =
-          messageType === "fields"
-            ? fields[translationIndex]
-            : presets[translationIndex];
+        let item: CoMapeoPreset | CoMapeoField | undefined;
+        if (messageType === "fields") {
+          item = fields[translationIndex];
+        } else {
+          item = resolvePresetForTranslationRow(
+            translation,
+            presets,
+            translationIndex,
+            columnToLanguageMap,
+            primaryLanguage.code,
+            presetLookup,
+            log,
+          );
+        }
+
+        if (!item) {
+          log.warn(
+            `⚠️  Skipping translation row ${translationIndex + 2} in "${sheetName}" - no matching ${
+              messageType === "fields" ? "field" : "preset"
+            } found.`,
+          );
+          continue;
+        }
         const key =
           messageType === "presets"
             ? (item as CoMapeoPreset).icon
