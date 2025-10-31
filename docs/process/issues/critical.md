@@ -124,7 +124,7 @@ Comprehensive transaction system with backup/restore **completely unused**
    ```
 
 4. **Update documentation**:
-   - Add note to `context/ARCHITECTURE.md` about removal
+  - Add note to `docs/reference/architecture.md` about removal
    - Document rationale: "Removed 508-line unused transaction system. Current error handling is adequate for use case. Can be restored from git history if needed."
 
 ### Testing Requirements

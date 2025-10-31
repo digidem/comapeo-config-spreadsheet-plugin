@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Sprint 1: Critical Security & Performance
 
 **Duration**: Week 1
@@ -125,7 +130,7 @@
   git mv src/errorHandling.ts docs/archived/errorHandling.ts.backup
   ```
 - [ ] **CODE**: Delete `src/errorHandling.ts`
-- [ ] **DOC**: Update `context/ARCHITECTURE.md`
+- [ ] **DOC**: Update `docs/reference/architecture.md`
   - Add note about removal
   - Document rationale
 - [ ] **TEST**: Build verification
@@ -300,6 +305,6 @@ Measure BEFORE and AFTER:
 ---
 
 **See Also**:
-- [CRITICAL Issues](../issues/CRITICAL.md)
-- [Regression Strategy](../REGRESSION-STRATEGY.md)
-- [Sprint 2: Code Quality](sprint-2-quality.md)
+- [CRITICAL Issues](../process/issues/critical.md)
+- [Regression Strategy](../process/regression-strategy.md)
+- [Sprint 2: Code Quality](sprint-02-quality.md)

@@ -232,43 +232,43 @@ The spreadsheet must follow specific structure:
 
 ## Documentation Structure
 
-All technical documentation lives in the **`context/`** directory. Reference these files for comprehensive information:
+All technical documentation now lives in the **`docs/`** tree. Reference these files for comprehensive information:
 
 ### Architecture & System Design
-- **[`context/ARCHITECTURE.md`](./context/ARCHITECTURE.md)** - Complete system architecture, data flow, and module organization
+- **[`docs/reference/architecture.md`](./docs/reference/architecture.md)** - Complete system architecture, data flow, and module organization
   - 9-stage pipeline for config generation
   - File structure and responsibilities
   - External API dependencies
   - **Use when**: Understanding system design, onboarding, or planning major features
 
 ### Feature Documentation
-- **[`context/CAT_GEN.md`](./context/CAT_GEN.md)** - Category generation process details
+- **[`docs/reference/cat-generation.md`](./docs/reference/cat-generation.md)** - Category generation process details
   - Stage-by-stage analysis of export pipeline
   - Debugging strategies and test functions
   - Performance benchmarks
   - **Use when**: Working on export functionality or troubleshooting generation issues
 
-- **[`context/IMPORT_CAT.md`](./context/IMPORT_CAT.md)** - Import category feature documentation
+- **[`docs/reference/import-cat.md`](./docs/reference/import-cat.md)** - Import category feature documentation
   - Reverse engineering process for .comapeocat files
   - Icon extraction strategies
   - Translation structure handling
   - **Use when**: Working on import functionality or debugging imports
 
 ### File Formats & Data Structures
-- **[`context/COMAPEOCAT_FORMAT.md`](./context/COMAPEOCAT_FORMAT.md)** - .comapeocat file format specification
+- **[`docs/reference/comapeocat-format.md`](./docs/reference/comapeocat-format.md)** - .comapeocat file format specification
   - ZIP archive structure (197 files)
   - Icon variants and naming conventions
   - Performance considerations for large icon sets
   - **Use when**: Understanding or debugging file format issues
 
-- **[`context/spreadsheet-format.md`](./context/spreadsheet-format.md)** - Spreadsheet data structure rules
+- **[`docs/reference/spreadsheet-format.md`](./docs/reference/spreadsheet-format.md)** - Spreadsheet data structure rules
   - Categories and Details sheet structure
   - Field types and validation rules
   - Translation sheet format
   - **Use when**: Validating spreadsheet data or building features that read/write sheets
 
 ### User Documentation
-- **[`context/USER_GUIDE.md`](./context/USER_GUIDE.md)** - End-user documentation
+- **[`docs/reference/user-guide.md`](./docs/reference/user-guide.md)** - End-user documentation
   - Creating new configurations
   - Exporting and importing workflows
   - Translation management
@@ -276,18 +276,18 @@ All technical documentation lives in the **`context/`** directory. Reference the
   - **Use when**: Understanding user workflows or writing user-facing features
 
 ### Technical Constraints & Patterns
-- **[`context/PNG_SPRITE_LIMITATIONS.md`](./context/PNG_SPRITE_LIMITATIONS.md)** - PNG sprite parsing limitations
+- **[`docs/reference/png-sprite-limitations.md`](./docs/reference/png-sprite-limitations.md)** - PNG sprite parsing limitations
   - Why PNG sprites can't be parsed in Apps Script
   - Supported alternatives (individual PNGs, SVG sprites)
   - Workarounds and solutions
   - **Use when**: Planning icon features or debugging import issues
 
-- **[`context/PERFORMANCE_FIX_SUMMARY.md`](./context/PERFORMANCE_FIX_SUMMARY.md)** - File indexing optimization pattern
+- **[`docs/historical/performance-fix-summary.md`](./docs/historical/performance-fix-summary.md)** - File indexing optimization pattern
   - O(n×m) → O(n+m) optimization using Map indexing
   - Before/after comparison with performance gains
   - **Use when**: Optimizing file operations or similar search patterns
 
-- **[`context/HTML_VALIDATION.md`](./context/HTML_VALIDATION.md)** - HTML validation strategy for dialogs
+- **[`docs/reference/html-validation.md`](./docs/reference/html-validation.md)** - HTML validation strategy for dialogs
   - Prevents "Malformed HTML content" errors
   - Stack-based tag matching algorithm
   - Integration with dialog generation system
@@ -295,4 +295,4 @@ All technical documentation lives in the **`context/`** directory. Reference the
   - **Use when**: Working with dialog generation, debugging HTML errors, or adding new dialog types
 
 ### Navigation
-See **[`context/README.md`](./context/README.md)** for a complete overview and guidance on when to reference each file.
+See **[`docs/README.md`](./docs/README.md)** for a complete overview and guidance on when to reference each file.

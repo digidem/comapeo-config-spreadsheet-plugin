@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Sprint 4: Polish & Documentation
 
 **Duration**: Week 4
@@ -84,5 +89,5 @@ Replace fixed delays with intelligent polling.
 ---
 
 **See Also**:
-- [LOW Priority Issues](../issues/LOW.md)
-- [Sprint 3](sprint-3-security.md)
+- [LOW Priority Issues](../process/issues/low.md)
+- [Sprint 3](sprint-03-security.md)

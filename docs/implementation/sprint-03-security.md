@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Sprint 3: Security & Validation
 
 **Duration**: Week 3
@@ -87,6 +92,6 @@
 ---
 
 **See Also**:
-- [CRITICAL Issues](../issues/CRITICAL.md#critical-5-xss-and-code-injection-vulnerabilities)
-- [MEDIUM Issues](../issues/MEDIUM.md)
-- [Sprint 4](sprint-4-polish.md)
+- [CRITICAL Issues](../process/issues/critical.md#critical-5-xss-and-code-injection-vulnerabilities)
+- [MEDIUM Issues](../process/issues/medium.md)
+- [Sprint 4](sprint-04-polish.md)

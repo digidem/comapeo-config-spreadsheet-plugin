@@ -920,6 +920,6 @@ Test helper dependencies:
 ---
 
 **See Also**:
-- [Architecture Documentation](../context/ARCHITECTURE.md)
+- [Architecture Documentation](../reference/architecture.md)
 - [Module Reviews](./reviews/README.md)
 - [CLAUDE.md](../CLAUDE.md) - Development guidance

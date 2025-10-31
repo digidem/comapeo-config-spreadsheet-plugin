@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Sprint 2: Code Quality & DRY
 
 **Duration**: Week 2
@@ -89,6 +94,6 @@
 ---
 
 **See Also**:
-- [HIGH Priority Issues](../issues/HIGH.md)
-- [Sprint 1](sprint-1-critical.md)
-- [Sprint 3](sprint-3-security.md)
+- [HIGH Priority Issues](../process/issues/high.md)
+- [Sprint 1](sprint-01-critical.md)
+- [Sprint 3](sprint-03-security.md)

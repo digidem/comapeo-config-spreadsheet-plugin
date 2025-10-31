@@ -20,7 +20,7 @@
 
 **Phase 3 Update 2** (2025-10-14) - Naming standardisation + logging rollout:
 - ✅ Introduced canonical naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) and applied across export/import/format detection.
-- ✅ Added `docs/NAMING_CONVENTIONS.md` to codify rules for field, preset, and option identifiers.
+- ✅ Added `docs/process/naming-conventions.md` to codify rules for field, preset, and option identifiers.
 - ✅ Migrated translation + preset processors to scoped logging and refreshed JSDoc coverage of new helpers.
 - 🔄 Next: baseline performance capture and regression harness remain outstanding (see Immediate Actions #4-6).
 
@@ -110,7 +110,7 @@
    - Consolidated 3 slugify() functions into 1
    - 30min effort, LOW risk
 
-**👉 See**: [docs/issues/CRITICAL.md](docs/issues/CRITICAL.md)
+**👉 See**: [docs/process/issues/critical.md](docs/process/issues/critical.md)
 
 ---
 
@@ -118,14 +118,14 @@
 
 ### 📋 Issues by Priority
 
-- **[Critical Issues](docs/issues/CRITICAL.md)** - Fix immediately (6 issues)
-- **[High Priority](docs/issues/HIGH.md)** - Fix soon (25+ issues)
-- **[Medium Priority](docs/issues/MEDIUM.md)** - Nice to have (50+ issues)
-- **[Low Priority](docs/issues/LOW.md)** - Polish & future work (20+ issues)
+- **[Critical Issues](docs/process/issues/critical.md)** - Fix immediately (6 issues)
+- **[High Priority](docs/process/issues/high.md)** - Fix soon (25+ issues)
+- **[Medium Priority](docs/process/issues/medium.md)** - Nice to have (50+ issues)
+- **[Low Priority](docs/process/issues/low.md)** - Polish & future work (20+ issues)
 
 ### 📝 Module Reviews
 
-- **[Reviews Index](docs/reviews/README.md)** - Complete module analysis
+- **[Reviews Index](docs/process/review-checklists.md)** - Complete module analysis
   - Core Data Flow (4 modules)
   - Processing Modules (4 modules)
   - Translation System (1 module)
@@ -145,7 +145,7 @@
 
 ### 🛡️ Safety & Testing
 
-- **[Regression Prevention Strategy](docs/REGRESSION-STRATEGY.md)** - Critical safety protocols
+- **[Regression Prevention Strategy](docs/process/regression-strategy.md)** - Critical safety protocols
   - Safety-first approach
   - Fix-specific safety notes
   - Comprehensive testing checklist
@@ -175,10 +175,10 @@
 
 | Risk | Impact | Mitigation / Next Step | Owner | Status (2025-10-14) |
 |------|--------|------------------------|-------|---------------------|
-| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/issues/CRITICAL.md` |
+| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/process/issues/critical.md` |
 | Reliability (regression coverage) | Medium: lack of isolated regression suite risks reintroducing fixed defects | Complete Tasks 4-6 in Immediate Actions, automate smoke run before each release | Luandro + QA Support | In Progress |
 | Performance (baseline unknown) | Medium: improvements may regress without baseline metrics | Capture export/import timing metrics and log in metrics doc before next optimisation | Luandro | Not Started |
-| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `docs/NAMING_CONVENTIONS.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
+| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `docs/process/naming-conventions.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
 
 ---
 
@@ -238,20 +238,20 @@
 ### For Developers
 
 1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
-2. **Review open critical docs**: Refresh on [CRITICAL.md](docs/issues/CRITICAL.md) and [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md) before each change.
-3. **Follow naming standard**: Use `docs/NAMING_CONVENTIONS.md` when touching identifiers and log helper usage for new code.
+2. **Review open critical docs**: Refresh on [CRITICAL.md](docs/process/issues/critical.md) and [REGRESSION-STRATEGY.md](docs/process/regression-strategy.md) before each change.
+3. **Follow naming standard**: Use `docs/process/naming-conventions.md` when touching identifiers and log helper usage for new code.
 
 ### For Project Managers
 
 1. **Track execution**: Use the Immediate Actions table as the weekly commitment tracker.
 2. **Understand scope**: Review this PROGRESS.md
-3. **Assess priorities**: Review [docs/issues/](docs/issues/)
-4. **Manage risks**: Review [REGRESSION-STRATEGY.md](docs/REGRESSION-STRATEGY.md)
+3. **Assess priorities**: Review [docs/process/issues/](docs/process/issues/)
+4. **Manage risks**: Review [REGRESSION-STRATEGY.md](docs/process/regression-strategy.md)
 
 ### For Code Reviewers
 
-1. **Module details**: See [docs/reviews/](docs/reviews/)
-2. **Issue context**: See [docs/issues/](docs/issues/)
+1. **Module details**: See [docs/process/](docs/process/)
+2. **Issue context**: See [docs/process/issues/](docs/process/issues/)
 3. **Current focus**: Align feedback with the Immediate Actions table and outstanding HIGH-024 work noted above.
 
 ---
@@ -291,14 +291,14 @@ After addressing all issues:
 
 | # | Task | Owner | Target Date | Status | Notes |
 |---|------|-------|-------------|--------|-------|
-| 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `docs/REGRESSION-STRATEGY.md`. |
+| 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `docs/process/regression-strategy.md`. |
 | 5 | Create regression test suite covering current workflows | QA Support | 2025-10-24 | ⬜ Not Started | Blocked on Task 4; capture pass/fail matrix for export, import, translation flows. |
 | 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `docs/metrics/baseline.md`. |
 | 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-14 | ✅ Completed | Applied naming/logging helpers across translation, preset, and import flows; smoke tests pending regression harness. |
 
 ### Pre-Merge Checklist (Outstanding)
 
-- Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `docs/REGRESSION-STRATEGY.md` to unblock automated checks (`Immediate Action #4`).
+- Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `docs/process/regression-strategy.md` to unblock automated checks (`Immediate Action #4`).
 - Stand up the regression test suite (export, import, translation, icon flows), capture pass/fail matrices, and fold them into the regression strategy once the clone exists (`Immediate Action #5`).
 - Record the export pipeline baseline by timing three end-to-end runs (Drive writes, ZIP build, API upload) and publish metrics in `docs/metrics/baseline.md` (`Immediate Action #6`).
 - Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `PERFORMANCE_IMPROVEMENTS.md` (Deduplicate Icon Writes entry).
@@ -365,8 +365,8 @@ The CoMapeo Config Spreadsheet Plugin is a **well-structured, functional system*
 
 ---
 
-**Questions?** See [docs/issues/](docs/issues/) for detailed information on specific issues.
+**Questions?** See [docs/process/issues/](docs/process/issues/) for detailed information on specific issues.
 
 **Ready to start?** Work through the Immediate Actions table above, beginning with Task 4 (test environment clone).
 
-**Need safety guidance?** Review [Regression Prevention Strategy](docs/REGRESSION-STRATEGY.md).
+**Need safety guidance?** Review [Regression Prevention Strategy](docs/process/regression-strategy.md).

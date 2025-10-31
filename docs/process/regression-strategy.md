@@ -1,3 +1,9 @@
+---
+owner: Luandro
+last-reviewed: 2025-10-31
+review-cadence: quarterly
+---
+
 # Regression Prevention Strategy
 
 **PRIMARY RULE**: The system currently works fine. **DO NOT BREAK IT.**

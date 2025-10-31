@@ -551,9 +551,9 @@ function testFeature(): TestResult {
 ## Additional Resources
 
 - **[CLAUDE.md](../../CLAUDE.md)**: Project development guide
-- **[IMPORT_CAT.md](../../context/IMPORT_CAT.md)**: Import feature documentation
-- **[ARCHITECTURE.md](../../context/ARCHITECTURE.md)**: System architecture
-- **[USER_GUIDE.md](../../context/USER_GUIDE.md)**: End-user documentation
+- **[import-cat.md](../../docs/reference/import-cat.md)**: Import feature documentation
+- **[architecture.md](../../docs/reference/architecture.md)**: System architecture
+- **[user-guide.md](../../docs/reference/user-guide.md)**: End-user documentation
 
 ## Support
 
