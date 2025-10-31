@@ -14,19 +14,23 @@ This page tracks the ongoing consolidation of historical context files into a si
 
 | Source Path | Destination Path | Status | Notes / Follow-ups |
 | --- | --- | --- | --- |
-| `docs/DEPENDENCIES.md` | `docs/process/dependencies.md` | ✅ moved 2025-10-31 | Review dependency list for freshness |
-| `docs/implementation/sprint-1-critical.md` | `docs/implementation/sprint-01-critical.md` | ✅ moved 2025-10-31 | Add `last-reviewed` metadata block |
-| `docs/implementation/sprint-2-quality.md` | `docs/implementation/sprint-02-quality.md` | ✅ moved 2025-10-31 | Add `last-reviewed` metadata block |
-| `docs/implementation/sprint-3-security.md` | `docs/implementation/sprint-03-security.md` | ✅ moved 2025-10-31 | Add `last-reviewed` metadata block |
-| `docs/implementation/sprint-4-polish.md` | `docs/implementation/sprint-04-polish.md` | ✅ moved 2025-10-31 | Add `last-reviewed` metadata block |
-| `docs/issues/CRITICAL.md` | `docs/process/issues/critical.md` | ✅ moved 2025-10-31 | Confirm issue template links |
-| `docs/issues/HIGH.md` | `docs/process/issues/high.md` | ✅ moved 2025-10-31 | Confirm issue template links |
-| `docs/issues/LOW.md` | `docs/process/issues/low.md` | ✅ moved 2025-10-31 | Confirm issue template links |
-| `docs/issues/MEDIUM.md` | `docs/process/issues/medium.md` | ✅ moved 2025-10-31 | Confirm issue template links |
-| `docs/NAMING_CONVENTIONS.md` | `docs/process/naming-conventions.md` | ✅ moved 2025-10-31 | Cross-check with lint rules |
-| `docs/REGRESSION-STRATEGY.md` | `docs/process/regression-strategy.md` | ✅ moved 2025-10-31 | Add owner + review cadence |
-| `docs/reviews/README.md` | `docs/process/review-checklists.md` | ✅ moved 2025-10-31 | Update headings + intro |
-| `docs/SVG_ERROR_DETECTION_REMAINING_WORK.md` | `docs/implementation/svg-error-detection.md` | ✅ moved 2025-10-31 | Add status banner |
+| `docs/DEPENDENCIES.md` | `docs/process/dependencies.md` | ✅ moved 2025-10-31 | - [ ] Review dependency list for freshness (Owner: Luandro, Target: 2025-11-07) |
+| `docs/implementation/sprint-1-critical.md` | `docs/implementation/sprint-01-critical.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
+| `docs/implementation/sprint-2-quality.md` | `docs/implementation/sprint-02-quality.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
+| `docs/implementation/sprint-3-security.md` | `docs/implementation/sprint-03-security.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
+| `docs/implementation/sprint-4-polish.md` | `docs/implementation/sprint-04-polish.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
+| `docs/issues/CRITICAL.md` | `docs/process/issues/critical.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
+| `docs/issues/HIGH.md` | `docs/process/issues/high.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
+| `docs/issues/LOW.md` | `docs/process/issues/low.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
+| `docs/issues/MEDIUM.md` | `docs/process/issues/medium.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
+| `docs/NAMING_CONVENTIONS.md` | `docs/process/naming-conventions.md` | ✅ moved 2025-10-31 | - [ ] Cross-check naming rules with lint configuration (Owner: Dev Tooling, Target: 2025-11-14) |
+| `docs/REGRESSION-STRATEGY.md` | `docs/process/regression-strategy.md` | ✅ moved 2025-10-31 | - [x] Added owner + review cadence (2025-10-31) |
+| `docs/reviews/README.md` | `docs/process/review-checklists.md` | ✅ moved 2025-10-31 | - [ ] Validate headings + intro after migration (Owner: Documentation, Target: 2025-11-05) |
+| `docs/SVG_ERROR_DETECTION_REMAINING_WORK.md` | `docs/implementation/svg-error-detection.md` | ✅ moved 2025-10-31 | - [x] Added status banner (2025-10-31) |
+| `CLAUDE.md` | `docs/process/assistant-guide.md` | ✅ moved 2025-10-31 | - [ ] Review assistant guide alongside tooling updates each release (Owner: AiOps, Cadence: Monthly) |
+| `PERFORMANCE_IMPROVEMENTS.md` | `docs/implementation/performance-improvements.md` | ✅ moved 2025-10-31 | - [ ] Capture timing deltas after pending items (Owner: Luandro, Target: 2025-11-10) |
+| `PRODUCTION_HARDENING_SUMMARY.md` | `docs/historical/production-hardening-2025-10-28.md` | ✅ moved 2025-10-31 | — |
+| `PROGRESS.md` | `docs/historical/progress.md` | ✅ moved 2025-10-31 | - [ ] Update when new phases complete (Owner: Luandro, Trigger: Phase completion) |
 | `context/ARCHITECTURE.md` | `docs/reference/architecture.md` | ✅ moved 2025-10-31 | Ensure internal anchors still work |
 | `context/CAT_GEN.md` | `docs/reference/cat-generation.md` | ✅ moved 2025-10-31 | Verify code snippet paths |
 | `context/COMAPEOCAT_FORMAT.md` | `docs/reference/comapeocat-format.md` | ✅ moved 2025-10-31 | None |

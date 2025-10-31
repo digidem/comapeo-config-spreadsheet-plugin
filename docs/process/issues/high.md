@@ -418,7 +418,7 @@ function cleanupOldTempFolders(olderThanHours = 24) {
 
 Also listed as CRITICAL issue due to severity.
 
-**See**: [CRITICAL Issues](CRITICAL.md#critical-4-infinite-loop-in-icon-generation)
+**See**: [Critical Issues](critical.md#critical-4-infinite-loop-in-icon-generation)
 
 ---
 
@@ -537,6 +537,6 @@ function getFieldType(typeString: string): 'text' | 'number' | 'selectOne' | 'se
 ---
 
 **See also**:
-- [CRITICAL Priority Issues](CRITICAL.md)
-- [MEDIUM Priority Issues](MEDIUM.md)
+- [Critical Priority Issues](critical.md)
+- [Medium Priority Issues](medium.md)
 - [Implementation Plans](../implementation/)

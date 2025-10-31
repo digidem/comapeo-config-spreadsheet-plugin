@@ -450,6 +450,6 @@ clasp push --version <previous_working_version>
 ---
 
 **See Also**:
-- [CRITICAL Issues](issues/CRITICAL.md) - Know what you're fixing
-- [Implementation Sprints](implementation/) - Planned approach
-- Original PROGRESS.md - Full context
+- [Critical Issues](issues/critical.md) - Know what you're fixing
+- [Implementation Sprints](../implementation/) - Planned approach
+- [Progress log](../historical/progress.md) - Full context

@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Production Hardening Summary
 
 **Date**: 2025-10-28

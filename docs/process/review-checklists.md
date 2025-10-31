@@ -29,7 +29,7 @@ Critical path for data loading and configuration generation.
 
 **Key Issues**: CRITICAL-001 (HTTP), CRITICAL-003 (Caching), HIGH-005 (Cleanup)
 
-**See**: Original PROGRESS.md lines 74-252
+**See**: [Progress log](../historical/progress.md) lines 74-252
 
 ---
 
@@ -44,7 +44,7 @@ Transform spreadsheet data into CoMapeo configuration format.
 
 **Key Issues**: HIGH-004 (Uncached access), MED-013 (Magic indices), MED-014 (Error handling)
 
-**See**: Original PROGRESS.md lines 255-428
+**See**: [Progress log](../historical/progress.md) lines 255-428
 
 ---
 
@@ -56,7 +56,7 @@ Bidirectional translation with Google Translate API.
 
 **Key Issues**: MED-008 (API batching), MED-009 (Rate limiting), MED-015 (DRY violations)
 
-**See**: Original PROGRESS.md lines 430-493
+**See**: [Progress log](../historical/progress.md) lines 430-493
 
 ---
 
@@ -72,7 +72,7 @@ Reverse flow: imports `.comapeocat` files back into spreadsheet.
 
 **Key Issues**: HIGH-006 (File size), HIGH-007 (Path traversal), MED-022 (Depth limit)
 
-**See**: Original PROGRESS.md lines 496-757
+**See**: [Progress log](../historical/progress.md) lines 496-757
 
 ---
 
@@ -85,7 +85,7 @@ Fetch and process icons from external API.
 
 **Key Issues**: CRITICAL-004 (Infinite loop), HIGH-008 (Empty icon validation), HIGH-020 (Retry logic)
 
-**See**: Original PROGRESS.md lines 759-877
+**See**: [Progress log](../historical/progress.md) lines 759-877
 
 ---
 
@@ -99,7 +99,7 @@ Lint spreadsheet data and cleanup temporary resources.
 
 **Key Issues**: HIGH-018 (Optimize validation), MED-011 (Large sheet handling), LOW-023 (Split large files)
 
-**See**: Original PROGRESS.md lines 880-1026
+**See**: [Progress log](../historical/progress.md) lines 880-1026
 
 ---
 
@@ -111,7 +111,7 @@ Lint spreadsheet data and cleanup temporary resources.
 
 **Key Issues**: CRITICAL-002 (Delete dead code)
 
-**See**: Original PROGRESS.md lines 1028-1088
+**See**: [Progress log](../historical/progress.md) lines 1028-1088
 
 ---
 
@@ -125,7 +125,7 @@ HTML dialog generation and localized text.
 
 **Key Issues**: CRITICAL-005 (XSS), HIGH-010 (Embed logo), MED-025 (Spanish typo)
 
-**See**: Original PROGRESS.md lines 1090-1245
+**See**: [Progress log](../historical/progress.md) lines 1090-1245
 
 ---
 
@@ -138,7 +138,7 @@ Shared utility functions.
 
 **Key Issues**: CRITICAL-006 (Duplicate slugify), HIGH-025 (TypeScript types), LOW-016 (Null checks)
 
-**See**: Original PROGRESS.md lines 1248-1327
+**See**: [Progress log](../historical/progress.md) lines 1248-1327
 
 ---
 
@@ -150,7 +150,7 @@ TypeScript interfaces for all data structures.
 
 **Key Issues**: HIGH-016 (Add JSDoc), MED-018 (Missing types), LOW-027 (Optional properties)
 
-**See**: Original PROGRESS.md lines 1330-1407
+**See**: [Progress log](../historical/progress.md) lines 1330-1407
 
 ---
 
@@ -164,7 +164,7 @@ Integration and E2E tests.
 
 **Key Issues**: HIGH-013 (Test docs), HIGH-014 (Cleanup helpers), HIGH-015 (Summary report)
 
-**See**: Original PROGRESS.md lines 1410-1499
+**See**: [Progress log](../historical/progress.md) lines 1410-1499
 
 ---
 
@@ -179,7 +179,7 @@ System-wide patterns and constraints.
 
 **Key Issues**: HIGH-017 (Centralized logging), HIGH-023 (Dependency docs), HIGH-024 (Naming conventions)
 
-**See**: Original PROGRESS.md lines 1502-1690
+**See**: [Progress log](../historical/progress.md) lines 1502-1690
 
 ---
 
@@ -264,27 +264,27 @@ System-wide patterns and constraints.
 ## Quick Navigation
 
 **By Priority**:
-- [Critical Issues](../issues/CRITICAL.md) - Fix immediately
-- [High Priority Issues](../issues/HIGH.md) - Fix soon
-- [Medium Priority Issues](../issues/MEDIUM.md) - Nice to have
-- [Low Priority Issues](../issues/LOW.md) - Polish
+- [Critical Issues](../issues/critical.md) - Fix immediately
+- [High Priority Issues](../issues/high.md) - Fix soon
+- [Medium Priority Issues](../issues/medium.md) - Nice to have
+- [Low Priority Issues](../issues/low.md) - Polish
 
 **By Sprint**:
-- [Sprint 1: Critical Security & Performance](../implementation/sprint-1-critical.md)
-- [Sprint 2: Code Quality & DRY](../implementation/sprint-2-quality.md)
-- [Sprint 3: Security & Validation](../implementation/sprint-3-security.md)
-- [Sprint 4: Polish & Documentation](../implementation/sprint-4-polish.md)
+- [Sprint 1: Critical Security & Performance](../implementation/sprint-01-critical.md)
+- [Sprint 2: Code Quality & DRY](../implementation/sprint-02-quality.md)
+- [Sprint 3: Security & Validation](../implementation/sprint-03-security.md)
+- [Sprint 4: Polish & Documentation](../implementation/sprint-04-polish.md)
 
 **Safety**:
-- [Regression Prevention Strategy](../REGRESSION-STRATEGY.md) - Critical safety protocols
+- [Regression Prevention Strategy](regression-strategy.md) - Critical safety protocols
 
 ---
 
 ## For Detailed Module Analysis
 
-The complete module-by-module review with code examples, edge cases, and specific recommendations is preserved in the original PROGRESS.md file (now archived at root level). This index provides the summary and navigation.
+The complete module-by-module review with code examples, edge cases, and specific recommendations is preserved in the archived [progress log](../historical/progress.md). This index provides the summary and navigation.
 
-**Key Review Sections in Original**:
+**Key Review Sections in the Archive**:
 - Lines 70-252: Core Data Flow
 - Lines 255-428: Processing Modules
 - Lines 430-493: Translation System

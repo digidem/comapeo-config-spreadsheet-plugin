@@ -1,3 +1,8 @@
+---
+last-reviewed: 2025-10-31
+status: archived
+---
+
 # Code Review & Improvement Tracking
 
 **Status**: 🔄 In Progress - Phase 1 Complete
@@ -110,7 +115,7 @@
    - Consolidated 3 slugify() functions into 1
    - 30min effort, LOW risk
 
-**👉 See**: [docs/process/issues/critical.md](docs/process/issues/critical.md)
+**👉 See**: [critical issue log](../process/issues/critical.md)
 
 ---
 
@@ -118,14 +123,14 @@
 
 ### 📋 Issues by Priority
 
-- **[Critical Issues](docs/process/issues/critical.md)** - Fix immediately (6 issues)
-- **[High Priority](docs/process/issues/high.md)** - Fix soon (25+ issues)
-- **[Medium Priority](docs/process/issues/medium.md)** - Nice to have (50+ issues)
-- **[Low Priority](docs/process/issues/low.md)** - Polish & future work (20+ issues)
+- **[Critical Issues](../process/issues/critical.md)** - Fix immediately (6 issues)
+- **[High Priority](../process/issues/high.md)** - Fix soon (25+ issues)
+- **[Medium Priority](../process/issues/medium.md)** - Nice to have (50+ issues)
+- **[Low Priority](../process/issues/low.md)** - Polish & future work (20+ issues)
 
 ### 📝 Module Reviews
 
-- **[Reviews Index](docs/process/review-checklists.md)** - Complete module analysis
+- **[Reviews Index](../process/review-checklists.md)** - Complete module analysis
   - Core Data Flow (4 modules)
   - Processing Modules (4 modules)
   - Translation System (1 module)
@@ -145,7 +150,7 @@
 
 ### 🛡️ Safety & Testing
 
-- **[Regression Prevention Strategy](docs/process/regression-strategy.md)** - Critical safety protocols
+- **[Regression Prevention Strategy](../process/regression-strategy.md)** - Critical safety protocols
   - Safety-first approach
   - Fix-specific safety notes
   - Comprehensive testing checklist
@@ -238,20 +243,20 @@
 ### For Developers
 
 1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
-2. **Review open critical docs**: Refresh on [CRITICAL.md](docs/process/issues/critical.md) and [REGRESSION-STRATEGY.md](docs/process/regression-strategy.md) before each change.
+2. **Review open critical docs**: Refresh on [critical.md](../process/issues/critical.md) and [regression-strategy.md](../process/regression-strategy.md) before each change.
 3. **Follow naming standard**: Use `docs/process/naming-conventions.md` when touching identifiers and log helper usage for new code.
 
 ### For Project Managers
 
 1. **Track execution**: Use the Immediate Actions table as the weekly commitment tracker.
-2. **Understand scope**: Review this PROGRESS.md
-3. **Assess priorities**: Review [docs/process/issues/](docs/process/issues/)
-4. **Manage risks**: Review [REGRESSION-STRATEGY.md](docs/process/regression-strategy.md)
+2. **Understand scope**: Review this progress log
+3. **Assess priorities**: Review [issue stacks](../process/issues/)
+4. **Manage risks**: Review [regression strategy](../process/regression-strategy.md)
 
 ### For Code Reviewers
 
-1. **Module details**: See [docs/process/](docs/process/)
-2. **Issue context**: See [docs/process/issues/](docs/process/issues/)
+1. **Module details**: See [process docs](../process/)
+2. **Issue context**: See [issue digests](../process/issues/)
 3. **Current focus**: Align feedback with the Immediate Actions table and outstanding HIGH-024 work noted above.
 
 ---
@@ -301,8 +306,8 @@ After addressing all issues:
 - Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `docs/process/regression-strategy.md` to unblock automated checks (`Immediate Action #4`).
 - Stand up the regression test suite (export, import, translation, icon flows), capture pass/fail matrices, and fold them into the regression strategy once the clone exists (`Immediate Action #5`).
 - Record the export pipeline baseline by timing three end-to-end runs (Drive writes, ZIP build, API upload) and publish metrics in `docs/metrics/baseline.md` (`Immediate Action #6`).
-- Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `PERFORMANCE_IMPROVEMENTS.md` (Deduplicate Icon Writes entry).
-- Exercise both Drive-backed and in-memory packaging flows, confirm API uploads succeed, capture comparative timings, and note any gating configuration in `PERFORMANCE_IMPROVEMENTS.md` (Direct In-Memory ZIP entry).
+- Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `docs/implementation/performance-improvements.md` (Deduplicate Icon Writes entry).
+- Exercise both Drive-backed and in-memory packaging flows, confirm API uploads succeed, capture comparative timings, and note any gating configuration in `docs/implementation/performance-improvements.md` (Direct In-Memory ZIP entry).
 - Complete the final PR review, resolve any lingering feedback, and merge once the above checkpoints are satisfied.
 
 ### Implementation (Next 8-12 Weeks)
@@ -323,19 +328,40 @@ After addressing all issues:
 
 ```
 docs/
-├── issues/
-│   ├── CRITICAL.md         # 6 critical issues, fix immediately
-│   ├── HIGH.md             # 25+ high priority issues
-│   ├── MEDIUM.md           # 50+ medium priority issues
-│   └── LOW.md              # 20+ low priority issues
-├── reviews/
-│   └── README.md           # Complete module reviews index
+├── assets/
+├── historical/
+│   ├── html-fix-summary.md
+│   ├── performance-fix-summary.md
+│   ├── production-hardening-2025-10-28.md
+│   └── progress.md
 ├── implementation/
-│   ├── sprint-1-critical.md   # Week 1: Security & Performance
-│   ├── sprint-2-quality.md    # Week 2: Code Quality & DRY
-│   ├── sprint-3-security.md   # Week 3: Security & Validation
-│   └── sprint-4-polish.md     # Week 4: Polish & Documentation
-└── REGRESSION-STRATEGY.md  # Safety protocols & testing requirements
+│   ├── performance-improvements.md
+│   ├── sprint-01-critical.md
+│   ├── sprint-02-quality.md
+│   ├── sprint-03-security.md
+│   ├── sprint-04-polish.md
+│   └── svg-error-detection.md
+├── process/
+│   ├── assistant-guide.md
+│   ├── dependencies.md
+│   ├── issues/
+│   │   ├── critical.md
+│   │   ├── high.md
+│   │   ├── medium.md
+│   │   └── low.md
+│   ├── naming-conventions.md
+│   ├── regression-strategy.md
+│   └── review-checklists.md
+├── reference/
+│   ├── architecture.md
+│   ├── cat-generation.md
+│   ├── comapeocat-format.md
+│   ├── html-validation.md
+│   ├── import-cat.md
+│   ├── png-sprite-limitations.md
+│   ├── spreadsheet-format.md
+│   └── user-guide.md
+└── README.md
 ```
 
 ---
@@ -365,8 +391,8 @@ The CoMapeo Config Spreadsheet Plugin is a **well-structured, functional system*
 
 ---
 
-**Questions?** See [docs/process/issues/](docs/process/issues/) for detailed information on specific issues.
+**Questions?** See [issue summaries](../process/issues/) for detailed information on specific issues.
 
 **Ready to start?** Work through the Immediate Actions table above, beginning with Task 4 (test environment clone).
 
-**Need safety guidance?** Review [Regression Prevention Strategy](docs/process/regression-strategy.md).
+**Need safety guidance?** Review [Regression Prevention Strategy](../process/regression-strategy.md).

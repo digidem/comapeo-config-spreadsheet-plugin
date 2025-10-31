@@ -1,3 +1,9 @@
+---
+last-reviewed: 2025-10-31
+status: in-progress
+owner: Performance Working Group
+---
+
 # Performance Improvement Checklist
 
 > 🚨 **Safety First:** The top priority for every optimization is maintaining existing behaviour. Do not ship a change until you have tested the affected workflow end-to-end and confirmed it introduces **no regressions or new bugs**.
@@ -74,14 +80,28 @@ For every improvement initiative:
   *Risk:* Medium — requires hashing and metadata cache to avoid stale icons.  
   *Plan:* 1) Store content hashes as script properties keyed by icon id; 2) Compare incoming hashes before writing blobs; 3) Provide a forced refresh path and document cleanup for removed icons.
   *Research:* Icon writes are funneled through `savePresetsAndIcons()` → `saveExistingIconsToFolder()` (`src/driveService.ts:622-694`) with the actual Drive writes happening in `createIconFile()` (`src/generateIcons/iconProcessor.ts:246`). We already assemble staged blobs in `createIconFile`, so the dedupe path now short-circuits before blob creation by comparing cached hashes.  
-  *Status:* Hash-based reuse implemented via `saveIconToFolderWithCaching()` and `saveIconVariantWithCaching()` (`src/driveService.ts:697-815`), using per-variant keys (`ICON_HASH_V1_*`) stored in script properties. When hashes match and `zipBlobs` are present we skip Drive writes, stage the blob directly, and reuse the stored file URL. Stale entries are pruned each run and `clearIconHashCache()` provides the forced refresh hook (`src/driveService.ts:838-868`). Added runtime stats to log cache hits, Drive writes, and fallbacks for each run. Sharing defaults now respect script property `DEFAULT_SHARING_POLICY` (`anyone` | `inherit` | `off`), with `anyone-with-link` the out-of-the-box setting to prevent ownership issues. Pending: capture timing deltas for Step 4 and confirm categories sheet still resolves icon URLs after reuse.
+  *Status:* Hash-based reuse implemented via `saveIconToFolderWithCaching()` and `saveIconVariantWithCaching()` (`src/driveService.ts:697-815`), using per-variant keys (`ICON_HASH_V1_*`) stored in script properties. When hashes match and `zipBlobs` are present we skip Drive writes, stage the blob directly, and reuse the stored file URL. Stale entries are pruned each run and `clearIconHashCache()` provides the forced refresh hook (`src/driveService.ts:838-868`). Added runtime stats to log cache hits, Drive writes, and fallbacks for each run. Sharing defaults now respect script property `DEFAULT_SHARING_POLICY` (`anyone` | `inherit` | `off`), with `anyone-with-link` the out-of-the-box setting to prevent ownership issues. Pending: capture timing deltas for Step 4 and confirm categories sheet still resolves icon URLs after reuse (log results in [Metrics Log](#metrics-log)).
 
 - [ ] **Provide Direct In-Memory ZIP Path for API Upload (`src/generateCoMapeoConfig.ts`, `src/apiService.ts`)**  
   *Gain:* Optionally bypass writing raw files to Drive when users only need the packaged archive, cutting the Step 4/5 combo to a single in-memory ZIP.  
   *Risk:* High — must stay behind a flag and keep the existing Drive artefacts available for users who rely on them.  
   *Plan:* 1) Introduce a `GenerationOptions` flag that toggles the Drive write; 2) When enabled, feed the in-memory ZIP from the staged blobs directly to `sendDataToApiAndGetZip`; 3) Validate both code paths manually to ensure Drive exports remain available by default.
   *Research:* `saveConfigToDrive()` now accepts `skipDriveWrites` and short-circuits folder creation while still assembling `zipBlobs` (`src/driveService.ts:434-620`). `generateCoMapeoConfigWithSelectedLanguages()` branches on `GenerationOptions.skipDriveWrites` to call `Utilities.zip` directly instead of `saveDriveFolderToZip` (`src/generateCoMapeoConfig.ts:112-149`), and exposes a convenience entry point `generateCoMapeoConfigInMemory()` for scripted runs (`src/generateCoMapeoConfig.ts:44-48`).  
-  *Status:* In-memory packaging path now powers the default “Generate CoMapeo Category” menu entry (icons still write to Drive for stable URLs, but all other artefacts stay in memory). A separate “Generate CoMapeo Category (debug rawBuild)” option re-enables the full Drive export when needed. Deduplication guards prevent duplicate icon blobs (`src/driveService.ts:964`, `src/generateIcons/iconProcessor.ts:249`) and the sharing helper keeps permissions consistent. Pending: capture timing deltas and verify API uploads under both menu paths.
+  *Status:* In-memory packaging path now powers the default “Generate CoMapeo Category” menu entry (icons still write to Drive for stable URLs, but all other artefacts stay in memory). A separate “Generate CoMapeo Category (debug rawBuild)” option re-enables the full Drive export when needed. Deduplication guards prevent duplicate icon blobs (`src/driveService.ts:964`, `src/generateIcons/iconProcessor.ts:249`) and the sharing helper keeps permissions consistent. Pending: capture timing deltas and verify API uploads under both menu paths (record outcomes in [Metrics Log](#metrics-log)).
+
+## Metrics Log
+
+### Deduplicate Icon Writes via Content Hashing
+
+| Run Date | Spreadsheet Size / Context | Cache Hit % | Step 4 Duration (mm:ss) | Notes |
+|----------|---------------------------|-------------|-------------------------|-------|
+| — | — | — | — | — |
+
+### Direct In-Memory ZIP Path
+
+| Run Date | Drive Writes Skipped | ZIP Build Time (mm:ss) | API Upload Time (mm:ss) | Notes |
+|----------|---------------------|------------------------|-------------------------|-------|
+| — | — | — | — | — |
 
 ---
 

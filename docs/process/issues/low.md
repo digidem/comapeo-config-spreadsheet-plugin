@@ -279,7 +279,7 @@ Avoid redundant calls.
 ---
 
 **See also**:
-- [CRITICAL Issues](CRITICAL.md)
-- [HIGH Issues](HIGH.md)
-- [MEDIUM Issues](MEDIUM.md)
-- [Implementation Sprint 4](../implementation/sprint-4-polish.md)
+- [Critical Issues](critical.md)
+- [High Issues](high.md)
+- [Medium Issues](medium.md)
+- [Implementation Sprint 4](../implementation/sprint-04-polish.md)

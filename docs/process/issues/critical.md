@@ -518,6 +518,6 @@ Multiple injection vulnerabilities in HTML dialog generation:
 ---
 
 **See also**:
-- [HIGH Priority Issues](HIGH.md)
-- [Implementation Plan - Sprint 1](../implementation/sprint-1-critical.md)
-- [Regression Prevention Strategy](../REGRESSION-STRATEGY.md)
+- [High Priority Issues](high.md)
+- [Implementation Plan - Sprint 1](../implementation/sprint-01-critical.md)
+- [Regression Prevention Strategy](../regression-strategy.md)

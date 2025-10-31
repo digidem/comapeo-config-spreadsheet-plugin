@@ -200,7 +200,7 @@ For comprehensive details on each issue including:
 Refer to:
 - [Module Reviews](../reviews/) - Detailed analysis of each module
 - [Implementation Plans](../implementation/) - Sprint-by-sprint fixes
-- [Regression Strategy](../REGRESSION-STRATEGY.md) - Safety protocols
+- [Regression Strategy](../regression-strategy.md) - Safety protocols
 
 ---
 
@@ -222,6 +222,6 @@ Refer to:
 ---
 
 **See also**:
-- [CRITICAL Issues](CRITICAL.md)
-- [HIGH Issues](HIGH.md)
-- [LOW Issues](LOW.md)
+- [Critical Issues](critical.md)
+- [High Issues](high.md)
+- [Low Issues](low.md)
