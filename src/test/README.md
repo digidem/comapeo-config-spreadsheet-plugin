@@ -550,7 +550,7 @@ function testFeature(): TestResult {
 
 ## Additional Resources
 
-- **[CLAUDE.md](../../CLAUDE.md)**: Project development guide
+- **[Coding Assistant Guide](../../docs/process/assistant-guide.md)**: Project development guide
 - **[import-cat.md](../../docs/reference/import-cat.md)**: Import feature documentation
 - **[architecture.md](../../docs/reference/architecture.md)**: System architecture
 - **[user-guide.md](../../docs/reference/user-guide.md)**: End-user documentation

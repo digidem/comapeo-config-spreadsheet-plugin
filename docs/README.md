@@ -53,5 +53,6 @@ This page tracks the ongoing consolidation of historical context files into a si
 - **Icon constraints** → Check `docs/reference/png-sprite-limitations.md` to understand the platform limits around sprites and icons.
 - **Performance patterns** → Review `docs/historical/performance-fix-summary.md` for proven optimization approaches before re-inventing them.
 - **HTML dialog validation** → Leverage `docs/reference/html-validation.md` to avoid regressions in dialog rendering.
+- **Assistant onboarding** → Share `docs/process/assistant-guide.md` with any coding assistants so expectations stay aligned.
 
 _Last updated: 2025-10-31_

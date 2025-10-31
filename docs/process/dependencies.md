@@ -922,4 +922,4 @@ Test helper dependencies:
 **See Also**:
 - [Architecture Documentation](../reference/architecture.md)
 - [Module Reviews](./reviews/README.md)
-- [CLAUDE.md](../CLAUDE.md) - Development guidance
+- [Coding Assistant Guide](assistant-guide.md) - Development guidance
