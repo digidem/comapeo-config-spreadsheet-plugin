@@ -872,6 +872,8 @@ function saveIconVariantWithCaching(
       mimeType,
       iconContent,
       zipBlobs,
+      folder,
+      iconHash,
     );
     if (reusedUrl) {
       if (stats) {
@@ -970,35 +972,80 @@ function reuseExistingIconVariant(
   mimeType: string,
   iconContent: string,
   zipBlobs: GoogleAppsScript.Base.Blob[] | undefined,
+  destinationFolder: MaybeDriveFolder,
+  iconHash: string,
 ): string | null {
-  pushIconContentToZip(zipBlobs, iconContent, mimeType, presetSlug, sanitizedSize);
-
-  let fileUrl = metadata.fileUrl || "";
-
-  if (metadata.fileId) {
-    try {
-      const existingFile = DriveApp.getFileById(metadata.fileId);
-      applyDefaultSharing(existingFile);
-      fileUrl = existingFile.getUrl();
-    } catch (error) {
-      console.warn(
-        `[ICON] Cached icon file ${metadata.fileId} inaccessible: ${error.message}`,
-      );
-      return null;
-    }
-  }
-
-  if (!fileUrl) {
-    console.warn("[ICON] Cached icon metadata missing file URL");
+  if (!metadata.fileId) {
+    console.warn(
+      `[ICON] Cached icon metadata missing file ID for ${presetSlug}${sanitizedSize ? '-' + sanitizedSize : ''}, regenerating`,
+    );
     return null;
   }
 
-  persistIconHashMetadata(propertyKey, {
-    ...metadata,
-    fileUrl,
-    updatedAt: new Date().toISOString(),
-  });
-  return fileUrl;
+  try {
+    const existingFile = DriveApp.getFileById(metadata.fileId);
+    applyDefaultSharing(existingFile);
+    ensureIconFileLinkedToFolder(
+      destinationFolder,
+      existingFile,
+      presetSlug,
+      sanitizedSize,
+      mimeType,
+    );
+    const fileUrl = existingFile.getUrl();
+
+    pushIconContentToZip(zipBlobs, iconContent, mimeType, presetSlug, sanitizedSize);
+
+    persistIconHashMetadata(propertyKey, {
+      ...metadata,
+      hash: iconHash,
+      fileId: existingFile.getId(),
+      fileUrl,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return fileUrl;
+  } catch (error) {
+    console.warn(
+      `[ICON] Cached icon file ${metadata.fileId} inaccessible: ${error.message}`,
+    );
+    return null;
+  }
+}
+
+function ensureIconFileLinkedToFolder(
+  folder: MaybeDriveFolder,
+  file: GoogleAppsScript.Drive.File,
+  presetSlug: string,
+  sanitizedSize: string,
+  mimeType: string,
+): void {
+  if (!folder) {
+    return;
+  }
+
+  try {
+    const expectedName = buildIconFileName(presetSlug, sanitizedSize, mimeType);
+    const matches = folder.getFilesByName(expectedName);
+    while (matches.hasNext()) {
+      const existing = matches.next();
+      if (existing.getId() === file.getId()) {
+        return;
+      }
+    }
+
+    folder.addFile(file);
+
+    if (file.getName() !== expectedName) {
+      console.warn(
+        `[ICON] Reused icon file name mismatch for ${presetSlug}${sanitizedSize ? '-' + sanitizedSize : ''}: expected ${expectedName}, found ${file.getName()}`,
+      );
+    }
+  } catch (error) {
+    console.warn(
+      `[ICON] Failed to attach cached icon ${file.getId()} to raw build folder: ${error.message}`,
+    );
+  }
 }
 
 function pushIconContentToZip(
