@@ -89,5 +89,5 @@ Replace fixed delays with intelligent polling.
 ---
 
 **See Also**:
-- [LOW Priority Issues](../process/issues/low.md)
+- [LOW Priority Issues](../issues/low.md)
 - [Sprint 3](sprint-03-security.md)

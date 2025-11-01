@@ -19,10 +19,10 @@ This page tracks the ongoing consolidation of historical context files into a si
 | `docs/implementation/sprint-2-quality.md` | `docs/implementation/sprint-02-quality.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
 | `docs/implementation/sprint-3-security.md` | `docs/implementation/sprint-03-security.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
 | `docs/implementation/sprint-4-polish.md` | `docs/implementation/sprint-04-polish.md` | ✅ moved 2025-10-31 | - [x] Added `last-reviewed` metadata block (2025-10-31) |
-| `docs/issues/CRITICAL.md` | `docs/process/issues/critical.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
-| `docs/issues/HIGH.md` | `docs/process/issues/high.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
-| `docs/issues/LOW.md` | `docs/process/issues/low.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
-| `docs/issues/MEDIUM.md` | `docs/process/issues/medium.md` | ✅ moved 2025-10-31 | - [ ] Confirm issue template links (Owner: QA Support, Target: 2025-11-07) |
+| `docs/issues/CRITICAL.md` | `docs/issues/critical.md` | ✅ moved 2025-10-31, relocated 2025-11-01 | - [x] Relocated to dedicated issues directory for better organization (Owner: Documentation, Target: 2025-11-01) |
+| `docs/issues/HIGH.md` | `docs/issues/high.md` | ✅ moved 2025-10-31, relocated 2025-11-01 | - [x] Relocated to dedicated issues directory for better organization (Owner: Documentation, Target: 2025-11-01) |
+| `docs/issues/LOW.md` | `docs/issues/low.md` | ✅ moved 2025-10-31, relocated 2025-11-01 | - [x] Relocated to dedicated issues directory for better organization (Owner: Documentation, Target: 2025-11-01) |
+| `docs/issues/MEDIUM.md` | `docs/issues/medium.md` | ✅ moved 2025-10-31, relocated 2025-11-01 | - [x] Relocated to dedicated issues directory for better organization (Owner: Documentation, Target: 2025-11-01) |
 | `docs/NAMING_CONVENTIONS.md` | `docs/process/naming-conventions.md` | ✅ moved 2025-10-31 | - [ ] Cross-check naming rules with lint configuration (Owner: Dev Tooling, Target: 2025-11-14) |
 | `docs/REGRESSION-STRATEGY.md` | `docs/process/regression-strategy.md` | ✅ moved 2025-10-31 | - [x] Added owner + review cadence (2025-10-31) |
 | `docs/reviews/README.md` | `docs/process/review-checklists.md` | ✅ moved 2025-10-31 | - [ ] Validate headings + intro after migration (Owner: Documentation, Target: 2025-11-05) |

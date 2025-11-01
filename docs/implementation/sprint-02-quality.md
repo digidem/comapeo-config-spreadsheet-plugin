@@ -94,6 +94,6 @@ status: archived
 ---
 
 **See Also**:
-- [HIGH Priority Issues](../process/issues/high.md)
+- [HIGH Priority Issues](../issues/high.md)
 - [Sprint 1](sprint-01-critical.md)
 - [Sprint 3](sprint-03-security.md)

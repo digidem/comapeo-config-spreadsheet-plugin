@@ -305,6 +305,6 @@ Measure BEFORE and AFTER:
 ---
 
 **See Also**:
-- [CRITICAL Issues](../process/issues/critical.md)
+- [CRITICAL Issues](../issues/critical.md)
 - [Regression Strategy](../process/regression-strategy.md)
 - [Sprint 2: Code Quality](sprint-02-quality.md)

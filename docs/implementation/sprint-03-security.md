@@ -92,6 +92,6 @@ status: archived
 ---
 
 **See Also**:
-- [CRITICAL Issues](../process/issues/critical.md#critical-5-xss-and-code-injection-vulnerabilities)
-- [MEDIUM Issues](../process/issues/medium.md)
+- [CRITICAL Issues](../issues/critical.md#critical-5-xss-and-code-injection-vulnerabilities)
+- [MEDIUM Issues](../issues/medium.md)
 - [Sprint 4](sprint-04-polish.md)

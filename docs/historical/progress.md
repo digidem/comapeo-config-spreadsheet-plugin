@@ -115,7 +115,7 @@ status: archived
    - Consolidated 3 slugify() functions into 1
    - 30min effort, LOW risk
 
-**👉 See**: [critical issue log](../process/issues/critical.md)
+**👉 See**: [critical issue log](../issues/critical.md)
 
 ---
 
@@ -123,10 +123,10 @@ status: archived
 
 ### 📋 Issues by Priority
 
-- **[Critical Issues](../process/issues/critical.md)** - Fix immediately (6 issues)
-- **[High Priority](../process/issues/high.md)** - Fix soon (25+ issues)
-- **[Medium Priority](../process/issues/medium.md)** - Nice to have (50+ issues)
-- **[Low Priority](../process/issues/low.md)** - Polish & future work (20+ issues)
+- **[Critical Issues](../issues/critical.md)** - Fix immediately (6 issues)
+- **[High Priority](../issues/high.md)** - Fix soon (25+ issues)
+- **[Medium Priority](../issues/medium.md)** - Nice to have (50+ issues)
+- **[Low Priority](../issues/low.md)** - Polish & future work (20+ issues)
 
 ### 📝 Module Reviews
 
@@ -180,7 +180,7 @@ status: archived
 
 | Risk | Impact | Mitigation / Next Step | Owner | Status (2025-10-14) |
 |------|--------|------------------------|-------|---------------------|
-| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/process/issues/critical.md` |
+| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/issues/critical.md` |
 | Reliability (regression coverage) | Medium: lack of isolated regression suite risks reintroducing fixed defects | Complete Tasks 4-6 in Immediate Actions, automate smoke run before each release | Luandro + QA Support | In Progress |
 | Performance (baseline unknown) | Medium: improvements may regress without baseline metrics | Capture export/import timing metrics and log in metrics doc before next optimisation | Luandro | Not Started |
 | Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `docs/process/naming-conventions.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
@@ -243,20 +243,20 @@ status: archived
 ### For Developers
 
 1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
-2. **Review open critical docs**: Refresh on [critical.md](../process/issues/critical.md) and [regression-strategy.md](../process/regression-strategy.md) before each change.
+2. **Review open critical docs**: Refresh on [critical.md](../issues/critical.md) and [regression-strategy.md](../process/regression-strategy.md) before each change.
 3. **Follow naming standard**: Use `docs/process/naming-conventions.md` when touching identifiers and log helper usage for new code.
 
 ### For Project Managers
 
 1. **Track execution**: Use the Immediate Actions table as the weekly commitment tracker.
 2. **Understand scope**: Review this progress log
-3. **Assess priorities**: Review [issue stacks](../process/issues/)
+3. **Assess priorities**: Review [issue stacks](../issues/)
 4. **Manage risks**: Review [regression strategy](../process/regression-strategy.md)
 
 ### For Code Reviewers
 
 1. **Module details**: See [process docs](../process/)
-2. **Issue context**: See [issue digests](../process/issues/)
+2. **Issue context**: See [issue digests](../issues/)
 3. **Current focus**: Align feedback with the Immediate Actions table and outstanding HIGH-024 work noted above.
 
 ---
@@ -341,14 +341,15 @@ docs/
 │   ├── sprint-03-security.md
 │   ├── sprint-04-polish.md
 │   └── svg-error-detection.md
+├── issues/
+│   ├── README.md
+│   ├── critical.md
+│   ├── high.md
+│   ├── medium.md
+│   └── low.md
 ├── process/
 │   ├── assistant-guide.md
 │   ├── dependencies.md
-│   ├── issues/
-│   │   ├── critical.md
-│   │   ├── high.md
-│   │   ├── medium.md
-│   │   └── low.md
 │   ├── naming-conventions.md
 │   ├── regression-strategy.md
 │   └── review-checklists.md
@@ -391,7 +392,7 @@ The CoMapeo Config Spreadsheet Plugin is a **well-structured, functional system*
 
 ---
 
-**Questions?** See [issue summaries](../process/issues/) for detailed information on specific issues.
+**Questions?** See [issue summaries](../issues/) for detailed information on specific issues.
 
 **Ready to start?** Work through the Immediate Actions table above, beginning with Task 4 (test environment clone).
 
