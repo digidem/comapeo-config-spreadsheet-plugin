@@ -6,63 +6,120 @@ These issues pose significant security, reliability, or performance risks and sh
 
 ---
 
-## 🔴 CRITICAL #1: HTTP API Endpoint (Security)
+## 🔴 CRITICAL #1: HTTP API Endpoint (Security) - BLOCKED
 
 **File**: `src/apiService.ts:39`
 **Priority**: CRITICAL - Security
-**Effort**: 1-2 hours (depends on server setup)
-**Dependencies**: Requires server SSL configuration
+**Effort**: N/A - Cannot implement until upstream is ready
+**Dependencies**: **REQUIRES** upstream API server to support HTTPS
 
-### Issue
-API URL uses **HTTP instead of HTTPS**: `http://137.184.153.36:3000/`
+### 🚨 Current Status: NOT APPLICABLE / BLOCKED
 
-### Impact
-- All configuration files transmitted **without encryption**
-- Man-in-the-middle attacks possible
-- Data interception risk
-- Violation of security best practices
+**❌ CANNOT IMPLEMENT HTTPS** - Upstream API server does not support HTTPS
 
-### Current Code
+The upstream API endpoint `http://137.184.153.36:3000/` **does not support SSL/TLS**. Attempting to force HTTPS connections will result in:
+- Connection failures
+- **Complete breakdown of the export functionality**
+- App becomes unusable for all users
+
+**⚠️ CRITICAL**: The app **WILL BREAK** if we try to implement HTTPS before the upstream server is ready.
+
+### Current Implementation
 ```typescript
 const apiUrl = "http://137.184.153.36:3000/";
 ```
 
-### Implementation Steps
+### Why This Issue Exists
+1. **Server Limitation**: The upstream API server at `137.184.153.36:3000` does not have SSL configured
+2. **No Domain**: Server is accessed by IP address directly, not a domain with SSL certificate
+3. **Breaking Change**: Switching to HTTPS would make all API calls fail
 
-1. **Server-side** (if you control it):
-   - Set up SSL certificate for IP or use domain name
-   - Configure reverse proxy (nginx/caddy) with Let's Encrypt
-   - Test HTTPS endpoint
+### Impact (While Using HTTP)
+- All configuration files transmitted **without encryption**
+- Man-in-the-middle attacks possible
+- Data interception risk
+- Violation of security best practices
+- **However**: App currently **works reliably**
 
-2. **Code changes**:
-   ```typescript
-   // Option A: Use domain with SSL (RECOMMENDED)
-   const apiUrl = "https://api.comapeo.app/process";
+### Next Steps - What Needs to Happen
 
-   // Option B: Keep IP but with SSL (not recommended)
-   const apiUrl = "https://137.184.153.36:3000/";
+#### Phase 1: Upstream Server Upgrades (Required BEFORE we can act)
+**Owner**: Infrastructure/DevOps team
+**Timeline**: Unknown - depends on upstream provider
+
+1. **Configure SSL/TLS on upstream server**:
+   - Set up SSL certificate for domain or IP
+   - Configure HTTPS listener on port 443
+   - Test SSL certificate validity
+
+2. **Migration Options**:
+   ```
+   Option A (RECOMMENDED): Move to domain with SSL
+   - Domain: https://api.comapeo.app/process
+   - Full SSL/TLS support
+   - Professional setup with Let's Encrypt
+
+   Option B (NOT RECOMMENDED): SSL on IP
+   - https://137.184.153.36:3000
+   - Self-signed certificates may cause issues
+   - Not ideal for production
    ```
 
-3. **Configuration**:
-   - Move URL to environment variable or config file
-   - Add fallback handling for development
+3. **Verify HTTPS works**:
+   - Test with curl: `curl -v https://api.comapeo.app/process`
+   - Verify SSL certificate chain
+   - Confirm API responses over HTTPS
 
-### Testing Requirements
-- [ ] Test successful file upload via HTTPS
-- [ ] Verify SSL certificate validation
-- [ ] Test error handling for SSL failures
-- [ ] Check performance impact (should be negligible)
+#### Phase 2: Code Updates (Can only happen AFTER Phase 1)
+**Owner**: Development team
+**Effort**: 1-2 hours
+**Dependencies**: Phase 1 must be complete
+
+1. **Update API URL**:
+   ```typescript
+   const apiUrl = "https://api.comapeo.app/process";
+   ```
+
+2. **Add configuration management**:
+   - Move URL to ScriptProperties
+   - Add environment-specific URLs
+   - Add fallback handling
+
+3. **Test thoroughly**:
+   - [ ] Test successful file upload via HTTPS
+   - [ ] Verify SSL certificate validation
+   - [ ] Test error handling for SSL failures
+   - [ ] Verify no performance regression
+
+### Immediate Actions Required
+
+1. **Contact upstream API provider** to request HTTPS support
+2. **Track upstream progress** on SSL/TLS implementation
+3. **Prepare code changes** (ready to deploy once server is ready)
+4. **Monitor upstream roadmap** for HTTPS timeline
+
+### What NOT to Do
+
+❌ **DO NOT** attempt to implement HTTPS in code while server only supports HTTP
+❌ **DO NOT** use workarounds or unofficial SSL proxies
+❌ **DO NOT** ignore this issue hoping it will resolve itself
 
 ### Regression Safety
-⚠️ **HIGH RISK** - API endpoint change could break all exports
+⚠️ **HIGH RISK** - Cannot test until upstream is ready
 
-**Mitigation**:
+**When server is ready**:
 - Test HTTPS endpoint independently BEFORE changing code
-- Keep HTTP as fallback for 1 month
+- Have rollback plan ready (switch back to HTTP if issues)
 - Add comprehensive error handling
-- Test with large files (edge case: timeout differences)
+- Test with various file sizes
 
-**Status**: ⬜ Not Started
+### Related Documentation
+- [High Priority Issues](high.md) - See HIGH-009 for API configuration management
+- [Regression Prevention Strategy](../process/regression-strategy.md)
+- [Production Hardening Summary](../historical/production-hardening-2025-10-28.md)
+
+**Status**: 🚫 **BLOCKED** - Waiting for upstream API server to support HTTPS
+**Last Reviewed**: 2025-11-01
 
 ---
 
@@ -490,30 +547,43 @@ Multiple injection vulnerabilities in HTML dialog generation:
 
 | # | Issue | File | Effort | Risk | Status |
 |---|-------|------|--------|------|--------|
-| 1 | HTTP API Endpoint | apiService.ts:39 | 1-2h | High | ⬜ Not Started |
-| 2 | Dead Code | errorHandling.ts | 30min | Low | ⬜ Not Started |
-| 3 | No Caching | spreadsheetData.ts | 4-6h | Medium | ⬜ Not Started |
-| 4 | Infinite Loop | iconProcessor.ts:246 | 30min | Low | ⬜ Not Started |
-| 5 | XSS Vulnerabilities | dialog.ts | 2-3h | Medium | ⬜ Not Started |
-| 6 | Duplicate Code | utils.ts, importCategory/utils.ts | 30min | Low | ⬜ Not Started |
+| 1 | HTTP API Endpoint | apiService.ts:39 | N/A | High | 🚫 BLOCKED (upstream) |
+| 2 | Dead Code | errorHandling.ts | 30min | Low | ✅ COMPLETED |
+| 3 | No Caching | spreadsheetData.ts | 4-6h | Medium | ✅ COMPLETED |
+| 4 | Infinite Loop | iconProcessor.ts:246 | 30min | Low | ✅ COMPLETED |
+| 5 | XSS Vulnerabilities | dialog.ts | 2-3h | Medium | ✅ COMPLETED |
+| 6 | Duplicate Code | utils.ts, importCategory/utils.ts | 30min | Low | ✅ COMPLETED |
 
-**Total Estimated Effort**: 10-14 hours
+**Total Estimated Effort**: ~8 hours (5 issues completed)
+**Remaining**: 1 blocked issue (requires upstream action)
 
 ---
 
 ## Implementation Priority
 
-**Week 1 - Quick Wins & Safety**:
-1. FIX-004 (Infinite Loop) - 30min, Low Risk ✅
-2. FIX-002 (Dead Code) - 30min, Low Risk ✅
-3. FIX-006 (Duplicate Code) - 30min, Low Risk ✅
+**✅ COMPLETED - All Feasible Critical Issues**
 
-**Week 2 - Security**:
-4. FIX-005 (XSS) - 2-3h, Medium Risk ⚠️
-5. FIX-001 (HTTPS) - 1-2h, High Risk ⚠️
+All critical issues have been resolved except HTTPS, which is **BLOCKED by upstream infrastructure**:
 
-**Week 3 - Performance**:
-6. FIX-003 (Caching) - 4-6h, Medium Risk ⚠️
+### Completed (5/6 issues)
+1. **FIX-004 (Infinite Loop)** - 30min, Low Risk ✅
+2. **FIX-002 (Dead Code)** - 30min, Low Risk ✅
+3. **FIX-006 (Duplicate Code)** - 30min, Low Risk ✅
+4. **FIX-005 (XSS)** - 2-3h, Medium Risk ✅
+5. **FIX-003 (Caching)** - 4-6h, Medium Risk ✅
+
+### Blocked (1/6 issues)
+6. **FIX-001 (HTTPS)** - 🚫 **BLOCKED**
+   - **Cannot proceed** until upstream API server supports HTTPS
+   - Implementation requires **zero effort** from our side
+   - **Waiting on**: Infrastructure/DevOps team
+   - **Next action**: Contact upstream API provider
+
+### What's Next
+1. **Monitor upstream API provider** for HTTPS support timeline
+2. **Prepare code changes** (simple URL update once server is ready)
+3. **Proceed to HIGH priority issues** - all critical issues are now addressed
+4. **Document the limitation** in production deployment notes
 
 ---
 

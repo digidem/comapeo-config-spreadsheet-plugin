@@ -88,9 +88,11 @@ status: archived
 
 **6 Critical Issues - 5 Completed, 1 N/A**
 
-1. ~~**HTTP API Endpoint** (Security) - apiService.ts:39~~ ❌ **NOT APPLICABLE**
-   - Server doesn't support HTTPS
-   - Reverted changes
+1. ~~**HTTP API Endpoint** (Security) - apiService.ts:39~~ 🚫 **BLOCKED**
+   - **Cannot implement** - upstream API server does not support HTTPS
+   - **Will break app** if attempted before server is ready
+   - **Next step**: Contact upstream provider to request HTTPS support
+   - See `docs/issues/critical.md#critical-1-http-api-endpoint-security` for details
 
 2. **Dead Code** (Technical Debt) - errorHandling.ts ✅ **COMPLETED**
    - 508 lines deleted
@@ -146,7 +148,7 @@ status: archived
 
 - **Completed Phases**: Phase 1 (Critical Security & Reliability) and the first four waves of Phase 2 (HIGH-priority improvements) wrapped by 2025-10-14; see the Latest Updates section for detailed deliverables.
 - **Upcoming Work (2025-10-20 → 2025-11-07)**: Week of 2025-10-20 — extend typed language map & scoped logging into remaining translation/util modules (ties to HIGH-024 pre-work). Week of 2025-10-27 — build spreadsheet clone for regression runs and capture baseline performance metrics prior to additional refactors. Week of 2025-11-03 — standardize naming conventions and complete outstanding documentation polish (HIGH-024 plus Phase 4 tasks).
-- **Deferred / Blocked**: HTTPS endpoint upgrade remains blocked by upstream HTTP-only service; keep monitoring vendor roadmap before reopening the task.
+- **Blocked / Cannot Implement**: HTTPS endpoint upgrade is **BLOCKED** by upstream API infrastructure. Server at `137.184.153.36:3000` does not support SSL/TLS. **Zero effort required from our side** - waiting for upstream provider to enable HTTPS. See `docs/issues/critical.md#critical-1-http-api-endpoint-security` for complete analysis and next steps.
 
 ### 🛡️ Safety & Testing
 
@@ -195,7 +197,10 @@ status: archived
 2. ✅ Delete dead code (errorHandling.ts) - 30min
 3. ✅ Remove duplicate code (utils.ts) - 30min
 4. ✅ Add HTML escaping (dialog.ts) - 2-3h
-5. ❌ Switch API to HTTPS - N/A (server limitation)
+5. 🚫 Switch API to HTTPS - BLOCKED (server limitation)
+   - **Status**: Cannot implement until upstream supports HTTPS
+   - **Action**: Contact upstream API provider
+   - **Code ready**: Simple URL update once server is ready
 6. ✅ Implement caching layer - 4-6h
 
 **Total**: ~8 hours completed, **highest impact achieved**
