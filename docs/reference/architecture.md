@@ -80,68 +80,227 @@ The plugin works with a specific data model defined in `types.ts`:
 - `CoMapeoMetadata`: Contains metadata about the configuration.
 - `CoMapeoPackageJson`: Contains package.json information for the configuration.
 
+## Generation Modes
+
+The plugin supports **four distinct generation modes**, each optimized for different use cases:
+
+### 1. Translation-Only Mode
+**Entry Point**: `translateCoMapeoCategory()` (Menu: "Manage Languages & Translate")
+
+- **Purpose**: Standalone translation without config generation
+- **Process**: Shows language selection dialog → Translates empty cells → Updates sheets
+- **Use Case**: When you want to translate content without generating a config
+- **Output**: Updated spreadsheet with translations (no `.comapeocat` file created)
+
+### 2. Main Generation Mode
+**Entry Point**: `generateCoMapeoCategory()` (Menu: "Generate CoMapeo Category")
+
+- **Purpose**: Full production workflow with language selection
+- **Process**: Language selection → Auto-translate → Full pipeline → `.comapeocat` file
+- **Use Case**: Primary workflow for creating CoMapeo configurations
+- **Output**: Final packaged `.comapeocat` file in Google Drive
+
+### 3. Debug Mode (With Drive Writes)
+**Entry Point**: `generateCoMapeoCategoryDebug()` (Menu: "Debug: Export Raw Files")
+
+- **Purpose**: Development and troubleshooting with raw file access
+- **Process**: Skips translation → Saves raw JSON files to Drive → Full API processing
+- **Use Case**: Inspecting intermediate files, debugging issues
+- **Output**: Both raw files in `rawBuilds/` folder AND final `.comapeocat` file
+- **Drive Structure**:
+  ```
+  {spreadsheet-name}/
+  └── rawBuilds/
+      └── {version}/
+          ├── presets/      # Individual preset JSON files
+          ├── fields/       # Individual field JSON files
+          ├── icons/        # SVG icon files
+          ├── messages/     # Translation JSON files per language
+          ├── metadata.json # Configuration metadata
+          └── package.json  # Package information
+  ```
+
+### 4. In-Memory Mode
+**Entry Point**: `generateCoMapeoConfigInMemory()` (Developer menu only)
+
+- **Purpose**: Fast testing and CI/CD pipelines
+- **Process**: All processing in memory → No Drive writes → Direct to API
+- **Use Case**: Automated testing, performance testing
+- **Output**: `.comapeocat` file without intermediate Drive storage
+
 ## Workflow
 
-The plugin follows a specific workflow for generating CoMapeo configuration files:
+### Menu Structure
 
-### 1. Spreadsheet Setup
+When the spreadsheet is opened, `onOpen()` creates a custom menu with the following options:
 
-The plugin expects a Google Spreadsheet with specific sheets:
+**Main Menu** (`CoMapeo Tools` / `Herramientas CoMapeo`):
+- **Manage Languages & Translate** (`translateCoMapeoCategory`)
+  - Standalone translation workflow
+- **Generate Category Icons** (`generateIcons`)
+  - Icon generation for categories only
+- **Separator**
+- **Generate CoMapeo Category** (`generateCoMapeoCategory`)
+  - Main production generation mode
+- **Import category file** (`importCategoryFile`)
+  - Import existing `.comapeocat` or `.mapeosettings` files
+- **Separator**
+- **Lint Sheets** (`lintAllSheets`)
+  - Validate all sheets for issues
+- **Reset Spreadsheet** (`cleanAllSheets`)
+  - Clean sheets (remove translations, metadata, icons)
+- **Separator**
+- **Debug: Export Raw Files** (`generateCoMapeoCategoryDebug`)
+  - Debug mode with raw file access
+- **Help** (`openHelpPage`)
+  - Opens help documentation
+- **About / Version** (`showVersionInfo`)
+  - Display version information
 
-- `Categories`: Defines the main categories (presets) for data collection.
-- `Details`: Defines the fields for data collection.
-- `Category Translations`: Translations for category names.
-- `Detail Label Translations`: Translations for field labels.
-- `Detail Helper Text Translations`: Translations for field helper text.
-- `Detail Option Translations`: Translations for field options.
-- `Metadata`: (Optional) Contains metadata about the configuration.
+**Developer Menu** (shown in development environment only):
+- Test functions for format detection, translation extraction, category import, etc.
+- **Clear Language Cache** - Reset cached language data
 
-### 2. Menu Options
+### Main Generation Pipeline
 
-When the spreadsheet is opened, the plugin adds a custom menu with several options:
+The main generation mode follows this 8-step pipeline:
 
-- **Manage Languages & Translate**: Lets users choose auto-translate targets and add custom language columns across all translation sheets.
-- **Generate Icons**: Generates icons for categories.
-- **Generate CoMapeo Category**: Creates the final CoMapeo configuration file.
-- **Lint All Sheets**: Validates and formats the data in all sheets.
-- **Clean All Sheets**: Removes unnecessary data and formatting.
-- **Open Help Page**: Opens a help page with instructions.
+#### Step 0: Pre-Flight Validation
+- **Function**: `runPreflightChecks()`
+- **Purpose**: Validate spreadsheet structure and requirements before processing
+- **Checks**: Sheet existence, required columns, data integrity
+- **Behavior**: Shows summary dialog, allows user to continue or cancel
 
-### 3. Configuration Generation Process
+#### Step 1: Initialization
+- **Purpose**: Setup and validation
+- **Actions**:
+  - Show processing modal dialog
+  - Lint all sheets (`lintAllSheets(false)`)
+  - Add custom language columns (if specified)
+- **Note**: Validation happens BEFORE processing to catch issues early
 
-When the user selects "Generate CoMapeo Category", the following process occurs:
+#### Step 2: Auto-Translation (Conditional)
+- **Function**: `autoTranslateSheetsBidirectional()`
+- **Purpose**: Translate empty cells to selected languages
+- **Trigger**: Only runs if languages were selected in Step 0
+- **Process**: Bidirectional translation with Google Translate API
+- **Skip**: If no languages selected, this step is skipped entirely
 
-1. **Auto Translation**: The plugin automatically translates any missing translations.
-2. **Linting**: The plugin validates and formats the data in all sheets.
-3. **Data Collection**: The plugin collects all data from the spreadsheet.
-4. **Processing**: The data is processed into a CoMapeo configuration object:
-   - Fields are processed from the Details sheet.
-   - Presets (categories) are processed from the Categories sheet.
-   - Icons are processed from the Categories sheet and external icon APIs.
-   - Metadata is processed from the Metadata sheet or created if it doesn't exist.
-   - Translations are processed from the translation sheets.
-5. **Saving to Drive**: The configuration is saved to Google Drive as a folder structure.
-6. **Zipping**: The folder is zipped into a single file.
-7. **API Processing**: The zip file is sent to an external API for final processing.
-8. **Result**: The user is presented with a link to the final `.comapeocat` file.
+#### Step 3: Data Extraction
+- **Function**: `getSpreadsheetData()`
+- **Purpose**: Read all sheet data into structured object
+- **Output**: `SheetData` object with all sheet contents
+- **Timing**: After translation to include any new columns
 
-### 4. Icon Generation Process
+#### Step 4: Data Processing
+- **Function**: `processDataForCoMapeo()`
+- **Purpose**: Transform spreadsheet data into CoMapeo configuration
+- **Sub-stages**:
+  - **4a**: Process Fields (`processFields()`)
+  - **4b**: Process Presets (`processPresets()`)
+  - **4c**: Process Icons (`processIcons()`)
+  - **4d**: Process Metadata (`processMetadata()`)
+  - **4e**: Process Translations (`processTranslations()`)
+- **Validation**: Config schema validation before proceeding
+- **Error Handling**: Icon errors stored in PropertiesService for later display
 
-When the user selects "Generate Icons", the following process occurs:
+#### Step 5: Save to Drive (Conditional)
+- **Function**: `saveConfigToDrive()`
+- **Behavior**:
+  - **In Debug Mode**: Creates folder structure with individual JSON files
+  - **In In-Memory Mode**: Skipped entirely (no Drive writes)
+  - **In Main Mode**: Creates minimal structure for ZIP creation
+- **Progress**: Updates processing dialog with progress callbacks
+- **Cleanup**: On failure, deletes created folder to prevent clutter
 
-1. **Data Collection**: The plugin collects category data from the Categories sheet.
-2. **Icon Search**: For each category, the plugin searches for an appropriate icon using an external API.
-3. **Icon Generation**: The plugin generates SVG icons with the appropriate colors.
-4. **Saving**: The icons are saved to Google Drive and linked in the spreadsheet.
+#### Step 6: ZIP Creation
+- **Functions**:
+  - `saveDriveFolderToZip()` (with Drive files)
+  - `Utilities.zip()` (in-memory mode)
+- **Purpose**: Package configuration into ZIP archive
+- **Output**: `GoogleAppsScript.Base.Blob` representing ZIP file
 
-### 5. Translation Process
+#### Step 7: API Submission
+- **Function**: `sendDataToApiAndGetZip()`
+- **Purpose**: Send ZIP to external packaging API
+- **Process**:
+  - Upload ZIP blob to packaging API (`http://137.184.153.36:3000/`)
+  - Wait for processing
+  - Download resulting `.comapeocat` file
+  - Save to Google Drive
+- **Retry Logic**: Up to 3 attempts with exponential backoff
+- **Progress**: Updates processing dialog during API calls
 
-When the user selects "Manage Languages & Translate", the following process occurs:
+#### Step 8: Completion
+- **Purpose**: Finalize and notify user
+- **Actions**:
+  - Show icon error report (if any errors occurred)
+  - Display success dialog with download link
+  - Close processing dialog
 
-1. **Language Detection**: The plugin detects the primary language of the spreadsheet.
-2. **Custom Language Columns (Optional)**: Any manual languages entered in the dialog are added to every translation sheet so they can be filled in later.
-3. **Translation**: The plugin uses Google Translate to translate content to the selected auto-translate languages.
-4. **Updating Sheets**: The translation sheets are updated with the translated content.
+### Icon Generation Workflow
+
+When the user selects "Generate Category Icons":
+
+1. **Data Collection**: Reads Categories sheet
+2. **Icon Processing**: For each category:
+   - Check if Google Drive icon exists → Use existing
+   - Check if cell has image → Process via API
+   - Otherwise → Generate new icon from external API
+3. **API Calls**:
+   - Search: `https://icons.earthdefenderstoolkit.com/api/search`
+   - Generate: `https://icons.earthdefenderstoolkit.com/api/generate`
+4. **Saving**: Icons saved to Google Drive and URLs updated in spreadsheet
+
+### Translation Workflow
+
+When the user selects "Manage Languages & Translate" (standalone mode):
+
+1. **Language Detection**: Reads primary language from cell A1 (supports both English and native names)
+2. **Language Selection**: Shows dialog with:
+   - Auto-translate checkboxes for 200+ languages
+   - Custom language input fields
+   - Common languages preset
+3. **Custom Languages**: Adds specified language columns to all translation sheets
+4. **Auto-Translation**: Translates empty cells using Google Translate API
+5. **Bidirectional**: Can translate both to and from target languages
+6. **Output**: Updated spreadsheet with translations (no config generation)
+
+### Key Architectural Features
+
+#### GenerationOptions System
+```typescript
+interface GenerationOptions {
+  skipDriveWrites?: boolean;  // Skip Drive operations for in-memory mode
+}
+```
+
+- Stored in PropertiesService for async callback support
+- Required because Google Apps Script doesn't preserve global variables across `google.script.run` contexts
+- Retrieved in `handleLanguageSelection()` to determine workflow
+
+#### Locale Support
+- All user-facing strings are localized
+- Supported locales: English (`en`), Spanish (`es`)
+- Text definitions in `src/text/menu.ts`
+
+#### Error Handling
+- Try-catch blocks at each major step
+- Cleanup on failure (deleting Drive folders)
+- Error logging via `getScopedLogger()`
+- Icon errors stored separately for user-friendly reporting
+- Graceful degradation where possible
+
+#### Progress Tracking
+- Modal processing dialog with 8 stages
+- Progress callbacks: `updateProcessingDialogProgress(main, detail)`
+- Real-time updates during long operations (Drive saves, API calls)
+
+#### Pre-Flight Validation
+- Runs BEFORE processing to catch issues early
+- Validates sheet structure, required columns, data integrity
+- Shows summary of issues with option to continue or cancel
+- Prevents wasted time on invalid configurations
 
 ## Deployment
 
