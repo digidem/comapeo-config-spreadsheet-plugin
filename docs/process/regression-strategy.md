@@ -453,3 +453,4 @@ clasp push --version <previous_working_version>
 - [Critical Issues](issues/critical.md) - Know what you're fixing
 - [Implementation Sprints](../implementation/) - Planned approach
 - [Progress log](../historical/progress.md) - Full context
+- [Regression Testing Guide](regression-testing-guide.md) - Task 4: Create test spreadsheets for safe testing
