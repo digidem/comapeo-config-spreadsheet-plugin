@@ -7,12 +7,17 @@ function slugify(input: string | any): string {
   if (!input) return "";
 
   const str = typeof input === "string" ? input : String(input);
-  return str
-    .toLowerCase()
+
+  // Normalize accents and special characters by removing diacritics
+  // This converts "Café" to "Cafe", "naïve" to "naive", etc.
+  const normalized = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  return normalized
+    .toLocaleLowerCase("en-US")  // Use en-US locale to avoid Turkish 'I' → 'ı' issue
     .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^\w\s-]/g, "")    // Remove non-word characters (keep letters, numbers, underscore, whitespace, hyphen)
+    .replace(/[\s_-]+/g, "-")    // Replace whitespace/underscore/hyphen sequences with single hyphen
+    .replace(/^-+|-+$/g, "");    // Remove leading/trailing hyphens
 }
 
 /**
