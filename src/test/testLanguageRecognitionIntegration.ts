@@ -53,6 +53,10 @@ function testLanguageRecognitionIntegration(): void {
 
   log.info("Starting Language Recognition Integration Tests");
 
+  // Clear cache to ensure we use fallback data for consistent test results
+  log.info("Clearing language cache to use fallback data");
+  clearLanguagesCache();
+
   // ═══════════════════════════════════════════════════════════════════════
   // GROUP 1: Basic Validation (English and Native Names)
   // Tests fundamental recognition of language names in both forms
