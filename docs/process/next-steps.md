@@ -1,8 +1,8 @@
 # Next Steps Action Plan
 
-**Last Updated**: 2025-11-02
+**Last Updated**: 2025-11-04
 **Current Branch**: import-category
-**Status**: ✅ Task 4 COMPLETED - Test spreadsheet duplication feature implemented
+**Status**: ✅ Tasks 4, 5 & 6 COMPLETED - Regression infrastructure fully implemented with baseline performance metrics
 
 ---
 
@@ -42,13 +42,13 @@
 | # | Task | Owner | Effort | Status | Next Action |
 |---|------|-------|--------|--------|-------------|
 | 4 | Duplicate production spreadsheet for testing | Developer | 2-3h | ✅ **COMPLETED** | Feature implemented and documented |
-| 5 | Build regression test suite | QA Support | 4-6h | 🔄 Ready to Start | Create test suite using Task 4 infrastructure |
-| 6 | Capture baseline performance metrics | Dev + QA | 2-3h | ⬜ Not Started | Run 3 timed exports |
+| 5 | Build regression test suite | QA Support | 4-6h | ✅ **COMPLETED** | Comprehensive test runner with 13 test suites |
+| 6 | Capture baseline performance metrics | Dev + QA | 2-3h | ✅ **COMPLETED** | Performance metrics capture utility, baseline documentation, and comparison framework implemented |
 
 **Action Items:**
 - ✅ **COMPLETED**: Test spreadsheet duplication feature implemented
-- 🔄 **Next**: Build automated regression tests (Task 5)
-- ⏳ **Pending**: Capture baseline performance metrics (Task 6)
+- ✅ **COMPLETED**: Comprehensive test suite with 13 test suites
+- ✅ **COMPLETED**: Performance metrics capture utility, baseline documentation, and comparison framework implemented
 
 **References:**
 - **Regression Testing Guide**: `docs/process/regression-testing-guide.md`
@@ -84,9 +84,9 @@
 ### Sprint 1: Safety & Baseline (Week of Nov 4)
 **Goal**: Establish regression safety before more changes
 
-- [ ] Task 4: Create test spreadsheet clone
-- [ ] Task 5: Build regression test suite
-- [ ] Task 6: Capture baseline performance
+- [x] Task 4: Create test spreadsheet clone
+- [x] Task 5: Build regression test suite
+- [x] Task 6: Capture baseline performance metrics
 - [ ] Verify all 22 completed HIGH priority items still work
 - [ ] **Total Effort**: 8-12h
 - **Risk**: MEDIUM if skipped
@@ -117,8 +117,11 @@
 ```
 1. Read docs/process/regression-strategy.md
 2. Follow "Immediate Actions" table
-3. Start with Task 4 (duplicate spreadsheet)
-4. This is the safety net for all future work
+3. Create test spreadsheet (Task 4: CoMapeo Tools → Create Test Spreadsheet)
+4. Run regression test suite (Task 5: runAllTests())
+5. Capture baseline performance metrics (Task 6: CoMapeo Tools → Capture Baseline Metrics)
+6. Verify all 22 completed HIGH priority items still work
+7. This is the safety net for all future work
 ```
 
 ### Option B: Tackle Remaining HIGH Priority Items
@@ -252,10 +255,17 @@
 - **All feasible critical issues are DONE** ✅
 - **HTTPS is blocked by upstream** - cannot fix alone 🚫
 - **22/25 HIGH priority complete** - almost there! 🔄
-- **✅ Task 4 COMPLETED**: Regression safety infrastructure ready
+- **✅ Tasks 4, 5 & 6 COMPLETED**: Regression safety infrastructure ready
   - Test spreadsheet duplication feature fully implemented
+  - Comprehensive test runner with 13 test suites implemented
+  - Performance metrics capture utility with baseline documentation
+  - Performance comparison framework for future changes
   - Menu: CoMapeo Tools → Create Test Spreadsheet for Regression
+  - Run tests: CoMapeo Tools → Test Runner (or runAllTests() in Apps Script editor)
+  - Capture metrics: CoMapeo Tools → Capture Baseline Performance Metrics
   - Guide: `docs/process/regression-testing-guide.md`
+  - Performance docs: `docs/process/baseline-performance-metrics.md`
+  - Comparison guide: `docs/process/performance-comparison-guide.md`
 - **Clear documentation exists** - use it! 📚
 
 ---

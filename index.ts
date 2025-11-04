@@ -34,6 +34,10 @@ function onOpen() {
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
     .addSeparator()
+    .addItem("Create Test Spreadsheet for Regression", "createTestSpreadsheetForRegression")
+    .addItem("Test Runner", "runAllTests")
+    .addItem("Capture Baseline Performance Metrics", "captureAndDocumentBaselineMetrics")
+    .addSeparator()
     .addItem(
       menuTexts[locale].generateCoMapeoCategoryDebug,
       "generateCoMapeoCategoryDebug",
@@ -53,6 +57,10 @@ function onOpen() {
       .addItem("Test Category Import", "testImportCategory")
       .addItem("Test Details and Icons", "testDetailsAndIcons")
       .addItem("Test Field Extraction", "testFieldExtraction")
+      .addSeparator()
+      .addItem("Run All Tests", "runAllTests")
+      .addItem("Capture Baseline Metrics", "captureAndDocumentBaselineMetrics")
+      .addItem("Generate Performance Report", "generatePerformanceReport")
       .addSeparator()
       .addItem("Clear Language Cache", "clearLanguagesCacheMenuItem")
       .addToUi();
