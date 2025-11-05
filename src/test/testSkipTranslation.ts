@@ -192,10 +192,18 @@ function testTranslationSheetsUnmodified() {
 }
 
 /**
+ * Test skip translation functionality
+ * This is the main test function called by the test runner
+ */
+function testSkipTranslation(): void {
+  runAllSkipTranslationTests();
+}
+
+/**
  * Run all tests
  * Execute this to run the complete test suite
  */
-function runAllSkipTranslationTests() {
+function runAllSkipTranslationTests(): void {
   console.log("\n\n");
   console.log("╔════════════════════════════════════════╗");
   console.log("║  SKIP TRANSLATION TEST SUITE          ║");
