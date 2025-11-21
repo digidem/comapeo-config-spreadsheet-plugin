@@ -310,6 +310,9 @@ function buildFields(data: SheetData): Field[] {
 
 /**
  * Parses comma-separated options string into SelectOption array
+ * Supports two formats:
+ * - "Label" -> {value: slugify(Label), label: Label}
+ * - "value:Label" -> {value: value, label: Label}
  */
 function parseOptions(optionsStr: string): SelectOption[] | undefined {
   if (!optionsStr) return undefined;
@@ -317,10 +320,20 @@ function parseOptions(optionsStr: string): SelectOption[] | undefined {
   const opts = optionsStr.split(',').map(s => s.trim()).filter(Boolean);
   if (opts.length === 0) return undefined;
 
-  return opts.map(opt => ({
-    value: slugify(opt),
-    label: opt
-  }));
+  return opts.map(opt => {
+    // Check for "value:label" format
+    const colonIndex = opt.indexOf(':');
+    if (colonIndex > 0) {
+      const value = opt.substring(0, colonIndex);
+      const label = opt.substring(colonIndex + 1);
+      return { value, label };
+    }
+    // Default format: just label
+    return {
+      value: slugify(opt),
+      label: opt
+    };
+  });
 }
 
 /**

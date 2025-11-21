@@ -509,9 +509,17 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
     if (!field || !field.name) continue;
 
     const typeChar = mapFieldTypeToChar(field.type);
-    const optionsValue = Array.isArray(field.options)
-      ? field.options.map(o => o?.label || '').filter(Boolean).join(', ')
-      : '';
+    // Preserve option values by writing "value:label" when they differ
+    let optionsValue = '';
+    if (Array.isArray(field.options) && field.options.length > 0) {
+      optionsValue = field.options.map(o => {
+        const value = o?.value || '';
+        const label = o?.label || '';
+        if (!label) return '';
+        // Only include value prefix if it differs from slugified label
+        return value === slugify(label) ? label : `${value}:${label}`;
+      }).filter(Boolean).join(', ');
+    }
 
     rows.push([
       field.name,
