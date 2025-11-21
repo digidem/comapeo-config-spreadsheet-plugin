@@ -7,8 +7,8 @@
 // Constants
 // =============================================================================
 
-/** API base URL - uses HTTPS for security */
-const API_BASE_URL = "https://137.184.153.36:3000";
+/** API base URL */
+const API_BASE_URL = "http://137.184.153.36:3000";
 
 /** Column indices for Categories sheet (0-based) */
 const CATEGORY_COL = {
@@ -78,8 +78,7 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
         method: 'post',
         contentType: 'application/json',
         payload: JSON.stringify(buildRequest),
-        muteHttpExceptions: true,
-        validateHttpsCertificates: false  // Allow self-signed certs in dev
+        muteHttpExceptions: true
       };
 
       const response = UrlFetchApp.fetch(apiUrl, options);
