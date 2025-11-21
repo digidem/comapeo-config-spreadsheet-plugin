@@ -621,4 +621,70 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
       labelSheet.getRange(2, 1, labelRows.length, labelHeaders.length).setValues(labelRows);
     }
   }
+
+  // Create Detail Helper Text Translations sheet
+  let helperSheet = spreadsheet.getSheetByName('Detail Helper Text Translations');
+  if (!helperSheet) {
+    helperSheet = spreadsheet.insertSheet('Detail Helper Text Translations');
+  } else {
+    const lastRow = helperSheet.getLastRow();
+    if (lastRow > 1) {
+      helperSheet.getRange(2, 1, lastRow - 1, helperSheet.getLastColumn() || 1).clear();
+    }
+  }
+
+  const helperHeaders = ['Name', ...locales.map(l => `${l}`)];
+  helperSheet.getRange(1, 1, 1, helperHeaders.length).setValues([helperHeaders]).setFontWeight('bold');
+
+  if (config.fields && config.fields.length > 0) {
+    const helperRows: any[][] = [];
+    for (const field of config.fields) {
+      if (!field || !field.id) continue;
+      const row = [field.name || ''];
+      for (const locale of locales) {
+        const trans = config.translations[locale]?.fields?.[field.id]?.description || '';
+        row.push(trans);
+      }
+      helperRows.push(row);
+    }
+    if (helperRows.length > 0) {
+      helperSheet.getRange(2, 1, helperRows.length, helperHeaders.length).setValues(helperRows);
+    }
+  }
+
+  // Create Detail Option Translations sheet
+  let optionSheet = spreadsheet.getSheetByName('Detail Option Translations');
+  if (!optionSheet) {
+    optionSheet = spreadsheet.insertSheet('Detail Option Translations');
+  } else {
+    const lastRow = optionSheet.getLastRow();
+    if (lastRow > 1) {
+      optionSheet.getRange(2, 1, lastRow - 1, optionSheet.getLastColumn() || 1).clear();
+    }
+  }
+
+  const optionHeaders = ['Name', ...locales.map(l => `${l}`)];
+  optionSheet.getRange(1, 1, 1, optionHeaders.length).setValues([optionHeaders]).setFontWeight('bold');
+
+  if (config.fields && config.fields.length > 0) {
+    const optionRows: any[][] = [];
+    for (const field of config.fields) {
+      if (!field || !field.id) continue;
+      const row = [field.name || ''];
+      for (const locale of locales) {
+        const fieldTrans = config.translations[locale]?.fields?.[field.id];
+        if (fieldTrans?.options && field.options) {
+          // Join option translations in order of field.options
+          const optTrans = field.options.map(opt => fieldTrans.options?.[opt.value] || '').join(', ');
+          row.push(optTrans);
+        } else {
+          row.push('');
+        }
+      }
+      optionRows.push(row);
+    }
+    if (optionRows.length > 0) {
+      optionSheet.getRange(2, 1, optionRows.length, optionHeaders.length).setValues(optionRows);
+    }
+  }
 }
