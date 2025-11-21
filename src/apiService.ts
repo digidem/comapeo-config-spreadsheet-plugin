@@ -324,23 +324,27 @@ function buildCategories(data: SheetData): Category[] {
   // Get background colors from column A (where category names are)
   const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
 
-  return categories.map((row, index) => {
-    const name = String(row[CATEGORY_COL.NAME] || '');
-    const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
-    const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
+  return categories
+    .map((row, index) => {
+      const name = String(row[CATEGORY_COL.NAME] || '').trim();
+      if (!name) return null;  // Skip blank rows
 
-    const defaultFieldIds = fieldsStr
-      ? fieldsStr.split(',').map(f => slugify(f.trim())).filter(Boolean)
-      : undefined;
+      const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
+      const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
-    return {
-      id: slugify(name),
-      name,
-      color,
-      iconId: slugify(name),  // Icon ID matches category ID
-      defaultFieldIds: defaultFieldIds && defaultFieldIds.length > 0 ? defaultFieldIds : undefined
-    } as Category;
-  });
+      const defaultFieldIds = fieldsStr
+        ? fieldsStr.split(',').map(f => slugify(f.trim())).filter(Boolean)
+        : undefined;
+
+      return {
+        id: slugify(name),
+        name,
+        color,
+        iconId: slugify(name),  // Icon ID matches category ID
+        defaultFieldIds: defaultFieldIds && defaultFieldIds.length > 0 ? defaultFieldIds : undefined
+      } as Category;
+    })
+    .filter((cat): cat is Category => cat !== null);
 }
 
 /**
