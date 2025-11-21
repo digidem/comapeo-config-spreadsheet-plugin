@@ -431,6 +431,12 @@ function extractLanguagesFromHeaders(headers: any[]): string[] {
     const langCode = standardLanguages[header];
     if (langCode) {
       langs.push(langCode);
+      continue;
+    }
+
+    // Recognize raw ISO 639-1 codes (2-3 lowercase letters)
+    if (/^[a-z]{2,3}$/.test(header.toLowerCase())) {
+      langs.push(header.toLowerCase());
     }
   }
 
