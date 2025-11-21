@@ -260,6 +260,8 @@ function buildFields(data: SheetData): Field[] {
     const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
     const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0).toLowerCase();
     const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
+    const universalVal = row[DETAILS_COL.UNIVERSAL];
+    const required = universalVal === true || universalVal === 'TRUE' || universalVal === 'true';
 
     let type: FieldType;
     let options: SelectOption[] | undefined;
@@ -286,7 +288,8 @@ function buildFields(data: SheetData): Field[] {
       name,
       type,
       description: helperText || undefined,
-      options
+      options,
+      required: required || undefined
     } as Field;
   });
 }
