@@ -570,15 +570,21 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const locales = Object.keys(config.translations).filter(Boolean);
   if (locales.length === 0) return;
 
+  // Helper to clear entire sheet content (headers + data) to remove stale columns
+  const clearSheetContent = (sheet: GoogleAppsScript.Spreadsheet.Sheet): void => {
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    if (lastRow > 0 && lastCol > 0) {
+      sheet.getRange(1, 1, lastRow, lastCol).clear();
+    }
+  };
+
   // Create Category Translations sheet
   let catSheet = spreadsheet.getSheetByName('Category Translations');
   if (!catSheet) {
     catSheet = spreadsheet.insertSheet('Category Translations');
   } else {
-    const lastRow = catSheet.getLastRow();
-    if (lastRow > 1) {
-      catSheet.getRange(2, 1, lastRow - 1, catSheet.getLastColumn() || 1).clear();
-    }
+    clearSheetContent(catSheet);
   }
 
   const catHeaders = ['Name', ...locales.map(l => `${l}`)];
@@ -605,10 +611,7 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   if (!labelSheet) {
     labelSheet = spreadsheet.insertSheet('Detail Label Translations');
   } else {
-    const lastRow = labelSheet.getLastRow();
-    if (lastRow > 1) {
-      labelSheet.getRange(2, 1, lastRow - 1, labelSheet.getLastColumn() || 1).clear();
-    }
+    clearSheetContent(labelSheet);
   }
 
   const labelHeaders = ['Name', ...locales.map(l => `${l}`)];
@@ -635,10 +638,7 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   if (!helperSheet) {
     helperSheet = spreadsheet.insertSheet('Detail Helper Text Translations');
   } else {
-    const lastRow = helperSheet.getLastRow();
-    if (lastRow > 1) {
-      helperSheet.getRange(2, 1, lastRow - 1, helperSheet.getLastColumn() || 1).clear();
-    }
+    clearSheetContent(helperSheet);
   }
 
   const helperHeaders = ['Name', ...locales.map(l => `${l}`)];
@@ -665,10 +665,7 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   if (!optionSheet) {
     optionSheet = spreadsheet.insertSheet('Detail Option Translations');
   } else {
-    const lastRow = optionSheet.getLastRow();
-    if (lastRow > 1) {
-      optionSheet.getRange(2, 1, lastRow - 1, optionSheet.getLastColumn() || 1).clear();
-    }
+    clearSheetContent(optionSheet);
   }
 
   const optionHeaders = ['Name', ...locales.map(l => `${l}`)];
