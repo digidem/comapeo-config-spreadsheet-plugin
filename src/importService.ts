@@ -567,7 +567,8 @@ function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreads
 }
 
 /**
- * Clears all translation sheets to remove stale data when importing a config without translations
+ * Deletes all translation sheets to remove stale data when importing a config without translations.
+ * Deleting rather than clearing allows auto-translate to recreate them with proper headers/formulas.
  */
 function clearTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
   const translationSheetNames = [
@@ -580,11 +581,7 @@ function clearTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spread
   for (const sheetName of translationSheetNames) {
     const sheet = spreadsheet.getSheetByName(sheetName);
     if (sheet) {
-      const lastRow = sheet.getLastRow();
-      const lastCol = sheet.getLastColumn();
-      if (lastRow > 0 && lastCol > 0) {
-        sheet.getRange(1, 1, lastRow, lastCol).clear();
-      }
+      spreadsheet.deleteSheet(sheet);
     }
   }
 }
