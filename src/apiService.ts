@@ -329,6 +329,7 @@ function buildCategories(data: SheetData): Category[] {
       const name = String(row[CATEGORY_COL.NAME] || '').trim();
       if (!name) return null;  // Skip blank rows
 
+      const iconData = String(row[CATEGORY_COL.ICON] || '').trim();
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
@@ -340,7 +341,7 @@ function buildCategories(data: SheetData): Category[] {
         id: slugify(name),
         name,
         color,
-        iconId: slugify(name),  // Icon ID matches category ID
+        iconId: iconData ? slugify(name) : undefined,  // Only set iconId when icon data exists
         defaultFieldIds: defaultFieldIds && defaultFieldIds.length > 0 ? defaultFieldIds : undefined
       } as Category;
     })
