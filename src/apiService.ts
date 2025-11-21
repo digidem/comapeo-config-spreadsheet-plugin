@@ -15,6 +15,7 @@ const CATEGORY_COL = {
   NAME: 0,
   ICON: 1,
   FIELDS: 2,
+  ID: 3,  // Category ID (optional, for preserving original IDs on import)
   COLOR_BACKGROUND: 0  // Color comes from background of column A
 };
 
@@ -360,17 +361,20 @@ function buildCategories(data: SheetData): Category[] {
 
       const iconData = String(row[CATEGORY_COL.ICON] || '').trim();
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
+      const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
       const defaultFieldIds = fieldsStr
         ? fieldsStr.split(',').map(f => slugify(f.trim())).filter(Boolean)
         : undefined;
 
+      const categoryId = idStr || slugify(name);  // Use explicit ID if provided, otherwise slugify name
+
       return {
-        id: slugify(name),
+        id: categoryId,
         name,
         color,
-        iconId: iconData ? slugify(name) : undefined,  // Only set iconId when icon data exists
+        iconId: iconData ? categoryId : undefined,  // Use category ID as icon ID when icon data exists
         defaultFieldIds: defaultFieldIds && defaultFieldIds.length > 0 ? defaultFieldIds : undefined
       } as Category;
     })

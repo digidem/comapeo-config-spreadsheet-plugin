@@ -427,12 +427,12 @@ function populateCategoriesSheet(
 
   if (!sheet) {
     sheet = spreadsheet.insertSheet('Categories');
-    sheet.getRange(1, 1, 1, 4).setValues([['Name', 'Icon', 'Fields', 'Color']]).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, 5).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color']]).setFontWeight('bold');
   } else {
     // Clear existing data (keep header)
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
-      sheet.getRange(2, 1, lastRow - 1, 4).clear();
+      sheet.getRange(2, 1, lastRow - 1, 5).clear();
     }
   }
 
@@ -472,13 +472,13 @@ function populateCategoriesSheet(
 
     const colorValue = cat.color || '#FFFFFF';
 
-    rows.push([cat.name, iconValue, fieldsValue, colorValue]);
+    rows.push([cat.name, iconValue, fieldsValue, cat.id || '', colorValue]);
     colors.push(colorValue);
   }
 
   if (rows.length === 0) return;
 
-  sheet.getRange(2, 1, rows.length, 4).setValues(rows);
+  sheet.getRange(2, 1, rows.length, 5).setValues(rows);
 
   // Set background colors for column A
   const bgColors = colors.map(c => [c]);
