@@ -404,6 +404,7 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
   populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields);
   populateDetailsSheet(spreadsheet, config.fields || []);
   populateMetadataSheet(spreadsheet, config.metadata);
+  populateIconsSheet(spreadsheet, config.icons);
 
   // Populate translations if present, otherwise clear existing translation sheets
   if (config.translations && Object.keys(config.translations).length > 0) {
@@ -591,6 +592,39 @@ function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreads
   ];
 
   sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+}
+
+/**
+ * Populates the Icons sheet with all icons from the config
+ * This ensures all icons are preserved during round-trip, not just category icons
+ */
+function populateIconsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, icons?: Icon[]): void {
+  let sheet = spreadsheet.getSheetByName('Icons');
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('Icons');
+    sheet.getRange(1, 1, 1, 2).setValues([['ID', 'SVG Data']]).setFontWeight('bold');
+  } else {
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, 2).clear();
+    }
+  }
+
+  if (!icons || icons.length === 0) return;
+
+  const rows: any[][] = [];
+  for (const icon of icons) {
+    if (!icon || !icon.id) continue;
+
+    // Store either svgData or svgUrl
+    const svgValue = icon.svgData || icon.svgUrl || '';
+    rows.push([icon.id, svgValue]);
+  }
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  }
 }
 
 /**
