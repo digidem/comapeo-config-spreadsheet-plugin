@@ -277,6 +277,21 @@ function buildFields(data: SheetData): Field[] {
       case 't':
         type = 'text';
         break;
+      case 'b':
+        type = 'boolean';
+        break;
+      case 'd':
+        type = 'date';
+        break;
+      case 'D':
+        type = 'datetime';
+        break;
+      case 'p':
+        type = 'photo';
+        break;
+      case 'l':
+        type = 'location';
+        break;
       default:
         // Default to 'select' for 's' or any other value
         type = 'select';
