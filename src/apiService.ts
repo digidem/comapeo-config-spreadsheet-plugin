@@ -3,7 +3,51 @@
  * JSON-only build endpoint, no ZIP workflow
  */
 
-const API_BASE_URL = "http://137.184.153.36:3000";
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** API base URL - uses HTTPS for security */
+const API_BASE_URL = "https://137.184.153.36:3000";
+
+/** Column indices for Categories sheet (0-based) */
+const CATEGORY_COL = {
+  NAME: 0,
+  ICON: 1,
+  FIELDS: 2,
+  COLOR_BACKGROUND: 0  // Color comes from background of column A
+};
+
+/** Column indices for Details sheet (0-based) */
+const DETAILS_COL = {
+  NAME: 0,
+  HELPER_TEXT: 1,
+  TYPE: 2,
+  OPTIONS: 3,
+  UNIVERSAL: 5
+};
+
+/** Column indices for translation sheets (0-based) */
+const TRANSLATION_COL = {
+  SOURCE_TEXT: 0,       // Column A - original text
+  FIRST_LANGUAGE: 1     // Column B - first translation language
+};
+
+/** Default retry configuration */
+const RETRY_CONFIG = {
+  MAX_RETRIES: 3,
+  BASE_DELAY_MS: 1000
+};
+
+/** Plugin identification */
+const PLUGIN_INFO = {
+  NAME: "comapeo-config-spreadsheet-plugin",
+  VERSION: "2.0.0"
+};
+
+// =============================================================================
+// API Communication
+// =============================================================================
 
 /**
  * Sends a JSON build request to the API and returns the .comapeocat file
@@ -12,7 +56,7 @@ const API_BASE_URL = "http://137.184.153.36:3000";
  * @param maxRetries - Maximum number of retry attempts (default: 3)
  * @returns URL to the saved .comapeocat file
  */
-function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = 3): string {
+function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY_CONFIG.MAX_RETRIES): string {
   const apiUrl = `${API_BASE_URL}/build`;
   let retryCount = 0;
   let lastError: Error | null = null;
@@ -34,7 +78,8 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = 3): s
         method: 'post',
         contentType: 'application/json',
         payload: JSON.stringify(buildRequest),
-        muteHttpExceptions: true
+        muteHttpExceptions: true,
+        validateHttpsCertificates: false  // Allow self-signed certs in dev
       };
 
       const response = UrlFetchApp.fetch(apiUrl, options);
@@ -74,12 +119,12 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = 3): s
 
       console.error(lastError?.message);
       retryCount++;
-      Utilities.sleep(1000 * Math.pow(2, retryCount));
+      Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, retryCount));
     } catch (error) {
       lastError = error;
       console.error(`Error in API request (attempt ${retryCount + 1}):`, error);
       retryCount++;
-      Utilities.sleep(1000 * Math.pow(2, retryCount));
+      Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, retryCount));
     }
   }
 
@@ -122,22 +167,28 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob, version: string
   return fileUrl;
 }
 
+// =============================================================================
+// Payload Building
+// =============================================================================
+
 /**
  * Creates a BuildRequest payload from spreadsheet data
  *
- * @param data - Spreadsheet data
+ * @param data - Spreadsheet data from getSpreadsheetData()
  * @returns BuildRequest payload ready for API
  */
 function createBuildPayload(data: SheetData): BuildRequest {
   const fields = buildFields(data);
-  const categories = buildCategories(data, fields);
-  const icons = buildIcons();
+  const categories = buildCategories(data);
+  const icons = buildIconsFromSheet();
   const metadata = buildMetadata(data);
   const translations = buildTranslationsPayload(data, categories, fields);
 
   // Set category selection in exact spreadsheet order
   const categoryIds = categories.map(c => c.id);
   setCategorySelection(categoryIds);
+
+  console.log(`Built payload with ${categories.length} categories, ${fields.length} fields, ${icons.length} icons`);
 
   return {
     metadata,
@@ -150,9 +201,14 @@ function createBuildPayload(data: SheetData): BuildRequest {
 
 /**
  * Builds metadata from spreadsheet
+ * Note: data.documentName is a string (spreadsheet name), not an array
  */
 function buildMetadata(data: SheetData): Metadata {
-  const documentName = data.documentName?.[0]?.[0] || "Unnamed Config";
+  // FIXED: documentName is a string from getSpreadsheetData(), not a nested array
+  const documentName = typeof data.documentName === 'string'
+    ? data.documentName
+    : String(data.documentName || "Unnamed Config");
+
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let metadataSheet = spreadsheet.getSheetByName('Metadata');
 
@@ -162,10 +218,12 @@ function buildMetadata(data: SheetData): Metadata {
   }
 
   const sheetData = metadataSheet.getDataRange().getValues();
+
   const getValue = (key: string, defaultVal: string): string => {
     for (let i = 1; i < sheetData.length; i++) {
       if (sheetData[i][0] === key) {
         if (key === 'version') {
+          // Always update version with current date
           const newVersion = Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd');
           metadataSheet.getRange(i + 1, 2).setValue(newVersion);
           return newVersion;
@@ -173,11 +231,12 @@ function buildMetadata(data: SheetData): Metadata {
         return String(sheetData[i][1]);
       }
     }
+    // Key not found - append new row
     metadataSheet.appendRow([key, defaultVal]);
     return defaultVal;
   };
 
-  const name = getValue('name', `config-${slugify(String(documentName))}`);
+  const name = getValue('name', `config-${slugify(documentName)}`);
   const version = getValue('version', Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd'));
   const description = getValue('description', '');
 
@@ -185,8 +244,8 @@ function buildMetadata(data: SheetData): Metadata {
     name,
     version,
     description: description || undefined,
-    builderName: "comapeo-config-spreadsheet-plugin",
-    builderVersion: "2.0.0"
+    builderName: PLUGIN_INFO.NAME,
+    builderVersion: PLUGIN_INFO.VERSION
   };
 }
 
@@ -195,11 +254,12 @@ function buildMetadata(data: SheetData): Metadata {
  */
 function buildFields(data: SheetData): Field[] {
   const details = data.Details?.slice(1) || [];
+
   return details.map(row => {
-    const name = String(row[0] || '');
-    const helperText = String(row[1] || '');
-    const typeStr = String(row[2] || 't').charAt(0).toLowerCase();
-    const optionsStr = String(row[3] || '');
+    const name = String(row[DETAILS_COL.NAME] || '');
+    const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
+    const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0).toLowerCase();
+    const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
 
     let type: FieldType;
     let options: SelectOption[] | undefined;
@@ -216,19 +276,18 @@ function buildFields(data: SheetData): Field[] {
         type = 'text';
         break;
       default:
+        // Default to 'select' for 's' or any other value
         type = 'select';
         options = parseOptions(optionsStr);
     }
 
-    const field: Field = {
+    return {
       id: slugify(name),
       name,
       type,
       description: helperText || undefined,
       options
-    };
-
-    return field;
+    } as Field;
   });
 }
 
@@ -237,8 +296,10 @@ function buildFields(data: SheetData): Field[] {
  */
 function parseOptions(optionsStr: string): SelectOption[] | undefined {
   if (!optionsStr) return undefined;
+
   const opts = optionsStr.split(',').map(s => s.trim()).filter(Boolean);
   if (opts.length === 0) return undefined;
+
   return opts.map(opt => ({
     value: slugify(opt),
     label: opt
@@ -247,8 +308,9 @@ function parseOptions(optionsStr: string): SelectOption[] | undefined {
 
 /**
  * Builds categories array from Categories sheet
+ * Categories are built in exact spreadsheet order for setCategorySelection
  */
-function buildCategories(data: SheetData, fields: Field[]): Category[] {
+function buildCategories(data: SheetData): Category[] {
   const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
   const categories = data.Categories?.slice(1) || [];
 
@@ -256,79 +318,141 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     return [];
   }
 
+  // Get background colors from column A (where category names are)
   const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
 
   return categories.map((row, index) => {
-    const name = String(row[0] || '');
-    const fieldsStr = String(row[2] || '');
-    const color = backgroundColors[index]?.[0] || '#0000FF';
+    const name = String(row[CATEGORY_COL.NAME] || '');
+    const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
+    const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
     const defaultFieldIds = fieldsStr
       ? fieldsStr.split(',').map(f => slugify(f.trim())).filter(Boolean)
       : undefined;
 
-    const category: Category = {
+    return {
       id: slugify(name),
       name,
       color,
+      iconId: slugify(name),  // Icon ID matches category ID
       defaultFieldIds: defaultFieldIds && defaultFieldIds.length > 0 ? defaultFieldIds : undefined
-    };
-
-    return category;
+    } as Category;
   });
 }
 
 /**
- * Builds icons array from processed icons
+ * Builds icons array from Categories sheet column B (icon URLs or SVG data)
+ * This reads existing icon data that was generated by generateIconsConfig()
  */
-function buildIcons(): Icon[] {
+function buildIconsFromSheet(): Icon[] {
   const icons: Icon[] = [];
   const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
 
   if (!categoriesSheet) return icons;
 
-  const data = categoriesSheet.getDataRange().getValues().slice(1);
+  const lastRow = categoriesSheet.getLastRow();
+  if (lastRow < 2) return icons;
+
+  const data = categoriesSheet.getRange(2, 1, lastRow - 1, 2).getValues();
 
   for (const row of data) {
-    const name = String(row[0] || '');
-    const iconUrlOrData = String(row[1] || '');
+    const name = String(row[CATEGORY_COL.NAME] || '');
+    const iconUrlOrData = String(row[CATEGORY_COL.ICON] || '');
 
-    if (name && iconUrlOrData) {
-      const iconId = slugify(name);
+    if (!name || !iconUrlOrData) continue;
 
-      if (iconUrlOrData.startsWith('<svg')) {
-        icons.push({ id: iconId, svgData: iconUrlOrData });
-      } else if (iconUrlOrData.startsWith('http')) {
+    const iconId = slugify(name);
+
+    if (iconUrlOrData.startsWith('<svg')) {
+      // Inline SVG data
+      icons.push({ id: iconId, svgData: iconUrlOrData });
+    } else if (iconUrlOrData.startsWith('data:image/svg+xml')) {
+      // Data URI SVG
+      const svgContent = decodeURIComponent(iconUrlOrData.replace(/^data:image\/svg\+xml,/, ''));
+      icons.push({ id: iconId, svgData: svgContent });
+    } else if (iconUrlOrData.startsWith('https://drive.google.com')) {
+      // Google Drive URL - fetch and convert to inline SVG
+      try {
+        const fileId = iconUrlOrData.split('/d/')[1]?.split('/')[0];
+        if (fileId) {
+          const file = DriveApp.getFileById(fileId);
+          const svgContent = file.getBlob().getDataAsString();
+          icons.push({ id: iconId, svgData: svgContent });
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch icon from Drive for ${name}:`, e);
+        // Fall back to URL reference
         icons.push({ id: iconId, svgUrl: iconUrlOrData });
       }
+    } else if (iconUrlOrData.startsWith('http')) {
+      // External URL
+      icons.push({ id: iconId, svgUrl: iconUrlOrData });
     }
   }
 
   return icons;
 }
 
+// =============================================================================
+// Translations
+// =============================================================================
+
+/**
+ * Extracts language codes from translation sheet headers
+ * Handles both standard languages (en, es, pt) and custom languages ("Name - ISO" format)
+ */
+function extractLanguagesFromHeaders(headers: any[]): string[] {
+  const standardLanguages: Record<string, string> = {
+    'English': 'en',
+    'Espanol': 'es',
+    'Español': 'es',
+    'Portugues': 'pt',
+    'Português': 'pt'
+  };
+
+  const langs: string[] = [];
+
+  // Start from column B (index 1) - column A is source text
+  for (let i = TRANSLATION_COL.FIRST_LANGUAGE; i < headers.length; i++) {
+    const header = String(headers[i] || '').trim();
+    if (!header) continue;
+
+    // Check for custom language format: "Name - ISO"
+    const customMatch = header.match(/.*\s*-\s*(\w+)$/);
+    if (customMatch) {
+      langs.push(customMatch[1].toLowerCase());
+      continue;
+    }
+
+    // Check for standard language name
+    const langCode = standardLanguages[header];
+    if (langCode) {
+      langs.push(langCode);
+    }
+  }
+
+  return langs;
+}
+
 /**
  * Builds translations payload from translation sheets
+ *
+ * Translation sheet structure:
+ * - Column A (index 0): Source text (linked to Categories/Details)
+ * - Column B+ (index 1+): Language translations
  */
 function buildTranslationsPayload(data: SheetData, categories: Category[], fields: Field[]): TranslationsByLocale {
   const translations: TranslationsByLocale = {};
 
-  // Get languages from Category Translations header
   const catTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Category Translations');
   if (!catTransSheet) return translations;
 
   const headerRow = catTransSheet.getRange(1, 1, 1, catTransSheet.getLastColumn()).getValues()[0];
-  const langs: string[] = [];
-
-  for (let i = 3; i < headerRow.length; i++) {
-    const header = String(headerRow[i] || '');
-    const match = header.match(/.*\s*-\s*(\w+)/);
-    if (match) {
-      langs.push(match[1].trim());
-    }
-  }
+  const langs = extractLanguagesFromHeaders(headerRow);
 
   if (langs.length === 0) return translations;
+
+  console.log(`Found ${langs.length} languages for translations:`, langs);
 
   // Initialize translations structure
   for (const lang of langs) {
@@ -340,7 +464,9 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   for (let i = 0; i < catTrans.length && i < categories.length; i++) {
     const catId = categories[i].id;
     for (let j = 0; j < langs.length; j++) {
-      const value = String(catTrans[i][j + 1] || '').trim();
+      // Translation values start at column B (index 1)
+      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+      const value = String(catTrans[i][colIndex] || '').trim();
       if (value && translations[langs[j]].categories) {
         translations[langs[j]].categories![catId] = { name: value };
       }
@@ -352,7 +478,8 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   for (let i = 0; i < labelTrans.length && i < fields.length; i++) {
     const fieldId = fields[i].id;
     for (let j = 0; j < langs.length; j++) {
-      const value = String(labelTrans[i][j + 1] || '').trim();
+      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+      const value = String(labelTrans[i][colIndex] || '').trim();
       if (value && translations[langs[j]].fields) {
         if (!translations[langs[j]].fields![fieldId]) {
           translations[langs[j]].fields![fieldId] = {};
@@ -367,7 +494,8 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   for (let i = 0; i < helperTrans.length && i < fields.length; i++) {
     const fieldId = fields[i].id;
     for (let j = 0; j < langs.length; j++) {
-      const value = String(helperTrans[i][j + 1] || '').trim();
+      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+      const value = String(helperTrans[i][colIndex] || '').trim();
       if (value && translations[langs[j]].fields) {
         if (!translations[langs[j]].fields![fieldId]) {
           translations[langs[j]].fields![fieldId] = {};
@@ -381,14 +509,16 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
   for (let i = 0; i < optionTrans.length && i < fields.length; i++) {
     const field = fields[i];
-    if (!field.options) continue;
+    if (!field.options || field.options.length === 0) continue;
 
     const fieldId = field.id;
     for (let j = 0; j < langs.length; j++) {
-      const optStr = String(optionTrans[i][j + 1] || '').trim();
+      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+      const optStr = String(optionTrans[i][colIndex] || '').trim();
       if (!optStr) continue;
 
       const translatedOpts = optStr.split(',').map(s => s.trim());
+
       if (!translations[langs[j]].fields![fieldId]) {
         translations[langs[j]].fields![fieldId] = {};
       }
