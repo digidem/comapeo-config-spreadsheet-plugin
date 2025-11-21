@@ -17,6 +17,7 @@ const CATEGORY_COL = {
   FIELDS: 2,
   ID: 3,  // Category ID (optional, for preserving original IDs on import)
   COLOR: 4,  // Explicit color value (column E)
+  ICON_ID: 5,  // Icon ID (optional, for preserving original iconId on import)
   COLOR_BACKGROUND: 0  // Fallback: Color from background of column A
 };
 
@@ -374,6 +375,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
+      const iconIdStr = String(row[CATEGORY_COL.ICON_ID] || '').trim();
       // Use explicit color from column E if present, otherwise fall back to background color
       const color = colorStr || backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
@@ -393,7 +395,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         id: categoryId,
         name,
         color,
-        iconId: iconData ? categoryId : undefined,  // Use category ID as icon ID when icon data exists
+        iconId: iconData ? (iconIdStr || categoryId) : undefined,  // Use explicit iconId if provided, otherwise category ID
         defaultFieldIds
       } as Category;
     })
