@@ -16,7 +16,8 @@ const CATEGORY_COL = {
   ICON: 1,
   FIELDS: 2,
   ID: 3,  // Category ID (optional, for preserving original IDs on import)
-  COLOR_BACKGROUND: 0  // Color comes from background of column A
+  COLOR: 4,  // Explicit color value (column E)
+  COLOR_BACKGROUND: 0  // Fallback: Color from background of column A
 };
 
 /** Column indices for Details sheet (0-based) */
@@ -372,7 +373,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const iconData = String(row[CATEGORY_COL.ICON] || '').trim();
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
-      const color = backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
+      const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
+      // Use explicit color from column E if present, otherwise fall back to background color
+      const color = colorStr || backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
       // Convert field names to field IDs using actual IDs from Details sheet
       let defaultFieldIds: string[] | undefined;
