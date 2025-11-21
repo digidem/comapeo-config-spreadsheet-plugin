@@ -355,6 +355,34 @@ function parseJsonFile(file: GoogleAppsScript.Base.Blob, fileName: string): Buil
 // =============================================================================
 
 /**
+ * Builds a lookup map from icon ID to icon data (svgData or svgUrl)
+ * This allows us to persist actual icon content when importing categories
+ */
+function buildIconMap(icons?: Icon[]): Map<string, string> {
+  const map = new Map<string, string>();
+
+  if (!icons || !Array.isArray(icons)) return map;
+
+  for (const icon of icons) {
+    if (!icon || !icon.id) continue;
+
+    // Prefer svgData (inline SVG), fall back to svgUrl
+    if (icon.svgData) {
+      // If it's raw SVG, convert to data URI for storage
+      if (icon.svgData.startsWith('<svg')) {
+        map.set(icon.id, `data:image/svg+xml,${encodeURIComponent(icon.svgData)}`);
+      } else {
+        map.set(icon.id, icon.svgData);
+      }
+    } else if (icon.svgUrl) {
+      map.set(icon.id, icon.svgUrl);
+    }
+  }
+
+  return map;
+}
+
+/**
  * Populates the spreadsheet with imported configuration data
  */
 function populateSpreadsheetFromConfig(config: BuildRequest): void {
@@ -369,8 +397,11 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
     setCategorySelection(config.categories.map(c => c.id));
   }
 
+  // Build icon lookup map for populating categories with actual icon data
+  const iconMap = buildIconMap(config.icons);
+
   // Populate sheets in order
-  populateCategoriesSheet(spreadsheet, config.categories || []);
+  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap);
   populateDetailsSheet(spreadsheet, config.fields || []);
   populateMetadataSheet(spreadsheet, config.metadata);
 
@@ -382,8 +413,13 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
 
 /**
  * Populates the Categories sheet
+ * @param iconMap - Map of icon ID to actual icon data (svgData URI or svgUrl)
  */
-function populateCategoriesSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, categories: Category[]): void {
+function populateCategoriesSheet(
+  spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+  categories: Category[],
+  iconMap: Map<string, string>
+): void {
   let sheet = spreadsheet.getSheetByName('Categories');
 
   if (!sheet) {
@@ -405,7 +441,13 @@ function populateCategoriesSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Sprea
   for (const cat of categories) {
     if (!cat || !cat.name) continue;
 
-    const iconValue = cat.iconId || '';
+    // Look up actual icon data from the icon map using iconId
+    // This ensures icons round-trip correctly (not just the ID)
+    let iconValue = '';
+    if (cat.iconId) {
+      iconValue = iconMap.get(cat.iconId) || '';
+    }
+
     const fieldsValue = Array.isArray(cat.defaultFieldIds) ? cat.defaultFieldIds.join(', ') : '';
     const colorValue = cat.color || '#FFFFFF';
 
