@@ -545,11 +545,21 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field option translations - match by name
+  // Process field option translations - match by options string (column A contains options from Details!D)
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
+  // Build map from options string to field (options string is what's in Details column D)
+  const detailsData = data.Details?.slice(1) || [];
+  const optionsStrToField = new Map<string, Field>();
+  for (let i = 0; i < detailsData.length && i < fields.length; i++) {
+    const optStr = String(detailsData[i][DETAILS_COL.OPTIONS] || '').trim();
+    if (optStr) {
+      optionsStrToField.set(optStr, fields[i]);
+    }
+  }
+
   for (const row of optionTrans) {
-    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
-    const field = fieldNameToField.get(sourceName);
+    const sourceOptionsStr = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const field = optionsStrToField.get(sourceOptionsStr);
     if (!field || !field.options || field.options.length === 0) continue;
 
     const fieldId = field.id;

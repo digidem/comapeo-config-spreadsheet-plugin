@@ -671,14 +671,16 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
     clearSheetContent(optionSheet);
   }
 
-  const optionHeaders = ['Name', ...locales.map(l => `${l}`)];
+  const optionHeaders = ['Options', ...locales.map(l => `${l}`)];
   optionSheet.getRange(1, 1, 1, optionHeaders.length).setValues([optionHeaders]).setFontWeight('bold');
 
   if (config.fields && config.fields.length > 0) {
     const optionRows: any[][] = [];
     for (const field of config.fields) {
-      if (!field || !field.id) continue;
-      const row = [field.name || ''];
+      if (!field || !field.id || !field.options || field.options.length === 0) continue;
+      // Column A: options string (matches Details!D format used by auto-translate)
+      const optionsStr = field.options.map(opt => opt.label || '').join(', ');
+      const row = [optionsStr];
       for (const locale of locales) {
         const fieldTrans = config.translations[locale]?.fields?.[field.id];
         if (fieldTrans?.options && field.options) {
