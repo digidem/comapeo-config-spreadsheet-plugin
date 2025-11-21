@@ -488,27 +488,35 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     translations[lang] = { categories: {}, fields: {} };
   }
 
-  // Process category translations
+  // Process category translations - match by name to handle blank rows
   const catTrans = data['Category Translations']?.slice(1) || [];
-  for (let i = 0; i < catTrans.length && i < categories.length; i++) {
-    const catId = categories[i].id;
+  const catNameToId = new Map(categories.map(c => [c.name, c.id]));
+  for (const row of catTrans) {
+    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const catId = catNameToId.get(sourceName);
+    if (!catId) continue;  // Skip rows that don't match a category
+
     for (let j = 0; j < langs.length; j++) {
-      // Translation values start at column B (index 1)
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(catTrans[i][colIndex] || '').trim();
+      const value = String(row[colIndex] || '').trim();
       if (value && translations[langs[j]].categories) {
         translations[langs[j]].categories![catId] = { name: value };
       }
     }
   }
 
-  // Process field label translations
+  // Process field label translations - match by name to handle blank rows
   const labelTrans = data['Detail Label Translations']?.slice(1) || [];
-  for (let i = 0; i < labelTrans.length && i < fields.length; i++) {
-    const fieldId = fields[i].id;
+  const fieldNameToId = new Map(fields.map(f => [f.name, f.id]));
+  const fieldNameToField = new Map(fields.map(f => [f.name, f]));
+  for (const row of labelTrans) {
+    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const fieldId = fieldNameToId.get(sourceName);
+    if (!fieldId) continue;
+
     for (let j = 0; j < langs.length; j++) {
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(labelTrans[i][colIndex] || '').trim();
+      const value = String(row[colIndex] || '').trim();
       if (value && translations[langs[j]].fields) {
         if (!translations[langs[j]].fields![fieldId]) {
           translations[langs[j]].fields![fieldId] = {};
@@ -518,13 +526,16 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field helper text translations
+  // Process field helper text translations - match by name
   const helperTrans = data['Detail Helper Text Translations']?.slice(1) || [];
-  for (let i = 0; i < helperTrans.length && i < fields.length; i++) {
-    const fieldId = fields[i].id;
+  for (const row of helperTrans) {
+    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const fieldId = fieldNameToId.get(sourceName);
+    if (!fieldId) continue;
+
     for (let j = 0; j < langs.length; j++) {
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(helperTrans[i][colIndex] || '').trim();
+      const value = String(row[colIndex] || '').trim();
       if (value && translations[langs[j]].fields) {
         if (!translations[langs[j]].fields![fieldId]) {
           translations[langs[j]].fields![fieldId] = {};
@@ -534,16 +545,17 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field option translations
+  // Process field option translations - match by name
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
-  for (let i = 0; i < optionTrans.length && i < fields.length; i++) {
-    const field = fields[i];
-    if (!field.options || field.options.length === 0) continue;
+  for (const row of optionTrans) {
+    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const field = fieldNameToField.get(sourceName);
+    if (!field || !field.options || field.options.length === 0) continue;
 
     const fieldId = field.id;
     for (let j = 0; j < langs.length; j++) {
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const optStr = String(optionTrans[i][colIndex] || '').trim();
+      const optStr = String(row[colIndex] || '').trim();
       if (!optStr) continue;
 
       const translatedOpts = optStr.split(',').map(s => s.trim());
