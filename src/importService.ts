@@ -401,7 +401,7 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
   const iconMap = buildIconMap(config.icons);
 
   // Populate sheets in order
-  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap);
+  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields);
   populateDetailsSheet(spreadsheet, config.fields || []);
   populateMetadataSheet(spreadsheet, config.metadata);
 
@@ -420,7 +420,8 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
 function populateCategoriesSheet(
   spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
   categories: Category[],
-  iconMap: Map<string, string>
+  iconMap: Map<string, string>,
+  fields?: Field[]
 ): void {
   let sheet = spreadsheet.getSheetByName('Categories');
 
@@ -437,6 +438,16 @@ function populateCategoriesSheet(
 
   if (!categories || categories.length === 0) return;
 
+  // Build map from field ID to field name for converting defaultFieldIds
+  const fieldIdToName = new Map<string, string>();
+  if (fields && fields.length > 0) {
+    for (const field of fields) {
+      if (field.id && field.name) {
+        fieldIdToName.set(field.id, field.name);
+      }
+    }
+  }
+
   const rows: any[][] = [];
   const colors: string[] = [];
 
@@ -450,7 +461,15 @@ function populateCategoriesSheet(
       iconValue = iconMap.get(cat.iconId) || '';
     }
 
-    const fieldsValue = Array.isArray(cat.defaultFieldIds) ? cat.defaultFieldIds.join(', ') : '';
+    // Convert field IDs to field names for column C
+    let fieldsValue = '';
+    if (Array.isArray(cat.defaultFieldIds) && cat.defaultFieldIds.length > 0) {
+      const fieldNames = cat.defaultFieldIds
+        .map(id => fieldIdToName.get(id) || id)  // Fall back to ID if name not found
+        .filter(Boolean);
+      fieldsValue = fieldNames.join(', ');
+    }
+
     const colorValue = cat.color || '#FFFFFF';
 
     rows.push([cat.name, iconValue, fieldsValue, colorValue]);
