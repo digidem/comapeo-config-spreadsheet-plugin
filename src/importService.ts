@@ -405,9 +405,11 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
   populateDetailsSheet(spreadsheet, config.fields || []);
   populateMetadataSheet(spreadsheet, config.metadata);
 
-  // Populate translations if present
+  // Populate translations if present, otherwise clear existing translation sheets
   if (config.translations && Object.keys(config.translations).length > 0) {
     populateTranslationSheets(spreadsheet, config);
+  } else {
+    clearTranslationSheets(spreadsheet);
   }
 }
 
@@ -562,6 +564,29 @@ function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreads
   ];
 
   sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+}
+
+/**
+ * Clears all translation sheets to remove stale data when importing a config without translations
+ */
+function clearTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet): void {
+  const translationSheetNames = [
+    'Category Translations',
+    'Detail Label Translations',
+    'Detail Helper Text Translations',
+    'Detail Option Translations'
+  ];
+
+  for (const sheetName of translationSheetNames) {
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    if (sheet) {
+      const lastRow = sheet.getLastRow();
+      const lastCol = sheet.getLastColumn();
+      if (lastRow > 0 && lastCol > 0) {
+        sheet.getRange(1, 1, lastRow, lastCol).clear();
+      }
+    }
+  }
 }
 
 /**
