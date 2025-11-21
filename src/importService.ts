@@ -666,14 +666,15 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
     clearSheetContent(helperSheet);
   }
 
-  const helperHeaders = ['Name', ...locales.map(l => `${l}`)];
+  const helperHeaders = ['Helper Text', ...locales.map(l => `${l}`)];
   helperSheet.getRange(1, 1, 1, helperHeaders.length).setValues([helperHeaders]).setFontWeight('bold');
 
   if (config.fields && config.fields.length > 0) {
     const helperRows: any[][] = [];
     for (const field of config.fields) {
       if (!field || !field.id) continue;
-      const row = [field.name || ''];
+      // Column A: helper text value (matches Details!B format used by auto-translate)
+      const row = [field.description || ''];
       for (const locale of locales) {
         const trans = config.translations[locale]?.fields?.[field.id]?.description || '';
         row.push(trans);

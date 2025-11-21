@@ -525,13 +525,23 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field helper text translations - match by name
+  // Process field helper text translations - match by helper text value (column A contains helper text from Details!B)
   const helperTrans = data['Detail Helper Text Translations']?.slice(1) || [];
-  for (const row of helperTrans) {
-    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
-    const fieldId = fieldNameToId.get(sourceName);
-    if (!fieldId) continue;
+  // Build map from helper text to field (helper text is what's in Details column B)
+  const helperTextToField = new Map<string, Field>();
+  for (let i = 0; i < detailsData.length && i < fields.length; i++) {
+    const helperText = String(detailsData[i][DETAILS_COL.HELPER_TEXT] || '').trim();
+    if (helperText) {
+      helperTextToField.set(helperText, fields[i]);
+    }
+  }
 
+  for (const row of helperTrans) {
+    const sourceHelperText = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const field = helperTextToField.get(sourceHelperText);
+    if (!field) continue;
+
+    const fieldId = field.id;
     for (let j = 0; j < langs.length; j++) {
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
       const value = String(row[colIndex] || '').trim();
