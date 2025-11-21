@@ -506,6 +506,7 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
 
   // Process field label translations - match by name to handle blank rows
   const labelTrans = data['Detail Label Translations']?.slice(1) || [];
+  const detailsData = data.Details?.slice(1) || [];  // Used by helper text and option translations
   const fieldNameToId = new Map(fields.map(f => [f.name, f.id]));
   const fieldNameToField = new Map(fields.map(f => [f.name, f]));
   for (const row of labelTrans) {
@@ -557,7 +558,6 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   // Process field option translations - match by options string (column A contains options from Details!D)
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
   // Build map from options string to field (options string is what's in Details column D)
-  const detailsData = data.Details?.slice(1) || [];
   const optionsStrToField = new Map<string, Field>();
   for (let i = 0; i < detailsData.length && i < fields.length; i++) {
     const optStr = String(detailsData[i][DETAILS_COL.OPTIONS] || '').trim();
