@@ -615,19 +615,28 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const catHeaders = ['Name', ...locales.map(l => `${l}`)];
   catSheet.getRange(1, 1, 1, catHeaders.length).setValues([catHeaders]).setFontWeight('bold');
 
-  if (config.categories && config.categories.length > 0) {
-    const catRows: any[][] = [];
+  // Set column A formula to reference Categories sheet
+  const categoriesSheet = spreadsheet.getSheetByName('Categories');
+  if (categoriesSheet && config.categories && config.categories.length > 0) {
+    const lastRow = categoriesSheet.getLastRow();
+    if (lastRow > 1) {
+      const formula = `=Categories!A2:A${lastRow}`;
+      catSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+    }
+
+    // Write translation values (columns B+)
+    const catTransValues: any[][] = [];
     for (const cat of config.categories) {
       if (!cat || !cat.id) continue;
-      const row = [cat.name || ''];
+      const row: any[] = [];
       for (const locale of locales) {
         const trans = config.translations[locale]?.categories?.[cat.id]?.name || '';
         row.push(trans);
       }
-      catRows.push(row);
+      catTransValues.push(row);
     }
-    if (catRows.length > 0) {
-      catSheet.getRange(2, 1, catRows.length, catHeaders.length).setValues(catRows);
+    if (catTransValues.length > 0 && locales.length > 0) {
+      catSheet.getRange(2, 2, catTransValues.length, locales.length).setValues(catTransValues);
     }
   }
 
@@ -642,19 +651,28 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const labelHeaders = ['Name', ...locales.map(l => `${l}`)];
   labelSheet.getRange(1, 1, 1, labelHeaders.length).setValues([labelHeaders]).setFontWeight('bold');
 
-  if (config.fields && config.fields.length > 0) {
-    const labelRows: any[][] = [];
+  // Set column A formula to reference Details sheet column A (field names)
+  const detailsSheet = spreadsheet.getSheetByName('Details');
+  if (detailsSheet && config.fields && config.fields.length > 0) {
+    const lastRow = detailsSheet.getLastRow();
+    if (lastRow > 1) {
+      const formula = `=Details!A2:A${lastRow}`;
+      labelSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+    }
+
+    // Write translation values (columns B+)
+    const labelTransValues: any[][] = [];
     for (const field of config.fields) {
       if (!field || !field.id) continue;
-      const row = [field.name || ''];
+      const row: any[] = [];
       for (const locale of locales) {
         const trans = config.translations[locale]?.fields?.[field.id]?.name || '';
         row.push(trans);
       }
-      labelRows.push(row);
+      labelTransValues.push(row);
     }
-    if (labelRows.length > 0) {
-      labelSheet.getRange(2, 1, labelRows.length, labelHeaders.length).setValues(labelRows);
+    if (labelTransValues.length > 0 && locales.length > 0) {
+      labelSheet.getRange(2, 2, labelTransValues.length, locales.length).setValues(labelTransValues);
     }
   }
 
@@ -669,20 +687,27 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const helperHeaders = ['Helper Text', ...locales.map(l => `${l}`)];
   helperSheet.getRange(1, 1, 1, helperHeaders.length).setValues([helperHeaders]).setFontWeight('bold');
 
-  if (config.fields && config.fields.length > 0) {
-    const helperRows: any[][] = [];
+  // Set column A formula to reference Details sheet column B (helper text)
+  if (detailsSheet && config.fields && config.fields.length > 0) {
+    const lastRow = detailsSheet.getLastRow();
+    if (lastRow > 1) {
+      const formula = `=Details!B2:B${lastRow}`;
+      helperSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+    }
+
+    // Write translation values (columns B+)
+    const helperTransValues: any[][] = [];
     for (const field of config.fields) {
       if (!field || !field.id) continue;
-      // Column A: helper text value (matches Details!B format used by auto-translate)
-      const row = [field.description || ''];
+      const row: any[] = [];
       for (const locale of locales) {
         const trans = config.translations[locale]?.fields?.[field.id]?.description || '';
         row.push(trans);
       }
-      helperRows.push(row);
+      helperTransValues.push(row);
     }
-    if (helperRows.length > 0) {
-      helperSheet.getRange(2, 1, helperRows.length, helperHeaders.length).setValues(helperRows);
+    if (helperTransValues.length > 0 && locales.length > 0) {
+      helperSheet.getRange(2, 2, helperTransValues.length, locales.length).setValues(helperTransValues);
     }
   }
 
@@ -697,13 +722,19 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const optionHeaders = ['Options', ...locales.map(l => `${l}`)];
   optionSheet.getRange(1, 1, 1, optionHeaders.length).setValues([optionHeaders]).setFontWeight('bold');
 
-  if (config.fields && config.fields.length > 0) {
-    const optionRows: any[][] = [];
+  // Set column A formula to reference Details sheet column D (options)
+  if (detailsSheet && config.fields && config.fields.length > 0) {
+    const lastRow = detailsSheet.getLastRow();
+    if (lastRow > 1) {
+      const formula = `=Details!D2:D${lastRow}`;
+      optionSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+    }
+
+    // Write translation values (columns B+)
+    const optionTransValues: any[][] = [];
     for (const field of config.fields) {
-      if (!field || !field.id || !field.options || field.options.length === 0) continue;
-      // Column A: options string (matches Details!D format used by auto-translate)
-      const optionsStr = field.options.map(opt => opt.label || '').join(', ');
-      const row = [optionsStr];
+      if (!field || !field.id) continue;
+      const row: any[] = [];
       for (const locale of locales) {
         const fieldTrans = config.translations[locale]?.fields?.[field.id];
         if (fieldTrans?.options && field.options) {
@@ -714,10 +745,10 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
           row.push('');
         }
       }
-      optionRows.push(row);
+      optionTransValues.push(row);
     }
-    if (optionRows.length > 0) {
-      optionSheet.getRange(2, 1, optionRows.length, optionHeaders.length).setValues(optionRows);
+    if (optionTransValues.length > 0 && locales.length > 0) {
+      optionSheet.getRange(2, 2, optionTransValues.length, locales.length).setValues(optionTransValues);
     }
   }
 }
