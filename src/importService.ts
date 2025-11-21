@@ -487,7 +487,7 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
   for (const field of fields) {
     if (!field || !field.name) continue;
 
-    const typeChar = mapFieldTypeToChar(field.type);
+    const typeChar = mapFieldTypeToChar(field.type, field.name);
     const optionsValue = Array.isArray(field.options)
       ? field.options.map(o => o?.label || '').filter(Boolean).join(', ')
       : '';
@@ -509,8 +509,9 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
 
 /**
  * Maps API field type to spreadsheet type character
+ * Throws for unsupported types to prevent silent data loss
  */
-function mapFieldTypeToChar(type: FieldType): string {
+function mapFieldTypeToChar(type: FieldType, fieldName: string): string {
   switch (type) {
     case 'text':
     case 'textarea':
@@ -521,8 +522,15 @@ function mapFieldTypeToChar(type: FieldType): string {
     case 'multiselect':
       return 'm';
     case 'select':
-    default:
       return 's';
+    case 'boolean':
+    case 'date':
+    case 'datetime':
+    case 'photo':
+    case 'location':
+      throw new Error(`Unsupported field type '${type}' for field '${fieldName}'. This type cannot be represented in the spreadsheet format.`);
+    default:
+      throw new Error(`Unknown field type '${type}' for field '${fieldName}'.`);
   }
 }
 
