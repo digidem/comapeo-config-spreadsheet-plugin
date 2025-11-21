@@ -2,10 +2,11 @@
 let menuTexts: Record<string,MainMenuText> = {
   es: {
     menu: "Herramientas CoMapeo",
-    translateCoMapeoCategory: "Traducir Categorías de CoMapeo",
+    translateCoMapeoCategory: "Traducir Categorias de CoMapeo",
     addCustomLanguages: "Agregar lenguajes customizados",
-    generateIcons:"Generar Íconos para Categorías",
-    generateCoMapeoCategory: "Generar Categorías de CoMapeo",
+    generateIcons:"Generar Iconos para Categorias",
+    generateCoMapeoCategory: "Generar Categorias de CoMapeo",
+    importCoMapeoCategory: "Importar Categorias de CoMapeo",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
     openHelpPage: "Ayuda"
@@ -16,6 +17,7 @@ let menuTexts: Record<string,MainMenuText> = {
     addCustomLanguages: "Add Custom Languages",
     generateIcons:"Generate Category Icons",
     generateCoMapeoCategory: "Generate CoMapeo Category",
+    importCoMapeoCategory: "Import CoMapeo Category",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
     openHelpPage: "Help"
@@ -24,12 +26,12 @@ let menuTexts: Record<string,MainMenuText> = {
 
 let translateMenuTexts: Record<string,MenuText> = {
   es: {
-    action: "Traducir Categoría de CoMapeo",
-    actionText: "Esto traducirá todas las celdas vacías en todas las otras columnas de traducción de lenguages. Continuar?",
-    completed: "Traducción Completada",
-    completedText: "Todas las planillas fueron traducidas con éxito",
+    action: "Traducir Categoria de CoMapeo",
+    actionText: "Esto traducira todas las celdas vacias en todas las otras columnas de traduccion de lenguages. Continuar?",
+    completed: "Traduccion Completada",
+    completedText: "Todas las planillas fueron traducidas con exito",
     error: "Error",
-    errorText: "Ocurrió un error durante la traducción: "
+    errorText: "Ocurrio un error durante la traduccion: "
   },
   en: {
     action: "Translate CoMapeo Category",
@@ -44,10 +46,10 @@ let translateMenuTexts: Record<string,MenuText> = {
 
 let iconMenuTexts: Record<string,MenuText> = {
   es: {
-    action: "Generar Íconos",
-    actionText: "Esta acción generará íconos usando la información de la planilla actual. Esto puede llevar algunos minutos para processar. ¿Continuar?",
+    action: "Generar Iconos",
+    actionText: "Esta accion generara iconos usando la informacion de la planilla actual. Esto puede llevar algunos minutos para processar. Continuar?",
     error: "Error",
-    errorText: "Un error ocurrió generando los íconos: "
+    errorText: "Un error ocurrio generando los iconos: "
   },
   en: {
     action: "Generate Icons",
@@ -59,10 +61,10 @@ let iconMenuTexts: Record<string,MenuText> = {
 
 let categoryMenuTexts: Record<string,MenuText> = {
   es: {
-    action: "Generar Categorías de CoMapeo",
-    actionText: "Esto generará las categorías de CoMapeo basándose en la información de la planilla actual. Puede llevar unos minutos procesar. ¿Continuar?",
+    action: "Generar Categorias de CoMapeo",
+    actionText: "Esto generara las categorias de CoMapeo basandose en la informacion de la planilla actual. Puede llevar unos minutos procesar. Continuar?",
     error: "Error",
-    errorText: "Ocurrió un error mientras se generaba la configuración: "
+    errorText: "Ocurrio un error mientras se generaba la configuracion: "
   },
   en: {
     action: "Generate CoMapeo Category",
@@ -72,14 +74,33 @@ let categoryMenuTexts: Record<string,MenuText> = {
   }
 }
 
+let importMenuTexts: Record<string,MenuText> = {
+  es: {
+    action: "Importar Categorias de CoMapeo",
+    actionText: "Esto importara un archivo .comapeocat y poblara la planilla con los datos. Los datos existentes seran reemplazados. Continuar?",
+    completed: "Importacion Completada",
+    completedText: "El archivo fue importado con exito.",
+    error: "Error",
+    errorText: "Ocurrio un error durante la importacion: "
+  },
+  en: {
+    action: "Import CoMapeo Category",
+    actionText: "This will import a .comapeocat file and populate the spreadsheet with its data. Existing data will be replaced. Continue?",
+    completed: "Import Complete",
+    completedText: "The file was imported successfully.",
+    error: "Error",
+    errorText: "An error occurred during import: "
+  }
+}
+
 let lintMenuTexts: Record<string, MenuText> = {
   es: {
-    action: "Validar Categorías de CoMapeo",
-    actionText: "Esto validará todas las planillas en la hoja de cálculo. ¿Continuar?",
-    completed: "Validación terminada",
-    completedText: "Todas las planillas fueron validadas con éxito",
+    action: "Validar Categorias de CoMapeo",
+    actionText: "Esto validara todas las planillas en la hoja de calculo. Continuar?",
+    completed: "Validacion terminada",
+    completedText: "Todas las planillas fueron validadas con exito",
     error: "Error",
-    errorText: "Un error ocurrió en la validación: "
+    errorText: "Un error ocurrio en la validacion: "
   },
   en: {
     action: "Lint CoMapeo Category",
@@ -94,11 +115,11 @@ let lintMenuTexts: Record<string, MenuText> = {
 let cleanAllMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Resetear Plantillas",
-    actionText: "!Atención! Esto eliminará todas las traducciones, metadata e íconos the la hoja de cálculos. Esta acción no se puede revertir. ¿Continuar?",
+    actionText: "!Atencion! Esto eliminara todas las traducciones, metadata e iconos the la hoja de calculos. Esta accion no se puede revertir. Continuar?",
     completed: "Reseteo Completado",
-    completedText: "Todas las planillas fueron reseteadas con éxito",
+    completedText: "Todas las planillas fueron reseteadas con exito",
     error: "Error",
-    errorText: "Un error ocurrió durante el reseteo: "
+    errorText: "Un error ocurrio durante el reseteo: "
   },
   en: {
     action: "Reset Spreadsheet",
