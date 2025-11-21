@@ -493,7 +493,7 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
 
   if (!sheet) {
     sheet = spreadsheet.insertSheet('Details');
-    sheet.getRange(1, 1, 1, 6).setValues([['Name', 'Helper Text', 'Type', 'Options', '', 'Universal']]).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, 6).setValues([['Name', 'Helper Text', 'Type', 'Options', 'ID', 'Universal']]).setFontWeight('bold');
   } else {
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
@@ -526,7 +526,7 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
       field.description || '',
       typeChar,
       optionsValue,
-      '',
+      field.id || '',  // Store original field ID for round-trip
       field.required ? 'TRUE' : 'FALSE'
     ]);
   }

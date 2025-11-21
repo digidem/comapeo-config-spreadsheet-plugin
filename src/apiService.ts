@@ -24,6 +24,7 @@ const DETAILS_COL = {
   HELPER_TEXT: 1,
   TYPE: 2,
   OPTIONS: 3,
+  ID: 4,  // Field ID (optional, for preserving original IDs on import)
   UNIVERSAL: 5
 };
 
@@ -259,6 +260,7 @@ function buildFields(data: SheetData): Field[] {
     const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
     const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
     const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
+    const idStr = String(row[DETAILS_COL.ID] || '').trim();
     const universalVal = row[DETAILS_COL.UNIVERSAL];
     const required = universalVal === true || universalVal === 'TRUE' || universalVal === 'true';
 
@@ -298,7 +300,7 @@ function buildFields(data: SheetData): Field[] {
     }
 
     return {
-      id: slugify(name),
+      id: idStr || slugify(name),  // Use explicit ID if provided, otherwise slugify name
       name,
       type,
       description: helperText || undefined,
