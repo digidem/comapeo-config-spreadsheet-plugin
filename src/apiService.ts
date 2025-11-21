@@ -258,7 +258,7 @@ function buildFields(data: SheetData): Field[] {
   return details.map(row => {
     const name = String(row[DETAILS_COL.NAME] || '');
     const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
-    const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0).toLowerCase();
+    const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
     const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
     const universalVal = row[DETAILS_COL.UNIVERSAL];
     const required = universalVal === true || universalVal === 'TRUE' || universalVal === 'true';
