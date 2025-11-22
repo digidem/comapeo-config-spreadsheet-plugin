@@ -76,6 +76,53 @@ function getMockSpreadsheetData(): SheetData {
   } as SheetData;
 }
 
+/**
+ * Helper: Creates a minimal SheetData with custom categories and details
+ * Reduces test data duplication
+ */
+function createTestSheetData(
+  categories: any[][],
+  details: any[][]
+): SheetData {
+  return {
+    documentName: "Test Config" as any,
+    Categories: [
+      ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+      ...categories
+    ],
+    Details: [
+      ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+      ...details
+    ]
+  } as SheetData;
+}
+
+/**
+ * Helper: Creates a simple category row
+ */
+function createCategoryRow(
+  name: string,
+  fields: string = "",
+  id: string = "",
+  color: string = "#FF0000"
+): any[] {
+  const categoryId = id || slugify(name);
+  return [name, "", fields, categoryId, color, categoryId];
+}
+
+/**
+ * Helper: Creates a simple field/detail row
+ */
+function createDetailRow(
+  name: string,
+  type: string = "t",
+  options: string = "",
+  universal: string = "FALSE"
+): any[] {
+  const fieldId = slugify(name);
+  return [name, `Description for ${name}`, type, options, fieldId, universal];
+}
+
 // =============================================================================
 // Build Flow Tests
 // =============================================================================

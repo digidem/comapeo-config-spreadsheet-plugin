@@ -37,6 +37,53 @@ const TRANSLATION_COL = {
   FIRST_LANGUAGE: 1     // Column B - first translation language
 };
 
+/** Expected sheet headers for validation */
+const EXPECTED_HEADERS = {
+  CATEGORIES: ['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID'],
+  DETAILS: ['Name', 'Helper Text', 'Type', 'Options', 'ID', 'Universal']
+};
+
+// =============================================================================
+// Validation Functions
+// =============================================================================
+
+/**
+ * Validates that sheet headers match expected format
+ * Logs warnings if headers don't match but doesn't throw to allow flexibility
+ *
+ * @param sheetName - Name of the sheet being validated
+ * @param headers - Actual headers from the sheet
+ * @param expected - Expected headers
+ * @returns true if valid, false if invalid (but doesn't throw)
+ */
+function validateSheetHeaders(
+  sheetName: string,
+  headers: string[],
+  expected: string[]
+): boolean {
+  if (headers.length < expected.length) {
+    console.warn(
+      `${sheetName} sheet has ${headers.length} columns but expected ${expected.length}. ` +
+      `Expected: [${expected.join(', ')}], Found: [${headers.join(', ')}]. ` +
+      `This may cause issues if columns are misaligned.`
+    );
+    return false;
+  }
+
+  for (let i = 0; i < expected.length; i++) {
+    if (headers[i] !== expected[i]) {
+      console.warn(
+        `${sheetName} sheet column ${i + 1} header mismatch: ` +
+        `expected "${expected[i]}" but found "${headers[i]}". ` +
+        `Data may not be read correctly.`
+      );
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /** Default retry configuration */
 const RETRY_CONFIG = {
   MAX_RETRIES: 3,
@@ -178,6 +225,19 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob, version: string
  * Migrates old 4-column spreadsheet format to new 6-column format with ID columns
  * Old format: Name, Icon, Fields, Color
  * New format: Name, Icon, Fields, ID, Color, Icon ID
+ *
+ * This function is idempotent - it checks if migration is needed before proceeding.
+ * It validates the exact format before migrating to prevent data corruption.
+ *
+ * MANUAL TESTING CHECKLIST (cannot be automated due to SpreadsheetApp dependency):
+ * [ ] Test migration from old 4-column Categories format (Name, Icon, Fields, Color)
+ * [ ] Test migration from old Details format without ID column
+ * [ ] Test that already-migrated sheets are not re-migrated (idempotency)
+ * [ ] Test data preservation during migration (verify no data loss)
+ * [ ] Test edge case: empty sheets
+ * [ ] Test edge case: sheets with unexpected number of columns
+ * [ ] Test edge case: repeated calls to migration (should be safe)
+ * [ ] Verify console logs show appropriate messages for each scenario
  */
 function migrateSpreadsheetFormat(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -185,48 +245,91 @@ function migrateSpreadsheetFormat(): void {
   // Migrate Categories sheet
   const categoriesSheet = spreadsheet.getSheetByName('Categories');
   if (categoriesSheet) {
-    const headers = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0];
+    const lastCol = categoriesSheet.getLastColumn();
+    if (lastCol === 0) {
+      console.log('Categories sheet is empty, skipping migration');
+    } else {
+      const headers = categoriesSheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
-    // Check if we need to migrate (old format has "Color" in column D, new format has "ID")
-    if (headers[3] === 'Color' || (headers.length === 4 && headers[3] !== 'ID')) {
-      console.log('Migrating Categories sheet from 4-column to 6-column format...');
+      // Check if already in new 6-column format (idempotency check)
+      const expectedNewHeaders = ['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID'];
+      if (headers.length >= 6 &&
+          headers[0] === expectedNewHeaders[0] &&
+          headers[3] === expectedNewHeaders[3] &&
+          headers[5] === expectedNewHeaders[5]) {
+        console.log('Categories sheet already in new 6-column format, skipping migration');
+      }
+      // Check if it's the exact old 4-column format that needs migration
+      else if (headers.length === 4 &&
+               headers[0] === 'Name' &&
+               headers[1] === 'Icon' &&
+               headers[2] === 'Fields' &&
+               headers[3] === 'Color') {
+        console.log('Migrating Categories sheet from 4-column to 6-column format...');
 
-      // Insert column D for ID (this shifts Color from D to E)
-      categoriesSheet.insertColumnAfter(3);
+        // Insert column D for ID (this shifts Color from D to E)
+        categoriesSheet.insertColumnAfter(3);
 
-      // Insert column F for Icon ID (after the new column E which has Color)
-      categoriesSheet.insertColumnAfter(5);
+        // Insert column F for Icon ID (after the new column E which has Color)
+        categoriesSheet.insertColumnAfter(5);
 
-      // Update headers
-      categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
+        // Update headers
+        categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
 
-      console.log('Categories sheet migrated successfully');
+        console.log('Categories sheet migrated successfully');
+      }
+      // Ambiguous format - log warning and skip to prevent data corruption
+      else {
+        console.warn(`Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+      }
     }
   }
 
   // Migrate Details sheet
   const detailsSheet = spreadsheet.getSheetByName('Details');
   if (detailsSheet) {
-    const headers = detailsSheet.getRange(1, 1, 1, detailsSheet.getLastColumn()).getValues()[0];
+    const lastCol = detailsSheet.getLastColumn();
+    if (lastCol === 0) {
+      console.log('Details sheet is empty, skipping migration');
+    } else {
+      const headers = detailsSheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
-    // Check if we need to migrate (old format doesn't have "ID" in column E)
-    if (headers.length < 5 || headers[4] !== 'ID') {
-      console.log('Migrating Details sheet to include ID column...');
-
-      // Insert column E for ID (after OPTIONS in column D)
-      detailsSheet.insertColumnAfter(4);
-
-      // Update headers - assume old format was: Name, Helper Text, Type, Options
-      // New format: Name, Helper Text, Type, Options, ID, Universal
-      const newHeaders = ['Name', 'Helper Text', 'Type', 'Options', 'ID'];
-      if (headers.length >= 5) {
-        newHeaders.push(headers[5] || 'Universal');  // Preserve Universal if it exists
-      } else {
-        newHeaders.push('Universal');
+      // Check if already has ID column in correct position (idempotency check)
+      const expectedNewHeaders = ['Name', 'Helper Text', 'Type', 'Options', 'ID', 'Universal'];
+      if (headers.length >= 6 &&
+          headers[0] === expectedNewHeaders[0] &&
+          headers[4] === expectedNewHeaders[4] &&
+          headers[5] === expectedNewHeaders[5]) {
+        console.log('Details sheet already in new format with ID column, skipping migration');
       }
-      detailsSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]).setFontWeight('bold');
+      // Check if it's old format without ID column (4 or 5 columns)
+      else if ((headers.length === 4 || headers.length === 5) &&
+               headers[0] === 'Name' &&
+               headers[1] === 'Helper Text' &&
+               headers[2] === 'Type' &&
+               headers[3] === 'Options') {
+        console.log('Migrating Details sheet to include ID column...');
 
-      console.log('Details sheet migrated successfully');
+        // Insert column E for ID (after OPTIONS in column D)
+        detailsSheet.insertColumnAfter(4);
+
+        // Preserve Universal column if it exists, otherwise add it
+        const hasUniversal = headers.length >= 5 && headers[4];
+        const newHeaders = ['Name', 'Helper Text', 'Type', 'Options', 'ID'];
+        if (hasUniversal) {
+          newHeaders.push(headers[4]);  // Preserve existing header name
+        } else {
+          newHeaders.push('Universal');
+        }
+
+        detailsSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]).setFontWeight('bold');
+
+        console.log('Details sheet migrated successfully');
+      }
+      // Ambiguous format - log warning and skip to prevent data corruption
+      else {
+        console.warn(`Details sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+      }
     }
   }
 }
@@ -314,6 +417,13 @@ function buildMetadata(data: SheetData): Metadata {
  */
 function buildFields(data: SheetData): Field[] {
   const details = data.Details?.slice(1) || [];
+
+  // Validate Details sheet headers
+  const detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Details');
+  if (detailsSheet) {
+    const headers = detailsSheet.getRange(1, 1, 1, 6).getValues()[0];
+    validateSheetHeaders('Details', headers, EXPECTED_HEADERS.DETAILS);
+  }
 
   return details.map(row => {
     const name = String(row[DETAILS_COL.NAME] || '');
@@ -416,6 +526,10 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     return [];
   }
 
+  // Validate Categories sheet headers
+  const headers = categoriesSheet.getRange(1, 1, 1, 6).getValues()[0];
+  validateSheetHeaders('Categories', headers, EXPECTED_HEADERS.CATEGORIES);
+
   // Build map from field name to field ID for converting defaultFieldIds
   const fieldNameToId = new Map<string, string>();
   if (fields && fields.length > 0) {
@@ -448,7 +562,10 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
   return categories
     .map((row, index) => {
       const name = String(row[CATEGORY_COL.NAME] || '').trim();
-      if (!name) return null;  // Skip blank rows
+      if (!name) {
+        console.log(`Skipping Categories row ${index + 2}: empty category name`);
+        return null;  // Skip blank rows
+      }
 
       const iconData = String(row[CATEGORY_COL.ICON] || '').trim();
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
