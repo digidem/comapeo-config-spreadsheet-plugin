@@ -397,15 +397,14 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
     setCategorySelection(config.categories.map(c => c.id));
   }
 
-  // Identify universal fields (fields that appear in ALL categories)
-  const universalFieldIds = identifyUniversalFields(config.categories || [], config.fields || []);
-
   // Build icon lookup map for populating categories with actual icon data
   const iconMap = buildIconMap(config.icons);
 
   // Populate sheets in order
-  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields, universalFieldIds);
-  populateDetailsSheet(spreadsheet, config.fields || [], universalFieldIds);
+  // NOTE: We do NOT auto-detect universal fields during import to preserve round-trip integrity.
+  // Fields are placed exactly as they appear in the imported config's defaultFieldIds.
+  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields);
+  populateDetailsSheet(spreadsheet, config.fields || []);
   populateMetadataSheet(spreadsheet, config.metadata);
   populateIconsSheet(spreadsheet, config.icons);
 
@@ -417,43 +416,16 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
   }
 }
 
-/**
- * Identifies fields that appear in ALL categories (universal fields)
- */
-function identifyUniversalFields(categories: Category[], fields: Field[]): Set<string> {
-  const universalFieldIds = new Set<string>();
-
-  if (categories.length === 0 || fields.length === 0) {
-    return universalFieldIds;
-  }
-
-  // For each field, check if it appears in all categories
-  for (const field of fields) {
-    if (!field.id) continue;
-
-    const appearsInAllCategories = categories.every(cat =>
-      cat.defaultFieldIds && cat.defaultFieldIds.includes(field.id)
-    );
-
-    if (appearsInAllCategories) {
-      universalFieldIds.add(field.id);
-    }
-  }
-
-  return universalFieldIds;
-}
 
 /**
  * Populates the Categories sheet
  * @param iconMap - Map of icon ID to actual icon data (svgData URI or svgUrl)
- * @param universalFieldIds - Set of field IDs that appear in all categories (to exclude from Fields column)
  */
 function populateCategoriesSheet(
   spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
   categories: Category[],
   iconMap: Map<string, string>,
-  fields?: Field[],
-  universalFieldIds?: Set<string>
+  fields?: Field[]
 ): void {
   let sheet = spreadsheet.getSheetByName('Categories');
 
@@ -493,14 +465,11 @@ function populateCategoriesSheet(
       iconValue = iconMap.get(cat.iconId) || '';
     }
 
-    // Convert field IDs to field names for column C, excluding universal fields
+    // Convert field IDs to field names for column C
+    // Preserve ALL fields exactly as they appear in the imported config (no filtering)
     let fieldsValue = '';
     if (Array.isArray(cat.defaultFieldIds) && cat.defaultFieldIds.length > 0) {
-      const nonUniversalFieldIds = universalFieldIds
-        ? cat.defaultFieldIds.filter(id => !universalFieldIds.has(id))
-        : cat.defaultFieldIds;
-
-      const fieldNames = nonUniversalFieldIds
+      const fieldNames = cat.defaultFieldIds
         .map(id => fieldIdToName.get(id) || id)  // Fall back to ID if name not found
         .filter(Boolean);
       fieldsValue = fieldNames.join(', ');
@@ -523,12 +492,10 @@ function populateCategoriesSheet(
 
 /**
  * Populates the Details sheet
- * @param universalFieldIds - Set of field IDs that appear in all categories
  */
 function populateDetailsSheet(
   spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
-  fields: Field[],
-  universalFieldIds?: Set<string>
+  fields: Field[]
 ): void {
   let sheet = spreadsheet.getSheetByName('Details');
 
@@ -562,16 +529,15 @@ function populateDetailsSheet(
       }).filter(Boolean).join(', ');
     }
 
-    // Mark as Universal if the field appears in all categories
-    const isUniversal = universalFieldIds && field.id ? universalFieldIds.has(field.id) : false;
-
+    // Never mark fields as Universal during import to preserve round-trip integrity.
+    // The Universal flag is only set by users when creating/editing the spreadsheet.
     rows.push([
       field.name,
       field.description || '',
       typeChar,
       optionsValue,
       field.id || '',  // Store original field ID for round-trip
-      isUniversal ? 'TRUE' : 'FALSE'
+      'FALSE'  // Always FALSE on import to preserve exact field distribution
     ]);
   }
 
