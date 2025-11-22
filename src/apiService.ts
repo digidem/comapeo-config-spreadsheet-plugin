@@ -175,6 +175,63 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob, version: string
 // =============================================================================
 
 /**
+ * Migrates old 4-column spreadsheet format to new 6-column format with ID columns
+ * Old format: Name, Icon, Fields, Color
+ * New format: Name, Icon, Fields, ID, Color, Icon ID
+ */
+function migrateSpreadsheetFormat(): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Migrate Categories sheet
+  const categoriesSheet = spreadsheet.getSheetByName('Categories');
+  if (categoriesSheet) {
+    const headers = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0];
+
+    // Check if we need to migrate (old format has "Color" in column D, new format has "ID")
+    if (headers[3] === 'Color' || (headers.length === 4 && headers[3] !== 'ID')) {
+      console.log('Migrating Categories sheet from 4-column to 6-column format...');
+
+      // Insert column D for ID (this shifts Color from D to E)
+      categoriesSheet.insertColumnAfter(3);
+
+      // Insert column F for Icon ID (after the new column E which has Color)
+      categoriesSheet.insertColumnAfter(5);
+
+      // Update headers
+      categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
+
+      console.log('Categories sheet migrated successfully');
+    }
+  }
+
+  // Migrate Details sheet
+  const detailsSheet = spreadsheet.getSheetByName('Details');
+  if (detailsSheet) {
+    const headers = detailsSheet.getRange(1, 1, 1, detailsSheet.getLastColumn()).getValues()[0];
+
+    // Check if we need to migrate (old format doesn't have "ID" in column E)
+    if (headers.length < 5 || headers[4] !== 'ID') {
+      console.log('Migrating Details sheet to include ID column...');
+
+      // Insert column E for ID (after OPTIONS in column D)
+      detailsSheet.insertColumnAfter(4);
+
+      // Update headers - assume old format was: Name, Helper Text, Type, Options
+      // New format: Name, Helper Text, Type, Options, ID, Universal
+      const newHeaders = ['Name', 'Helper Text', 'Type', 'Options', 'ID'];
+      if (headers.length >= 5) {
+        newHeaders.push(headers[5] || 'Universal');  // Preserve Universal if it exists
+      } else {
+        newHeaders.push('Universal');
+      }
+      detailsSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]).setFontWeight('bold');
+
+      console.log('Details sheet migrated successfully');
+    }
+  }
+}
+
+/**
  * Creates a BuildRequest payload from spreadsheet data
  *
  * @param data - Spreadsheet data from getSpreadsheetData()

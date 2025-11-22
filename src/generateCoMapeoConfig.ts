@@ -8,6 +8,9 @@ function generateCoMapeoConfig() {
     showProcessingModalDialog(processingDialogTexts[0][locale]);
     console.log('Generating CoMapeo config v2.0.0...');
 
+    // Step 1.5: Migrate old spreadsheet format if needed
+    migrateSpreadsheetFormat();
+
     // Step 2: Auto translate
     showProcessingModalDialog(processingDialogTexts[1][locale]);
     console.log('Auto translating...');

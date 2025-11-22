@@ -107,23 +107,46 @@ Categories are processed in the exact order they appear in the spreadsheet. The 
 ## Spreadsheet Structure
 
 ### Categories Sheet
-| Column A | Column B | Column C | Column D |
-|----------|----------|----------|----------|
-| Name     | Icon URL | Fields   | Color    |
-| Trees    | http://... | species, diameter | (background color) |
+| Column A | Column B | Column C | Column D | Column E | Column F |
+|----------|----------|----------|----------|----------|----------|
+| Name     | Icon URL | Fields   | ID       | Color    | Icon ID  |
+| Trees    | http://... | species, diameter | trees | #4CAF50 | trees |
+
+- **Column A (Name)**: Category name
+- **Column B (Icon URL)**: SVG data or URL to icon
+- **Column C (Fields)**: Comma-separated list of field names
+- **Column D (ID)**: Category ID (optional, auto-generated from name if blank)
+- **Column E (Color)**: Hex color code (uses background color of Column A if blank)
+- **Column F (Icon ID)**: Icon ID (optional, uses Category ID if blank and icon data is present)
 
 ### Details Sheet
 | Column A | Column B | Column C | Column D | Column E | Column F |
 |----------|----------|----------|----------|----------|----------|
-| Name     | Helper Text | Type | Options | | Universal |
-| Species  | Select tree species | s | Oak, Pine | | FALSE |
-| Diameter | Enter trunk diameter | n | | | FALSE |
+| Name     | Helper Text | Type | Options | ID | Universal |
+| Species  | Select tree species | s | Oak, Pine | species | FALSE |
+| Diameter | Enter trunk diameter | n | | diameter | FALSE |
+
+- **Column A (Name)**: Field name
+- **Column B (Helper Text)**: Help text shown to users
+- **Column C (Type)**: Single-character type code (see below)
+- **Column D (Options)**: For select/multiselect, comma-separated options
+- **Column E (ID)**: Field ID (optional, auto-generated from name if blank)
+- **Column F (Universal)**: TRUE if field appears in all categories
 
 **Type codes:**
-- `t` = text
+- `t` = text (single line)
+- `T` = textarea (multi-line)
 - `n` = number
+- `i` = integer
 - `s` = select (single choice)
 - `m` = multiselect (multiple choice)
+- `b` = boolean
+- `d` = date
+- `D` = datetime
+- `p` = photo
+- `l` = location
+
+**Note**: Old spreadsheets using the 4-column Categories format (Name, Icon, Fields, Color) will be automatically migrated to the new 6-column format when building a config.
 
 ## Installation
 
