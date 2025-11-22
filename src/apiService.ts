@@ -433,65 +433,72 @@ function buildFields(data: SheetData): Field[] {
     validateSheetHeaders('Details', headers, EXPECTED_HEADERS.DETAILS);
   }
 
-  return details.map(row => {
-    const name = String(row[DETAILS_COL.NAME] || '');
-    const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
-    const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
-    const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
-    const idStr = String(row[DETAILS_COL.ID] || '').trim();
-    // Note: DETAILS_COL.UNIVERSAL is used by buildCategories to add fields to all categories,
-    // but it does NOT map to field.required (universal fields can be optional)
+  return details
+    .map((row, index) => {
+      const name = String(row[DETAILS_COL.NAME] || '').trim();
+      if (!name) {
+        console.log(`Skipping Details row ${index + 2}: empty field name`);
+        return null;  // Skip blank rows
+      }
 
-    let type: FieldType;
-    let options: SelectOption[] | undefined;
+      const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
+      const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
+      const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
+      const idStr = String(row[DETAILS_COL.ID] || '').trim();
+      // Note: DETAILS_COL.UNIVERSAL is used by buildCategories to add fields to all categories,
+      // but it does NOT map to field.required (universal fields can be optional)
 
-    switch (typeStr) {
-      case 'm':
-        type = 'multiselect';
-        options = parseOptions(optionsStr);
-        break;
-      case 'n':
-        type = 'number';
-        break;
-      case 'i':
-        type = 'integer';
-        break;
-      case 't':
-        type = 'text';
-        break;
-      case 'T':
-        type = 'textarea';
-        break;
-      case 'b':
-        type = 'boolean';
-        break;
-      case 'd':
-        type = 'date';
-        break;
-      case 'D':
-        type = 'datetime';
-        break;
-      case 'p':
-        type = 'photo';
-        break;
-      case 'l':
-        type = 'location';
-        break;
-      default:
-        // Default to 'select' for 's' or any other value
-        type = 'select';
-        options = parseOptions(optionsStr);
-    }
+      let type: FieldType;
+      let options: SelectOption[] | undefined;
 
-    return {
-      id: idStr || slugify(name),  // Use explicit ID if provided, otherwise slugify name
-      name,
-      type,
-      description: helperText || undefined,
-      options
-      // Note: required property is not set from spreadsheet - universal flag is separate from required
-    } as Field;
-  });
+      switch (typeStr) {
+        case 'm':
+          type = 'multiselect';
+          options = parseOptions(optionsStr);
+          break;
+        case 'n':
+          type = 'number';
+          break;
+        case 'i':
+          type = 'integer';
+          break;
+        case 't':
+          type = 'text';
+          break;
+        case 'T':
+          type = 'textarea';
+          break;
+        case 'b':
+          type = 'boolean';
+          break;
+        case 'd':
+          type = 'date';
+          break;
+        case 'D':
+          type = 'datetime';
+          break;
+        case 'p':
+          type = 'photo';
+          break;
+        case 'l':
+          type = 'location';
+          break;
+        default:
+          // Default to 'select' for 's' or any other value
+          type = 'select';
+          options = parseOptions(optionsStr);
+      }
+
+      return {
+        id: idStr || slugify(name),  // Use explicit ID if provided, otherwise slugify name
+        name,
+        type,
+        description: helperText || undefined,
+        options
+        // Note: required property is not set from spreadsheet - universal flag is separate from required
+      } as Field;
+    })
+    .filter((field): field is Field => field !== null);
 }
 
 /**
