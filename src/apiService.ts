@@ -281,6 +281,9 @@ function buildFields(data: SheetData): Field[] {
       case 't':
         type = 'text';
         break;
+      case 'T':
+        type = 'textarea';
+        break;
       case 'b':
         type = 'boolean';
         break;

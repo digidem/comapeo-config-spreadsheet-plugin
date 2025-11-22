@@ -543,8 +543,9 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
 function mapFieldTypeToChar(type: FieldType): string {
   switch (type) {
     case 'text':
-    case 'textarea':
       return 't';
+    case 'textarea':
+      return 'T';
     case 'number':
     case 'integer':
       return 'n';
