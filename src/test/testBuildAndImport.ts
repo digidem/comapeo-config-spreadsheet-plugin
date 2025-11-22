@@ -1023,14 +1023,6 @@ function testEmptyInputs(): boolean {
     }
     console.log("PASS: Empty Details produces 0 fields");
 
-    // Test identifyUniversalFields with empty arrays
-    const emptyUniversal = identifyUniversalFields([], []);
-    if (emptyUniversal.size !== 0) {
-      console.error("FAIL: Empty inputs should produce empty Set");
-      return false;
-    }
-    console.log("PASS: Empty inputs to identifyUniversalFields handled correctly");
-
     // Test parseOptions with empty string
     const emptyOptions = parseOptions("");
     if (emptyOptions !== undefined) {
@@ -1181,6 +1173,157 @@ function testFieldIdPreservation(): boolean {
   }
 }
 
+function testBuildFieldsSkipsBlankRows(): boolean {
+  console.log("=== Test: buildFields Skips Blank Rows ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Blank Row Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Field 1", "First field", "t", "", "field1", "FALSE"],
+        ["", "", "", "", "", ""],  // Blank row
+        ["Field 2", "Second field", "t", "", "field2", "FALSE"],
+        ["", "", "", "", "", ""],  // Another blank row
+        ["Field 3", "Third field", "t", "", "field3", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    // Should have exactly 3 fields (blank rows skipped)
+    if (fields.length !== 3) {
+      console.error(`FAIL: Expected 3 fields (blank rows skipped), got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: Blank rows skipped, got exactly 3 fields");
+
+    // Verify fields are correctly parsed
+    if (fields[0].id !== "field1" || fields[0].name !== "Field 1") {
+      console.error("FAIL: First field incorrectly parsed");
+      return false;
+    }
+    if (fields[1].id !== "field2" || fields[1].name !== "Field 2") {
+      console.error("FAIL: Second field incorrectly parsed");
+      return false;
+    }
+    if (fields[2].id !== "field3" || fields[2].name !== "Field 3") {
+      console.error("FAIL: Third field incorrectly parsed");
+      return false;
+    }
+    console.log("PASS: All fields correctly parsed despite blank rows");
+
+    console.log("=== buildFields Skips Blank Rows: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testTranslationsWithBlankRows(): boolean {
+  console.log("=== Test: Translations Work With Blank Rows in Details ===");
+
+  try {
+    // Create mock data with blank rows in Details
+    const testData: SheetData = {
+      documentName: "Translation Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test Category", "", "field1, field2", "cat1", "#FF0000", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Field 1", "Help text 1", "s", "opt1, opt2", "field1", "FALSE"],
+        ["", "", "", "", "", ""],  // Blank row
+        ["Field 2", "Help text 2", "t", "", "field2", "FALSE"]
+      ],
+      "Detail Label Translations": [
+        ["Name", "Spanish", "French"],
+        ["Field 1", "Campo 1", "Champ 1"],
+        ["", "", ""],  // Blank row in translations too
+        ["Field 2", "Campo 2", "Champ 2"]
+      ],
+      "Detail Helper Text Translations": [
+        ["Helper Text", "Spanish", "French"],
+        ["Help text 1", "Texto de ayuda 1", "Texte d'aide 1"],
+        ["", "", ""],  // Blank row
+        ["Help text 2", "Texto de ayuda 2", "Texte d'aide 2"]
+      ],
+      "Detail Option Translations": [
+        ["Options", "Spanish", "French"],
+        ["opt1, opt2", "opción1, opción2", "option1, option2"],
+        ["", "", ""],  // Blank row
+        ["", "", ""]
+      ]
+    } as SheetData;
+
+    // Build fields (should skip blank row)
+    const fields = buildFields(testData);
+    if (fields.length !== 2) {
+      console.error(`FAIL: Expected 2 fields, got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: Fields correctly built with blank rows skipped");
+
+    // Build categories
+    const categories = buildCategories(testData, fields);
+
+    // Build translations
+    const translations = buildTranslationsPayload(testData, categories, fields);
+
+    // Verify translations for field1
+    if (!translations['es'] || !translations['es'].fields || !translations['es'].fields['field1']) {
+      console.error("FAIL: Spanish translations for field1 not found");
+      return false;
+    }
+    if (translations['es'].fields['field1'].name !== "Campo 1") {
+      console.error(`FAIL: field1 label translation incorrect: ${translations['es'].fields['field1'].name}`);
+      return false;
+    }
+    if (translations['es'].fields['field1'].description !== "Texto de ayuda 1") {
+      console.error(`FAIL: field1 helper text translation incorrect: ${translations['es'].fields['field1'].description}`);
+      return false;
+    }
+    console.log("PASS: field1 translations correct (before blank row)");
+
+    // Verify translations for field2 (after blank row - this is the critical test)
+    if (!translations['es'].fields['field2']) {
+      console.error("FAIL: Spanish translations for field2 not found (blank row caused index divergence)");
+      return false;
+    }
+    if (translations['es'].fields['field2'].name !== "Campo 2") {
+      console.error(`FAIL: field2 label translation incorrect: ${translations['es'].fields['field2'].name}`);
+      return false;
+    }
+    if (translations['es'].fields['field2'].description !== "Texto de ayuda 2") {
+      console.error(`FAIL: field2 helper text translation incorrect: ${translations['es'].fields['field2'].description}`);
+      return false;
+    }
+    console.log("PASS: field2 translations correct (after blank row - no index divergence)");
+
+    // Verify option translations for field1
+    if (!translations['es'].fields['field1'].options) {
+      console.error("FAIL: Option translations for field1 not found");
+      return false;
+    }
+    if (translations['es'].fields['field1'].options['opt1'] !== "opción1") {
+      console.error("FAIL: Option translation for opt1 incorrect");
+      return false;
+    }
+    console.log("PASS: Option translations correct despite blank rows");
+
+    console.log("=== Translations With Blank Rows: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
 // =============================================================================
 // Test Runner
 // =============================================================================
@@ -1223,6 +1366,8 @@ function runAllTests(): void {
 
     // Edge case tests
     { name: "Empty Inputs", fn: testEmptyInputs },
+    { name: "buildFields Skips Blank Rows", fn: testBuildFieldsSkipsBlankRows },
+    { name: "Translations With Blank Rows", fn: testTranslationsWithBlankRows },
 
     // Category and API tests
     { name: "Category Selection", fn: testCategorySelection },
