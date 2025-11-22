@@ -407,16 +407,16 @@ function testMapFieldTypeToChar(): boolean {
       console.error("FAIL: text should map to 't'");
       return false;
     }
-    if (mapFieldTypeToChar("textarea") !== "t") {
-      console.error("FAIL: textarea should map to 't'");
+    if (mapFieldTypeToChar("textarea") !== "T") {
+      console.error("FAIL: textarea should map to 'T'");
       return false;
     }
     if (mapFieldTypeToChar("number") !== "n") {
       console.error("FAIL: number should map to 'n'");
       return false;
     }
-    if (mapFieldTypeToChar("integer") !== "n") {
-      console.error("FAIL: integer should map to 'n'");
+    if (mapFieldTypeToChar("integer") !== "i") {
+      console.error("FAIL: integer should map to 'i'");
       return false;
     }
     if (mapFieldTypeToChar("multiselect") !== "m") {
