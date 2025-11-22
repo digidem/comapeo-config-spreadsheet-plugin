@@ -790,9 +790,7 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
 
   // Process field label translations - match by name to handle blank rows
   const labelTrans = data['Detail Label Translations']?.slice(1) || [];
-  const detailsData = data.Details?.slice(1) || [];  // Used by helper text and option translations
   const fieldNameToId = new Map(fields.map(f => [f.name, f.id]));
-  const fieldNameToField = new Map(fields.map(f => [f.name, f]));
   for (const row of labelTrans) {
     const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
     const fieldId = fieldNameToId.get(sourceName);
@@ -810,14 +808,14 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field helper text translations - match by helper text value (column A contains helper text from Details!B)
+  // Process field helper text translations
+  // Match by helper text value (not by index) to handle blank rows in Details sheet
   const helperTrans = data['Detail Helper Text Translations']?.slice(1) || [];
-  // Build map from helper text to field (helper text is what's in Details column B)
+  // Build map from helper text to field
   const helperTextToField = new Map<string, Field>();
-  for (let i = 0; i < detailsData.length && i < fields.length; i++) {
-    const helperText = String(detailsData[i][DETAILS_COL.HELPER_TEXT] || '').trim();
-    if (helperText) {
-      helperTextToField.set(helperText, fields[i]);
+  for (const field of fields) {
+    if (field.description) {
+      helperTextToField.set(field.description, field);
     }
   }
 
@@ -839,11 +837,29 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     }
   }
 
-  // Process field option translations - match by row index (one row per field)
+  // Process field option translations
+  // Match by options string (not by index) to handle blank rows in Details sheet
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
-  for (let i = 0; i < optionTrans.length && i < fields.length; i++) {
-    const row = optionTrans[i];
-    const field = fields[i];
+  // Build map from options string (in spreadsheet format) to field
+  const optionsStringToField = new Map<string, Field>();
+  for (const field of fields) {
+    if (field.options && field.options.length > 0) {
+      // Reconstruct the options string as it appears in Details sheet column D
+      const optionsStr = field.options.map(o => {
+        const value = o?.value || '';
+        const label = o?.label || '';
+        if (!label) return '';
+        return value === slugify(label) ? label : `${value}:${label}`;
+      }).filter(Boolean).join(', ');
+      if (optionsStr) {
+        optionsStringToField.set(optionsStr, field);
+      }
+    }
+  }
+
+  for (const row of optionTrans) {
+    const sourceOptionsStr = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+    const field = optionsStringToField.get(sourceOptionsStr);
     if (!field || !field.options || field.options.length === 0) continue;
 
     const fieldId = field.id;
