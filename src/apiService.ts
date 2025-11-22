@@ -395,7 +395,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         id: categoryId,
         name,
         color,
-        iconId: iconData ? (iconIdStr || categoryId) : undefined,  // Use explicit iconId if provided, otherwise category ID
+        iconId: iconIdStr || (iconData ? categoryId : undefined),  // Use explicit iconId from column F, or categoryId if icon data present
         defaultFieldIds
       } as Category;
     })
