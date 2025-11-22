@@ -147,7 +147,7 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
         if (contentType.includes('application/octet-stream') || contentType.includes('application/zip')) {
           const fileName = `${buildRequest.metadata.name}-${buildRequest.metadata.version}.comapeocat`;
           const blob = responseBlob.setName(fileName);
-          return saveComapeocatToDrive(blob, buildRequest.metadata.version);
+          return saveComapeocatToDrive(blob);
         }
 
         // Check if it's actually an error response in JSON
@@ -200,11 +200,10 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
 /**
  * Saves the .comapeocat blob to Google Drive
  *
- * @param blob - The .comapeocat file blob
- * @param version - Version string for the filename
+ * @param blob - The .comapeocat file blob (name should already be set to name-version.comapeocat)
  * @returns URL to the saved file
  */
-function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob, version: string): string {
+function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob): string {
   console.log('Saving .comapeocat file to Drive...');
   const configFolder = getConfigFolder();
 
@@ -217,8 +216,9 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob, version: string
     buildsFolderObj = configFolder.createFolder('builds');
   }
 
-  const fileName = `${version}.comapeocat`;
-  const file = buildsFolderObj.createFile(blob).setName(fileName);
+  // Use the blob's existing name (already set to name-version.comapeocat pattern)
+  // This preserves both name and version to prevent file collisions
+  const file = buildsFolderObj.createFile(blob);
   const fileUrl = file.getUrl();
   console.log(`Download the .comapeocat file here: ${fileUrl}`);
 
