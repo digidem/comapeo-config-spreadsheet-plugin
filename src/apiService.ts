@@ -406,25 +406,18 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
 }
 
 /**
- * Builds icons array from Icons sheet
- * This preserves all icons from imported configs, not just category icons
+ * Builds icons array from Icons sheet and Categories sheet column B
+ * This preserves all icons from imported configs AND standard workflow icons
  */
 function buildIconsFromSheet(data: SheetData): Icon[] {
   const icons: Icon[] = [];
-  const iconsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Icons');
+  const iconIds = new Set<string>();  // Track icon IDs to avoid duplicates
 
-  if (!iconsSheet) return icons;
+  // Helper function to process icon data
+  const processIconData = (iconId: string, iconUrlOrData: string) => {
+    if (!iconId || !iconUrlOrData || iconIds.has(iconId)) return;
 
-  const lastRow = iconsSheet.getLastRow();
-  if (lastRow < 2) return icons;
-
-  const sheetData = iconsSheet.getRange(2, 1, lastRow - 1, 2).getValues();
-
-  for (const row of sheetData) {
-    const iconId = String(row[0] || '').trim();
-    const iconUrlOrData = String(row[1] || '').trim();
-
-    if (!iconId || !iconUrlOrData) continue;
+    iconIds.add(iconId);
 
     if (iconUrlOrData.startsWith('<svg')) {
       // Inline SVG data
@@ -450,6 +443,43 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
     } else if (iconUrlOrData.startsWith('http')) {
       // External URL
       icons.push({ id: iconId, svgUrl: iconUrlOrData });
+    }
+  };
+
+  // First, read from Icons sheet (for imported icons)
+  const iconsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Icons');
+  if (iconsSheet) {
+    const lastRow = iconsSheet.getLastRow();
+    if (lastRow >= 2) {
+      const sheetData = iconsSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+      for (const row of sheetData) {
+        const iconId = String(row[0] || '').trim();
+        const iconUrlOrData = String(row[1] || '').trim();
+        processIconData(iconId, iconUrlOrData);
+      }
+    }
+  }
+
+  // Second, read from Categories sheet column B (for standard workflow icons)
+  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
+  if (categoriesSheet) {
+    const lastRow = categoriesSheet.getLastRow();
+    if (lastRow >= 2) {
+      const categories = data.Categories?.slice(1) || [];
+      const sheetData = categoriesSheet.getRange(2, 1, Math.min(lastRow - 1, categories.length), 6).getValues();
+
+      for (const row of sheetData) {
+        const name = String(row[CATEGORY_COL.NAME] || '').trim();
+        const iconUrlOrData = String(row[CATEGORY_COL.ICON] || '').trim();
+        const idStr = String(row[CATEGORY_COL.ID] || '').trim();
+        const iconIdStr = String(row[CATEGORY_COL.ICON_ID] || '').trim();
+
+        if (!name || !iconUrlOrData) continue;
+
+        // Determine icon ID: use explicit iconId, then category ID, then slugified name
+        const iconId = iconIdStr || idStr || slugify(name);
+        processIconData(iconId, iconUrlOrData);
+      }
     }
   }
 
