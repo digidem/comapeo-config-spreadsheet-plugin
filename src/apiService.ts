@@ -104,26 +104,28 @@ const PLUGIN_INFO = {
  * Sends a JSON build request to the API and returns the .comapeocat file
  *
  * @param buildRequest - The build request payload
- * @param maxRetries - Maximum number of retry attempts (default: 3)
+ * @param maxRetries - Maximum number of total attempts (default: 3)
  * @returns URL to the saved .comapeocat file
  */
 function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY_CONFIG.MAX_RETRIES): string {
   const apiUrl = `${API_BASE_URL}/build`;
-  let retryCount = 0;
+  let attemptNumber = 0;
   let lastError: Error | null = null;
 
-  while (retryCount <= maxRetries) {
+  while (attemptNumber < maxRetries) {
+    attemptNumber++;
+
     try {
-      if (retryCount > 0) {
+      if (attemptNumber > 1) {
         const ui = SpreadsheetApp.getUi();
         ui.alert(
           "Retrying API Request",
-          `Attempt ${retryCount} of ${maxRetries}. Previous attempt failed: ${lastError?.message || "Unknown error"}`,
+          `Retry ${attemptNumber - 1} of ${maxRetries - 1}. Previous attempt failed: ${lastError?.message || "Unknown error"}`,
           ui.ButtonSet.OK
         );
       }
 
-      console.log(`Sending JSON build request to API (attempt ${retryCount + 1}):`, apiUrl);
+      console.log(`Sending JSON build request to API (attempt ${attemptNumber} of ${maxRetries}):`, apiUrl);
 
       const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
         method: 'post',
@@ -168,13 +170,19 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
       }
 
       console.error(lastError?.message);
-      retryCount++;
-      Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, retryCount));
+
+      // Only sleep if we're going to retry (not on last attempt)
+      if (attemptNumber < maxRetries) {
+        Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, attemptNumber - 1));
+      }
     } catch (error) {
       lastError = error;
-      console.error(`Error in API request (attempt ${retryCount + 1}):`, error);
-      retryCount++;
-      Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, retryCount));
+      console.error(`Error in API request (attempt ${attemptNumber} of ${maxRetries}):`, error);
+
+      // Only sleep if we're going to retry (not on last attempt)
+      if (attemptNumber < maxRetries) {
+        Utilities.sleep(RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, attemptNumber - 1));
+      }
     }
   }
 
