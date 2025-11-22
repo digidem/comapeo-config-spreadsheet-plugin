@@ -321,8 +321,8 @@ function buildFields(data: SheetData): Field[] {
     const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
     const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
     const idStr = String(row[DETAILS_COL.ID] || '').trim();
-    const universalVal = row[DETAILS_COL.UNIVERSAL];
-    const required = universalVal === true || universalVal === 'TRUE' || universalVal === 'true';
+    // Note: DETAILS_COL.UNIVERSAL is used by buildCategories to add fields to all categories,
+    // but it does NOT map to field.required (universal fields can be optional)
 
     let type: FieldType;
     let options: SelectOption[] | undefined;
@@ -370,8 +370,8 @@ function buildFields(data: SheetData): Field[] {
       name,
       type,
       description: helperText || undefined,
-      options,
-      required: required || undefined
+      options
+      // Note: required property is not set from spreadsheet - universal flag is separate from required
     } as Field;
   });
 }
