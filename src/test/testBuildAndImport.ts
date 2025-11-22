@@ -13,29 +13,30 @@
 /**
  * Mock spreadsheet data matching the structure returned by getSpreadsheetData()
  * Note: documentName is a STRING (spreadsheet name), not an array
+ * Uses NEW 6-column format for Categories (with ID and Icon ID columns)
  */
 function getMockSpreadsheetData(): SheetData {
   return {
     // documentName is a string from spreadsheet.getName()
     documentName: "Test Config" as any,  // Cast needed since SheetData expects arrays
 
-    // Categories sheet data (row 0 is header)
+    // Categories sheet data (row 0 is header) - NEW 6-column format
     Categories: [
-      ["Name", "Icon", "Fields", "Color"],
-      ["Trees", "", "species,diameter", "#4CAF50"],
-      ["Rivers", "", "flow-rate,depth", "#2196F3"],
-      ["Buildings", "", "height,material", "#9C27B0"]
+      ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+      ["Trees", "", "species,diameter", "trees", "#4CAF50", "trees"],
+      ["Rivers", "", "flow-rate,depth", "rivers", "#2196F3", "rivers"],
+      ["Buildings", "", "height,material", "buildings", "#9C27B0", "buildings"]
     ],
 
-    // Details sheet data (row 0 is header)
+    // Details sheet data (row 0 is header) - NEW 6-column format with ID column
     Details: [
-      ["Name", "Helper Text", "Type", "Options", "", "Universal"],
-      ["Species", "Select the tree species", "s", "Oak,Pine,Maple", "", "FALSE"],
-      ["Diameter", "Enter trunk diameter in cm", "n", "", "", "FALSE"],
-      ["Flow Rate", "Water flow measurement", "n", "", "", "FALSE"],
-      ["Depth", "River depth in meters", "n", "", "", "FALSE"],
-      ["Height", "Building height in meters", "n", "", "", "FALSE"],
-      ["Material", "Construction material", "m", "Wood,Concrete,Steel", "", "FALSE"]
+      ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+      ["Species", "Select the tree species", "s", "Oak,Pine,Maple", "species", "FALSE"],
+      ["Diameter", "Enter trunk diameter in cm", "n", "", "diameter", "FALSE"],
+      ["Flow Rate", "Water flow measurement", "n", "", "flow-rate", "FALSE"],
+      ["Depth", "River depth in meters", "n", "", "depth", "FALSE"],
+      ["Height", "Building height in meters", "i", "", "height", "FALSE"],
+      ["Material", "Construction material", "m", "Wood,Concrete,Steel", "material", "FALSE"]
     ],
 
     // Translation sheets (minimal for testing)
@@ -526,6 +527,616 @@ function testCategorySelection(): boolean {
 }
 
 // =============================================================================
+// New Field Type Tests (Integer, Boolean, Date, DateTime, Photo, Location)
+// =============================================================================
+
+function testAllFieldTypes(): boolean {
+  console.log("=== Test: All Field Types ===");
+
+  try {
+    // Test all 11 supported field types
+    const testData: SheetData = {
+      documentName: "Type Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test", "", "", "test", "#FF0000", "test"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Text Field", "Single line text", "t", "", "text-field", "FALSE"],
+        ["Textarea Field", "Multi-line text", "T", "", "textarea-field", "FALSE"],
+        ["Number Field", "Numeric value", "n", "", "number-field", "FALSE"],
+        ["Integer Field", "Integer only", "i", "", "integer-field", "FALSE"],
+        ["Select Field", "Single choice", "s", "A,B,C", "select-field", "FALSE"],
+        ["Multiselect Field", "Multiple choices", "m", "X,Y,Z", "multi-field", "FALSE"],
+        ["Boolean Field", "True/False", "b", "", "boolean-field", "FALSE"],
+        ["Date Field", "Date only", "d", "", "date-field", "FALSE"],
+        ["DateTime Field", "Date and time", "D", "", "datetime-field", "FALSE"],
+        ["Photo Field", "Photo attachment", "p", "", "photo-field", "FALSE"],
+        ["Location Field", "GPS coordinates", "l", "", "location-field", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    if (fields.length !== 11) {
+      console.error(`FAIL: Expected 11 fields, got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: All 11 field types created");
+
+    // Verify each type
+    const typeChecks = [
+      { id: "text-field", expectedType: "text" },
+      { id: "textarea-field", expectedType: "textarea" },
+      { id: "number-field", expectedType: "number" },
+      { id: "integer-field", expectedType: "integer" },
+      { id: "select-field", expectedType: "select" },
+      { id: "multi-field", expectedType: "multiselect" },
+      { id: "boolean-field", expectedType: "boolean" },
+      { id: "date-field", expectedType: "date" },
+      { id: "datetime-field", expectedType: "datetime" },
+      { id: "photo-field", expectedType: "photo" },
+      { id: "location-field", expectedType: "location" }
+    ];
+
+    for (const check of typeChecks) {
+      const field = fields.find(f => f.id === check.id);
+      if (!field) {
+        console.error(`FAIL: Field ${check.id} not found`);
+        return false;
+      }
+      if (field.type !== check.expectedType) {
+        console.error(`FAIL: Field ${check.id} should be type '${check.expectedType}', got '${field.type}'`);
+        return false;
+      }
+    }
+    console.log("PASS: All field types mapped correctly");
+
+    console.log("=== All Field Types: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testIntegerVsNumberDistinction(): boolean {
+  console.log("=== Test: Integer vs Number Distinction ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Integer Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test", "", "", "test", "#FF0000", "test"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Age", "Person's age", "i", "", "age", "FALSE"],
+        ["Height", "Height in cm", "n", "", "height", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    const ageField = fields.find(f => f.id === "age");
+    const heightField = fields.find(f => f.id === "height");
+
+    if (!ageField || ageField.type !== "integer") {
+      console.error("FAIL: 'i' should map to integer type");
+      return false;
+    }
+    console.log("PASS: Integer type correctly mapped from 'i'");
+
+    if (!heightField || heightField.type !== "number") {
+      console.error("FAIL: 'n' should map to number type");
+      return false;
+    }
+    console.log("PASS: Number type correctly mapped from 'n'");
+
+    if (ageField.type === heightField.type) {
+      console.error("FAIL: Integer and number should be distinct types");
+      return false;
+    }
+    console.log("PASS: Integer and number are distinct types");
+
+    console.log("=== Integer vs Number Distinction: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testMapFieldTypeToCharAllTypes(): boolean {
+  console.log("=== Test: Map All Field Types to Char ===");
+
+  try {
+    const mappings = [
+      { type: "text", expected: "t" },
+      { type: "textarea", expected: "T" },
+      { type: "number", expected: "n" },
+      { type: "integer", expected: "i" },
+      { type: "select", expected: "s" },
+      { type: "multiselect", expected: "m" },
+      { type: "boolean", expected: "b" },
+      { type: "date", expected: "d" },
+      { type: "datetime", expected: "D" },
+      { type: "photo", expected: "p" },
+      { type: "location", expected: "l" }
+    ];
+
+    for (const mapping of mappings) {
+      const result = mapFieldTypeToChar(mapping.type as FieldType);
+      if (result !== mapping.expected) {
+        console.error(`FAIL: ${mapping.type} should map to '${mapping.expected}', got '${result}'`);
+        return false;
+      }
+    }
+    console.log("PASS: All 11 field types map correctly to characters");
+
+    console.log("=== Map All Field Types to Char: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+// =============================================================================
+// Universal Fields Tests
+// =============================================================================
+
+function testUniversalFieldsAddedToAllCategories(): boolean {
+  console.log("=== Test: Universal Fields Added to All Categories ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Universal Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Category A", "", "field-a", "cat-a", "#FF0000", "cat-a"],
+        ["Category B", "", "field-b", "cat-b", "#00FF00", "cat-b"],
+        ["Category C", "", "", "cat-c", "#0000FF", "cat-c"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Notes", "General notes", "T", "", "notes", "TRUE"],  // Universal field
+        ["Field A", "Specific to A", "t", "", "field-a", "FALSE"],
+        ["Field B", "Specific to B", "t", "", "field-b", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+    const categories = buildCategories(testData, fields);
+
+    if (categories.length !== 3) {
+      console.error(`FAIL: Expected 3 categories, got ${categories.length}`);
+      return false;
+    }
+
+    // All categories should have the universal field 'notes'
+    for (const cat of categories) {
+      if (!cat.defaultFieldIds || !cat.defaultFieldIds.includes("notes")) {
+        console.error(`FAIL: Category '${cat.id}' should include universal field 'notes'`);
+        return false;
+      }
+    }
+    console.log("PASS: Universal field 'notes' appears in all categories");
+
+    // Check Category A has both notes (universal) and field-a (explicit)
+    const catA = categories.find(c => c.id === "cat-a");
+    if (!catA || !catA.defaultFieldIds || catA.defaultFieldIds.length !== 2) {
+      console.error("FAIL: Category A should have 2 fields (notes + field-a)");
+      return false;
+    }
+    if (!catA.defaultFieldIds.includes("notes") || !catA.defaultFieldIds.includes("field-a")) {
+      console.error("FAIL: Category A should have both notes and field-a");
+      return false;
+    }
+    console.log("PASS: Category A has universal + explicit fields");
+
+    // Check Category C has only notes (universal, no explicit fields)
+    const catC = categories.find(c => c.id === "cat-c");
+    if (!catC || !catC.defaultFieldIds || catC.defaultFieldIds.length !== 1) {
+      console.error("FAIL: Category C should have only 1 field (notes)");
+      return false;
+    }
+    if (!catC.defaultFieldIds.includes("notes")) {
+      console.error("FAIL: Category C should have notes field");
+      return false;
+    }
+    console.log("PASS: Category C has only universal field");
+
+    console.log("=== Universal Fields Added to All Categories: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testUniversalFieldDoesNotSetRequired(): boolean {
+  console.log("=== Test: Universal Field Does Not Set Required ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Universal Required Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test", "", "", "test", "#FF0000", "test"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Universal Field", "Universal but optional", "t", "", "universal-field", "TRUE"],
+        ["Regular Field", "Regular field", "t", "", "regular-field", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    const universalField = fields.find(f => f.id === "universal-field");
+    if (!universalField) {
+      console.error("FAIL: Universal field not found");
+      return false;
+    }
+
+    // Universal field should NOT have required property set
+    if (universalField.required === true) {
+      console.error("FAIL: Universal field should not be marked as required");
+      return false;
+    }
+    console.log("PASS: Universal field is not marked as required");
+
+    // Neither field should have required set (since we removed that mapping)
+    const regularField = fields.find(f => f.id === "regular-field");
+    if (regularField && regularField.required === true) {
+      console.error("FAIL: Regular field should not have required set either");
+      return false;
+    }
+    console.log("PASS: Required property is not set from spreadsheet");
+
+    console.log("=== Universal Field Does Not Set Required: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testIdentifyUniversalFields(): boolean {
+  console.log("=== Test: Identify Universal Fields ===");
+
+  try {
+    const categories: Category[] = [
+      { id: "cat1", name: "Cat 1", color: "#FF0000", defaultFieldIds: ["field1", "field2", "field3"] },
+      { id: "cat2", name: "Cat 2", color: "#00FF00", defaultFieldIds: ["field1", "field2"] },
+      { id: "cat3", name: "Cat 3", color: "#0000FF", defaultFieldIds: ["field1", "field2", "field4"] }
+    ];
+
+    const fields: Field[] = [
+      { id: "field1", name: "Field 1", type: "text" },
+      { id: "field2", name: "Field 2", type: "text" },
+      { id: "field3", name: "Field 3", type: "text" },
+      { id: "field4", name: "Field 4", type: "text" }
+    ];
+
+    const universalFieldIds = identifyUniversalFields(categories, fields);
+
+    // field1 and field2 appear in ALL categories, so they should be universal
+    if (!universalFieldIds.has("field1")) {
+      console.error("FAIL: field1 should be identified as universal");
+      return false;
+    }
+    if (!universalFieldIds.has("field2")) {
+      console.error("FAIL: field2 should be identified as universal");
+      return false;
+    }
+    console.log("PASS: Universal fields (field1, field2) correctly identified");
+
+    // field3 and field4 only in some categories, should NOT be universal
+    if (universalFieldIds.has("field3")) {
+      console.error("FAIL: field3 should not be universal (only in cat1)");
+      return false;
+    }
+    if (universalFieldIds.has("field4")) {
+      console.error("FAIL: field4 should not be universal (only in cat3)");
+      return false;
+    }
+    console.log("PASS: Non-universal fields correctly excluded");
+
+    console.log("=== Identify Universal Fields: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+// =============================================================================
+// Round-Trip Integration Tests
+// =============================================================================
+
+function testIntegerFieldRoundTrip(): boolean {
+  console.log("=== Test: Integer Field Round-Trip ===");
+
+  try {
+    // Start with integer field in spreadsheet
+    const buildData: SheetData = {
+      documentName: "Round Trip Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test", "", "age", "test", "#FF0000", "test"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Age", "Person's age", "i", "", "age", "FALSE"]
+      ]
+    } as SheetData;
+
+    // Build fields (simulates build process)
+    const fields = buildFields(buildData);
+    const ageField = fields.find(f => f.id === "age");
+
+    if (!ageField || ageField.type !== "integer") {
+      console.error("FAIL: Initial build should create integer field");
+      return false;
+    }
+    console.log("PASS: Build creates integer field");
+
+    // Map back to character (simulates import process)
+    const charCode = mapFieldTypeToChar(ageField.type);
+    if (charCode !== "i") {
+      console.error(`FAIL: Integer should map back to 'i', got '${charCode}'`);
+      return false;
+    }
+    console.log("PASS: Integer maps back to 'i'");
+
+    // Verify it doesn't become 'n' (number)
+    if (charCode === "n") {
+      console.error("FAIL: Integer incorrectly mapped to 'n' (number)");
+      return false;
+    }
+    console.log("PASS: Integer preserved (not converted to number)");
+
+    console.log("=== Integer Field Round-Trip: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testUniversalFieldRoundTrip(): boolean {
+  console.log("=== Test: Universal Field Round-Trip ===");
+
+  try {
+    // Create config with universal field
+    const config: BuildRequest = {
+      metadata: { name: "Test", version: "1.0.0" },
+      categories: [
+        { id: "cat1", name: "Cat 1", color: "#FF0000", defaultFieldIds: ["notes", "field1"] },
+        { id: "cat2", name: "Cat 2", color: "#00FF00", defaultFieldIds: ["notes", "field2"] },
+        { id: "cat3", name: "Cat 3", color: "#0000FF", defaultFieldIds: ["notes"] }
+      ],
+      fields: [
+        { id: "notes", name: "Notes", type: "textarea" },
+        { id: "field1", name: "Field 1", type: "text" },
+        { id: "field2", name: "Field 2", type: "text" }
+      ]
+    };
+
+    // Identify universal fields (simulates import process)
+    const universalFieldIds = identifyUniversalFields(config.categories, config.fields);
+
+    // 'notes' appears in all categories, should be identified as universal
+    if (!universalFieldIds.has("notes")) {
+      console.error("FAIL: 'notes' should be identified as universal (appears in all categories)");
+      return false;
+    }
+    console.log("PASS: Universal field identified on import");
+
+    // field1 and field2 only in some categories, should NOT be universal
+    if (universalFieldIds.has("field1") || universalFieldIds.has("field2")) {
+      console.error("FAIL: field1 and field2 should not be universal");
+      return false;
+    }
+    console.log("PASS: Non-universal fields not misidentified");
+
+    console.log("=== Universal Field Round-Trip: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+// =============================================================================
+// Edge Case Tests
+// =============================================================================
+
+function testEmptyInputs(): boolean {
+  console.log("=== Test: Empty Inputs ===");
+
+  try {
+    // Test buildFields with empty details
+    const emptyData: SheetData = {
+      documentName: "Empty Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(emptyData);
+    if (fields.length !== 0) {
+      console.error("FAIL: Empty Details should produce 0 fields");
+      return false;
+    }
+    console.log("PASS: Empty Details produces 0 fields");
+
+    // Test identifyUniversalFields with empty arrays
+    const emptyUniversal = identifyUniversalFields([], []);
+    if (emptyUniversal.size !== 0) {
+      console.error("FAIL: Empty inputs should produce empty Set");
+      return false;
+    }
+    console.log("PASS: Empty inputs to identifyUniversalFields handled correctly");
+
+    // Test parseOptions with empty string
+    const emptyOptions = parseOptions("");
+    if (emptyOptions !== undefined) {
+      console.error("FAIL: Empty options string should return undefined");
+      return false;
+    }
+    console.log("PASS: Empty options string returns undefined");
+
+    console.log("=== Empty Inputs: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testOptionValuePreservation(): boolean {
+  console.log("=== Test: Option Value Preservation ===");
+
+  try {
+    // Test "value:label" format
+    const opts1 = parseOptions("oak:Oak Tree,pine:Pine Tree");
+    if (!opts1 || opts1.length !== 2) {
+      console.error("FAIL: Should parse 2 options with custom values");
+      return false;
+    }
+    if (opts1[0].value !== "oak" || opts1[0].label !== "Oak Tree") {
+      console.error("FAIL: First option should preserve custom value 'oak'");
+      return false;
+    }
+    if (opts1[1].value !== "pine" || opts1[1].label !== "Pine Tree") {
+      console.error("FAIL: Second option should preserve custom value 'pine'");
+      return false;
+    }
+    console.log("PASS: Custom option values preserved");
+
+    // Test mixed format (some with custom values, some without)
+    const opts2 = parseOptions("oak:Oak Tree,Maple,pine:Pine Tree");
+    if (!opts2 || opts2.length !== 3) {
+      console.error("FAIL: Should parse 3 options in mixed format");
+      return false;
+    }
+    if (opts2[0].value !== "oak") {
+      console.error("FAIL: First option should have custom value 'oak'");
+      return false;
+    }
+    if (opts2[1].value !== "maple" || opts2[1].label !== "Maple") {
+      console.error("FAIL: Second option should auto-slugify to 'maple'");
+      return false;
+    }
+    console.log("PASS: Mixed format (custom + auto values) handled correctly");
+
+    console.log("=== Option Value Preservation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testCategoryIdPreservation(): boolean {
+  console.log("=== Test: Category ID Preservation ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "ID Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["My Category", "", "", "custom-cat-id", "#FF0000", "custom-icon-id"],
+        ["Auto ID Category", "", "", "", "#00FF00", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+    const categories = buildCategories(testData, fields);
+
+    // First category should use explicit ID
+    const cat1 = categories[0];
+    if (cat1.id !== "custom-cat-id") {
+      console.error(`FAIL: Category should preserve explicit ID 'custom-cat-id', got '${cat1.id}'`);
+      return false;
+    }
+    if (cat1.iconId !== "custom-icon-id") {
+      console.error(`FAIL: Category should preserve explicit iconId 'custom-icon-id', got '${cat1.iconId}'`);
+      return false;
+    }
+    console.log("PASS: Explicit category and icon IDs preserved");
+
+    // Second category should auto-generate ID from name
+    const cat2 = categories[1];
+    if (cat2.id !== "auto-id-category") {
+      console.error(`FAIL: Category should auto-generate ID 'auto-id-category', got '${cat2.id}'`);
+      return false;
+    }
+    console.log("PASS: Category ID auto-generated when not provided");
+
+    console.log("=== Category ID Preservation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testFieldIdPreservation(): boolean {
+  console.log("=== Test: Field ID Preservation ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Field ID Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test", "", "", "test", "#FF0000", "test"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Field Name", "Description", "t", "", "custom-field-id", "FALSE"],
+        ["Auto Field", "Auto ID", "t", "", "", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    // First field should use explicit ID
+    const field1 = fields[0];
+    if (field1.id !== "custom-field-id") {
+      console.error(`FAIL: Field should preserve explicit ID 'custom-field-id', got '${field1.id}'`);
+      return false;
+    }
+    console.log("PASS: Explicit field ID preserved");
+
+    // Second field should auto-generate ID from name
+    const field2 = fields[1];
+    if (field2.id !== "auto-field") {
+      console.error(`FAIL: Field should auto-generate ID 'auto-field', got '${field2.id}'`);
+      return false;
+    }
+    console.log("PASS: Field ID auto-generated when not provided");
+
+    console.log("=== Field ID Preservation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+// =============================================================================
 // Test Runner
 // =============================================================================
 
@@ -535,15 +1146,42 @@ function runAllTests(): void {
   console.log("========================================\n");
 
   const tests = [
+    // Basic utility tests
     { name: "Slugify Function", fn: testSlugify },
     { name: "Parse Options", fn: testParseOptions },
-    { name: "Field Type Mapping", fn: testFieldTypeMapping },
-    { name: "Build Payload Creation", fn: testBuildPayloadCreation },
-    { name: "Category Selection", fn: testCategorySelection },
-    { name: "Validate BuildRequest", fn: testValidateBuildRequest },
     { name: "Extract File ID", fn: testExtractFileId },
+
+    // Field type tests
+    { name: "Field Type Mapping", fn: testFieldTypeMapping },
+    { name: "All Field Types (11 types)", fn: testAllFieldTypes },
+    { name: "Integer vs Number Distinction", fn: testIntegerVsNumberDistinction },
+    { name: "Map All Field Types to Char", fn: testMapFieldTypeToCharAllTypes },
     { name: "Map Field Type to Char", fn: testMapFieldTypeToChar },
+
+    // Build and import tests
+    { name: "Build Payload Creation", fn: testBuildPayloadCreation },
     { name: "Import Parsing", fn: testImportParsing },
+    { name: "Validate BuildRequest", fn: testValidateBuildRequest },
+
+    // Universal fields tests
+    { name: "Universal Fields Added to All Categories", fn: testUniversalFieldsAddedToAllCategories },
+    { name: "Universal Field Does Not Set Required", fn: testUniversalFieldDoesNotSetRequired },
+    { name: "Identify Universal Fields", fn: testIdentifyUniversalFields },
+
+    // Round-trip integration tests
+    { name: "Integer Field Round-Trip", fn: testIntegerFieldRoundTrip },
+    { name: "Universal Field Round-Trip", fn: testUniversalFieldRoundTrip },
+
+    // ID preservation tests
+    { name: "Category ID Preservation", fn: testCategoryIdPreservation },
+    { name: "Field ID Preservation", fn: testFieldIdPreservation },
+    { name: "Option Value Preservation", fn: testOptionValuePreservation },
+
+    // Edge case tests
+    { name: "Empty Inputs", fn: testEmptyInputs },
+
+    // Category and API tests
+    { name: "Category Selection", fn: testCategorySelection },
     { name: "API Error Parsing", fn: testApiErrorParsing }
   ];
 
