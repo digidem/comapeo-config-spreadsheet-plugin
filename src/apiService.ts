@@ -278,6 +278,9 @@ function buildFields(data: SheetData): Field[] {
       case 'n':
         type = 'number';
         break;
+      case 'i':
+        type = 'integer';
+        break;
       case 't':
         type = 'text';
         break;

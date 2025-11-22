@@ -547,8 +547,9 @@ function mapFieldTypeToChar(type: FieldType): string {
     case 'textarea':
       return 'T';
     case 'number':
-    case 'integer':
       return 'n';
+    case 'integer':
+      return 'i';
     case 'multiselect':
       return 'm';
     case 'select':
