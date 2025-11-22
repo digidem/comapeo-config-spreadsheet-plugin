@@ -397,12 +397,15 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
     setCategorySelection(config.categories.map(c => c.id));
   }
 
+  // Identify universal fields (fields that appear in ALL categories)
+  const universalFieldIds = identifyUniversalFields(config.categories || [], config.fields || []);
+
   // Build icon lookup map for populating categories with actual icon data
   const iconMap = buildIconMap(config.icons);
 
   // Populate sheets in order
-  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields);
-  populateDetailsSheet(spreadsheet, config.fields || []);
+  populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields, universalFieldIds);
+  populateDetailsSheet(spreadsheet, config.fields || [], universalFieldIds);
   populateMetadataSheet(spreadsheet, config.metadata);
   populateIconsSheet(spreadsheet, config.icons);
 
@@ -415,14 +418,42 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
 }
 
 /**
+ * Identifies fields that appear in ALL categories (universal fields)
+ */
+function identifyUniversalFields(categories: Category[], fields: Field[]): Set<string> {
+  const universalFieldIds = new Set<string>();
+
+  if (categories.length === 0 || fields.length === 0) {
+    return universalFieldIds;
+  }
+
+  // For each field, check if it appears in all categories
+  for (const field of fields) {
+    if (!field.id) continue;
+
+    const appearsInAllCategories = categories.every(cat =>
+      cat.defaultFieldIds && cat.defaultFieldIds.includes(field.id)
+    );
+
+    if (appearsInAllCategories) {
+      universalFieldIds.add(field.id);
+    }
+  }
+
+  return universalFieldIds;
+}
+
+/**
  * Populates the Categories sheet
  * @param iconMap - Map of icon ID to actual icon data (svgData URI or svgUrl)
+ * @param universalFieldIds - Set of field IDs that appear in all categories (to exclude from Fields column)
  */
 function populateCategoriesSheet(
   spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
   categories: Category[],
   iconMap: Map<string, string>,
-  fields?: Field[]
+  fields?: Field[],
+  universalFieldIds?: Set<string>
 ): void {
   let sheet = spreadsheet.getSheetByName('Categories');
 
@@ -462,10 +493,14 @@ function populateCategoriesSheet(
       iconValue = iconMap.get(cat.iconId) || '';
     }
 
-    // Convert field IDs to field names for column C
+    // Convert field IDs to field names for column C, excluding universal fields
     let fieldsValue = '';
     if (Array.isArray(cat.defaultFieldIds) && cat.defaultFieldIds.length > 0) {
-      const fieldNames = cat.defaultFieldIds
+      const nonUniversalFieldIds = universalFieldIds
+        ? cat.defaultFieldIds.filter(id => !universalFieldIds.has(id))
+        : cat.defaultFieldIds;
+
+      const fieldNames = nonUniversalFieldIds
         .map(id => fieldIdToName.get(id) || id)  // Fall back to ID if name not found
         .filter(Boolean);
       fieldsValue = fieldNames.join(', ');
@@ -488,8 +523,13 @@ function populateCategoriesSheet(
 
 /**
  * Populates the Details sheet
+ * @param universalFieldIds - Set of field IDs that appear in all categories
  */
-function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, fields: Field[]): void {
+function populateDetailsSheet(
+  spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+  fields: Field[],
+  universalFieldIds?: Set<string>
+): void {
   let sheet = spreadsheet.getSheetByName('Details');
 
   if (!sheet) {
@@ -522,13 +562,16 @@ function populateDetailsSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsh
       }).filter(Boolean).join(', ');
     }
 
+    // Mark as Universal if the field appears in all categories
+    const isUniversal = universalFieldIds && field.id ? universalFieldIds.has(field.id) : false;
+
     rows.push([
       field.name,
       field.description || '',
       typeChar,
       optionsValue,
       field.id || '',  // Store original field ID for round-trip
-      field.required ? 'TRUE' : 'FALSE'
+      isUniversal ? 'TRUE' : 'FALSE'
     ]);
   }
 

@@ -426,6 +426,22 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     }
   }
 
+  // Identify universal fields (fields marked as Universal in Details sheet)
+  const details = data.Details?.slice(1) || [];
+  const universalFieldIds: string[] = [];
+  details.forEach(row => {
+    const universalVal = row[DETAILS_COL.UNIVERSAL];
+    const isUniversal = universalVal === true || universalVal === 'TRUE' || universalVal === 'true';
+    if (isUniversal) {
+      const name = String(row[DETAILS_COL.NAME] || '');
+      const idStr = String(row[DETAILS_COL.ID] || '').trim();
+      const fieldId = idStr || slugify(name);
+      if (fieldId) {
+        universalFieldIds.push(fieldId);
+      }
+    }
+  });
+
   // Get background colors from column A (where category names are)
   const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
 
@@ -443,14 +459,19 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const color = colorStr || backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
 
       // Convert field names to field IDs using actual IDs from Details sheet
-      let defaultFieldIds: string[] | undefined;
+      const explicitFieldIds: string[] = [];
       if (fieldsStr) {
         const fieldNames = fieldsStr.split(',').map(f => f.trim()).filter(Boolean);
         const fieldIds = fieldNames
           .map(name => fieldNameToId.get(name) || slugify(name))  // Fall back to slugify if not found
           .filter(Boolean);
-        defaultFieldIds = fieldIds.length > 0 ? fieldIds : undefined;
+        explicitFieldIds.push(...fieldIds);
       }
+
+      // Merge universal fields with explicit fields (universal fields first, then explicit)
+      // Use Set to avoid duplicates if a universal field is also explicitly listed
+      const allFieldIds = [...new Set([...universalFieldIds, ...explicitFieldIds])];
+      const defaultFieldIds = allFieldIds.length > 0 ? allFieldIds : undefined;
 
       const categoryId = idStr || slugify(name);  // Use explicit ID if provided, otherwise slugify name
 
