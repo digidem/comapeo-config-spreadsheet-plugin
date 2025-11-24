@@ -250,6 +250,13 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob): string {
 function migrateSpreadsheetFormat(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
+  // Get or create Metadata sheet first (needed for storing primary language)
+  let metadataSheet = spreadsheet.getSheetByName('Metadata');
+  if (!metadataSheet) {
+    metadataSheet = spreadsheet.insertSheet('Metadata');
+    metadataSheet.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]).setFontWeight('bold');
+  }
+
   // Migrate Categories sheet
   const categoriesSheet = spreadsheet.getSheetByName('Categories');
   if (categoriesSheet) {
@@ -285,6 +292,46 @@ function migrateSpreadsheetFormat(): void {
         categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
 
         console.log('Categories sheet migrated successfully');
+      }
+      // Check if A1 contains a language name (old pre-v2 format) that needs to be preserved
+      else if (headers[0] && headers[0] !== 'Name') {
+        const a1Value = String(headers[0]);
+        const recognizedLanguages = ['English', 'Español', 'Espanol', 'Português', 'Portugues'];
+
+        if (recognizedLanguages.includes(a1Value)) {
+          console.log(`Preserving primary language '${a1Value}' from Categories!A1 before migration`);
+
+          // Store the primary language in Metadata sheet
+          const metadataData = metadataSheet.getDataRange().getValues();
+          let primaryLanguageExists = false;
+          for (let i = 1; i < metadataData.length; i++) {
+            if (metadataData[i][0] === 'primaryLanguage') {
+              primaryLanguageExists = true;
+              break;
+            }
+          }
+
+          if (!primaryLanguageExists) {
+            metadataSheet.appendRow(['primaryLanguage', a1Value]);
+            console.log(`Stored primaryLanguage='${a1Value}' in Metadata sheet`);
+          }
+
+          // Now proceed with header migration
+          // Determine number of columns and update headers accordingly
+          if (lastCol === 4) {
+            // Old 4-column format: Language Name, Icon, Fields, Color
+            categoriesSheet.insertColumnAfter(3);  // Insert ID column
+            categoriesSheet.insertColumnAfter(5);  // Insert Icon ID column
+            categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
+            console.log('Migrated from old language-based 4-column format to new 6-column format');
+          } else {
+            // Just update the A1 header
+            categoriesSheet.getRange('A1').setValue('Name');
+            console.log('Updated Categories!A1 header from language name to "Name"');
+          }
+        } else {
+          console.warn(`Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+        }
       }
       // Ambiguous format - log warning and skip to prevent data corruption
       else {

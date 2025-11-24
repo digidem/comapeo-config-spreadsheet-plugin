@@ -1,7 +1,44 @@
 function languages(includePrimary = false): Record<string, string> {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const primaryLanguage = categoriesSheet?.getRange("A1").getValue() as string;
+
+  // Try to get primary language from Metadata sheet (new approach)
+  let primaryLanguage: string | null = null;
+  const metadataSheet = spreadsheet.getSheetByName("Metadata");
+  if (metadataSheet) {
+    const metadataData = metadataSheet.getDataRange().getValues();
+    for (let i = 1; i < metadataData.length; i++) {
+      if (metadataData[i][0] === 'primaryLanguage') {
+        primaryLanguage = String(metadataData[i][1]);
+        break;
+      }
+    }
+  }
+
+  // Fallback: Try to get from Categories!A1 if it's a recognized language name
+  // (for backward compatibility with unmigrated sheets)
+  if (!primaryLanguage) {
+    const categoriesSheet = spreadsheet.getSheetByName("Categories");
+    const a1Value = categoriesSheet?.getRange("A1").getValue() as string;
+
+    const allLanguages = {
+      en: 'English',
+      es: 'Español',
+      pt: 'Português'
+    };
+
+    // Check if A1 contains a valid language name
+    if (a1Value && Object.values(allLanguages).includes(a1Value)) {
+      primaryLanguage = a1Value;
+    } else {
+      // Default to English if no primary language is set
+      primaryLanguage = 'English';
+
+      // Store the default in Metadata sheet for future use
+      if (metadataSheet) {
+        metadataSheet.appendRow(['primaryLanguage', primaryLanguage]);
+      }
+    }
+  }
 
   const allLanguages = {
     en: 'English',
