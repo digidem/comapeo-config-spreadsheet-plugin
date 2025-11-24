@@ -101,14 +101,14 @@ const PLUGIN_INFO = {
 // =============================================================================
 
 /**
- * Sends a JSON build request to the API and returns the .comapeocat file
+ * Sends a JSON build request to the API v2 and returns the .comapeocat file
  *
  * @param buildRequest - The build request payload
  * @param maxRetries - Maximum number of total attempts (default: 3)
  * @returns URL to the saved .comapeocat file
  */
 function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY_CONFIG.MAX_RETRIES): string {
-  const apiUrl = `${API_BASE_URL}/build`;
+  const apiUrl = `${API_BASE_URL}/v2`;
   let attemptNumber = 0;
   let lastError: Error | null = null;
 
