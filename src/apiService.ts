@@ -705,15 +705,77 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
 
 /**
  * Extracts language codes from translation sheet headers
- * Handles both standard languages (en, es, pt) and custom languages ("Name - ISO" format)
+ * Handles common language names, ISO codes, and custom formats
+ *
+ * Supports three formats:
+ * 1. Common language names: "Spanish", "French", "German", etc. → ISO code
+ * 2. "Name - ISO" format: "Spanish - es" → extracts ISO code
+ * 3. Raw ISO 639-1/639-2 codes: "es", "fr", "pt" → uses as-is
  */
 function extractLanguagesFromHeaders(headers: any[]): string[] {
-  const standardLanguages: Record<string, string> = {
+  // Map of common language names (English and native) to ISO 639-1 codes
+  const languageNameToCode: Record<string, string> = {
+    // English names
     'English': 'en',
-    'Espanol': 'es',
+    'Spanish': 'es',
+    'French': 'fr',
+    'German': 'de',
+    'Italian': 'it',
+    'Portuguese': 'pt',
+    'Russian': 'ru',
+    'Chinese': 'zh',
+    'Japanese': 'ja',
+    'Korean': 'ko',
+    'Arabic': 'ar',
+    'Hindi': 'hi',
+    'Bengali': 'bn',
+    'Dutch': 'nl',
+    'Swedish': 'sv',
+    'Norwegian': 'no',
+    'Danish': 'da',
+    'Finnish': 'fi',
+    'Polish': 'pl',
+    'Turkish': 'tr',
+    'Greek': 'el',
+    'Hebrew': 'he',
+    'Thai': 'th',
+    'Vietnamese': 'vi',
+    'Indonesian': 'id',
+    'Malay': 'ms',
+    'Swahili': 'sw',
+    'Tagalog': 'tl',
+
+    // Native language names (with diacritics)
     'Español': 'es',
+    'Espanol': 'es',
+    'Français': 'fr',
+    'Francais': 'fr',
+    'Deutsch': 'de',
+    'Italiano': 'it',
+    'Português': 'pt',
     'Portugues': 'pt',
-    'Português': 'pt'
+    'Русский': 'ru',
+    '中文': 'zh',
+    '日本語': 'ja',
+    '한국어': 'ko',
+    'العربية': 'ar',
+    'हिन्दी': 'hi',
+    'বাংলা': 'bn',
+    'Nederlands': 'nl',
+    'Svenska': 'sv',
+    'Norsk': 'no',
+    'Dansk': 'da',
+    'Suomi': 'fi',
+    'Polski': 'pl',
+    'Türkçe': 'tr',
+    'Turkce': 'tr',
+    'Ελληνικά': 'el',
+    'עברית': 'he',
+    'ไทย': 'th',
+    'Tiếng Việt': 'vi',
+    'Bahasa Indonesia': 'id',
+    'Bahasa Melayu': 'ms',
+    'Kiswahili': 'sw'
   };
 
   const langs: string[] = [];
@@ -724,20 +786,33 @@ function extractLanguagesFromHeaders(headers: any[]): string[] {
     if (!header) continue;
 
     // Check for custom language format: "Name - ISO"
+    // This allows users to specify exact ISO codes when needed
     const customMatch = header.match(/.*\s*-\s*(\w+)$/);
     if (customMatch) {
       langs.push(customMatch[1].toLowerCase());
       continue;
     }
 
-    // Check for standard language name
-    const langCode = standardLanguages[header];
+    // Check for common language name (case-insensitive)
+    // Try exact match first
+    let langCode = languageNameToCode[header];
     if (langCode) {
       langs.push(langCode);
       continue;
     }
 
-    // Recognize raw ISO 639-1 codes (2-3 lowercase letters)
+    // Try case-insensitive match for English language names
+    const headerLower = header.toLowerCase();
+    for (const [name, code] of Object.entries(languageNameToCode)) {
+      if (name.toLowerCase() === headerLower) {
+        langs.push(code);
+        langCode = code;
+        break;
+      }
+    }
+    if (langCode) continue;
+
+    // Recognize raw ISO 639-1 codes (2 letters) or ISO 639-2 codes (3 letters)
     if (/^[a-z]{2,3}$/.test(header.toLowerCase())) {
       langs.push(header.toLowerCase());
     }
