@@ -1324,6 +1324,109 @@ function testTranslationsWithBlankRows(): boolean {
   }
 }
 
+function testDuplicateOptionTranslations(): boolean {
+  console.log("=== Test: Duplicate Option Lists Translation ===");
+
+  try {
+    // Create mock data with multiple fields sharing same option list (e.g., multiple yes/no questions)
+    const testData: SheetData = {
+      documentName: "Duplicate Options Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Survey", "", "question1, question2, question3", "survey", "#FF0000", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Question 1", "First yes/no question", "s", "Yes, No", "question1", "FALSE"],
+        ["Question 2", "Second yes/no question", "s", "Yes, No", "question2", "FALSE"],
+        ["Question 3", "Third yes/no question", "s", "Yes, No", "question3", "FALSE"]
+      ],
+      "Detail Option Translations": [
+        ["Options", "Spanish", "French"],
+        ["Yes, No", "Sí, No", "Oui, Non"],  // Shared translation row
+        ["Yes, No", "Sí, No", "Oui, Non"],  // Duplicate (one per field in sheet)
+        ["Yes, No", "Sí, No", "Oui, Non"]   // Duplicate (one per field in sheet)
+      ]
+    } as SheetData;
+
+    // Build fields
+    const fields = buildFields(testData);
+    if (fields.length !== 3) {
+      console.error(`FAIL: Expected 3 fields, got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: Three fields with shared options created");
+
+    // Verify all fields have same option list
+    for (const field of fields) {
+      if (!field.options || field.options.length !== 2) {
+        console.error(`FAIL: Field ${field.id} should have 2 options`);
+        return false;
+      }
+      if (field.options[0].label !== "Yes" || field.options[1].label !== "No") {
+        console.error(`FAIL: Field ${field.id} should have Yes/No options`);
+        return false;
+      }
+    }
+    console.log("PASS: All fields share same option list");
+
+    // Build categories
+    const categories = buildCategories(testData, fields);
+
+    // Build translations
+    const translations = buildTranslationsPayload(testData, categories, fields);
+
+    // Verify ALL three fields have translations (not just the last one)
+    for (const field of fields) {
+      if (!translations['es'] || !translations['es'].fields || !translations['es'].fields[field.id]) {
+        console.error(`FAIL: Spanish translations for ${field.id} not found`);
+        return false;
+      }
+
+      const optionTrans = translations['es'].fields[field.id].options;
+      if (!optionTrans) {
+        console.error(`FAIL: Option translations for ${field.id} not found`);
+        return false;
+      }
+
+      // Verify translations are correct
+      if (optionTrans['yes'] !== "Sí") {
+        console.error(`FAIL: 'Yes' translation for ${field.id} should be 'Sí', got '${optionTrans['yes']}'`);
+        return false;
+      }
+      if (optionTrans['no'] !== "No") {
+        console.error(`FAIL: 'No' translation for ${field.id} should be 'No', got '${optionTrans['no']}'`);
+        return false;
+      }
+    }
+    console.log("PASS: All fields with shared options have correct translations (no data loss)");
+
+    // Verify French translations too
+    for (const field of fields) {
+      const optionTrans = translations['fr'].fields[field.id].options;
+      if (!optionTrans) {
+        console.error(`FAIL: French option translations for ${field.id} not found`);
+        return false;
+      }
+      if (optionTrans['yes'] !== "Oui") {
+        console.error(`FAIL: French 'Yes' translation for ${field.id} incorrect`);
+        return false;
+      }
+      if (optionTrans['no'] !== "Non") {
+        console.error(`FAIL: French 'No' translation for ${field.id} incorrect`);
+        return false;
+      }
+    }
+    console.log("PASS: French translations also correct for all fields");
+
+    console.log("=== Duplicate Option Lists Translation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
 // =============================================================================
 // Test Runner
 // =============================================================================
@@ -1368,6 +1471,7 @@ function runAllTests(): void {
     { name: "Empty Inputs", fn: testEmptyInputs },
     { name: "buildFields Skips Blank Rows", fn: testBuildFieldsSkipsBlankRows },
     { name: "Translations With Blank Rows", fn: testTranslationsWithBlankRows },
+    { name: "Duplicate Option Lists Translation", fn: testDuplicateOptionTranslations },
 
     // Category and API tests
     { name: "Category Selection", fn: testCategorySelection },

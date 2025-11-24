@@ -839,9 +839,9 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
 
   // Process field option translations
   // Match by options string (not by index) to handle blank rows in Details sheet
+  // Build array of fields with their corresponding options string for matching
   const optionTrans = data['Detail Option Translations']?.slice(1) || [];
-  // Build map from options string (in spreadsheet format) to field
-  const optionsStringToField = new Map<string, Field>();
+  const fieldsWithOptions: Array<{field: Field, optionsStr: string}> = [];
   for (const field of fields) {
     if (field.options && field.options.length > 0) {
       // Reconstruct the options string as it appears in Details sheet column D
@@ -852,33 +852,39 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
         return value === slugify(label) ? label : `${value}:${label}`;
       }).filter(Boolean).join(', ');
       if (optionsStr) {
-        optionsStringToField.set(optionsStr, field);
+        fieldsWithOptions.push({field, optionsStr});
       }
     }
   }
 
   for (const row of optionTrans) {
     const sourceOptionsStr = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
-    const field = optionsStringToField.get(sourceOptionsStr);
-    if (!field || !field.options || field.options.length === 0) continue;
 
-    const fieldId = field.id;
-    for (let j = 0; j < langs.length; j++) {
-      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const optStr = String(row[colIndex] || '').trim();
-      if (!optStr) continue;
+    // Find ALL fields that match this options string (handles duplicate option lists)
+    const matchingFields = fieldsWithOptions.filter(item => item.optionsStr === sourceOptionsStr);
+    if (matchingFields.length === 0) continue;
 
-      const translatedOpts = optStr.split(',').map(s => s.trim());
+    for (const {field} of matchingFields) {
+      if (!field.options || field.options.length === 0) continue;
 
-      if (!translations[langs[j]].fields![fieldId]) {
-        translations[langs[j]].fields![fieldId] = {};
-      }
-      if (!translations[langs[j]].fields![fieldId].options) {
-        translations[langs[j]].fields![fieldId].options = {};
-      }
+      const fieldId = field.id;
+      for (let j = 0; j < langs.length; j++) {
+        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+        const optStr = String(row[colIndex] || '').trim();
+        if (!optStr) continue;
 
-      for (let k = 0; k < translatedOpts.length && k < field.options.length; k++) {
-        translations[langs[j]].fields![fieldId].options![field.options[k].value] = translatedOpts[k];
+        const translatedOpts = optStr.split(',').map(s => s.trim());
+
+        if (!translations[langs[j]].fields![fieldId]) {
+          translations[langs[j]].fields![fieldId] = {};
+        }
+        if (!translations[langs[j]].fields![fieldId].options) {
+          translations[langs[j]].fields![fieldId].options = {};
+        }
+
+        for (let k = 0; k < translatedOpts.length && k < field.options.length; k++) {
+          translations[langs[j]].fields![fieldId].options![field.options[k].value] = translatedOpts[k];
+        }
       }
     }
   }
