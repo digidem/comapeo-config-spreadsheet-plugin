@@ -36,16 +36,16 @@ let generatedConfigDialogTexts: Record<string,DialogText> = {
   es: {
     title: "Categorías de CoMapeo generadas",
     message: [
-      "Tus categorías de CoMapeo fueron creadas con éxito y comprimidas en un archivo de formato ZIP.",
-      "Para descargar tus Categorías, haz click en el botón debajo. Una vez descargadas, extrae los contenidos y busca el archivo con extensión '.comapeocat', que puede ser importado en la aplicación de CoMapeo."
+      "Tus categorías de CoMapeo fueron creadas con éxito.",
+      "Para descargar tu archivo '.comapeocat', haz click en el botón debajo. El archivo descargado puede ser importado directamente en la aplicación de CoMapeo."
     ],
     buttonText: "Descargar categorías de CoMapeo"
   },
   en: {
     title: "CoMapeo Category Generated",
     message: [
-      "Your CoMapeo Category file has been successfully generated and compressed into a zip file.",
-      "To download your Category, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app."
+      "Your CoMapeo Category file has been successfully generated.",
+      "To download your .comapeocat file, click the button below. The downloaded file can be imported directly into the CoMapeo app."
     ],
     buttonText: "Download CoMapeo Category"
   }
@@ -69,7 +69,7 @@ let helpDialogTexts: Record<string,DialogText & DialogInstructions> = {
       "Use la opción 'Validar Planillas' para asegurarse que su información está en el formato y capitalización correcta.",
       "Use la opción 'Generar Clave de Projecto' para crear una clave única para su proyecto. Esta llave le asegura que su configuración sólo puede ser compartida con projectos que tienen la misma clave, mejorando la seguridad de CoMapeo",
       "Repita los pasos 1 al 8 tal como necesite, actualizando traducciones, íconos y clave de projecto hasta que esté conforme con los resultados.",
-      "Cuando sus categorías estén listas, use la opcíon 'Generar Categorías de CoMapeo' para crear sus categorías finales. Este proceso puede tardar varios minutos y producira un archivo de formato zip que contiene su archivo con extensión '.comapeocat', listo para ser importado a la app de CoMapeo"
+      "Cuando sus categorías estén listas, use la opcíon 'Generar Categorías de CoMapeo' para crear sus categorías finales. Este proceso puede tardar varios minutos y producirá un archivo con extensión '.comapeocat', listo para ser importado a la app de CoMapeo"
     ],
     footer: "Para más información, visite nuestro repositorio de Github",
     buttonText: "Visite repositorio de Github"
@@ -90,7 +90,7 @@ let helpDialogTexts: Record<string,DialogText & DialogInstructions> = {
       "Use the 'Lint Sheets' option to ensure proper formatting and capitalization of your data.",
       "Use the 'Generate Project Key' option to create a unique key for your project. This key ensures that your configuration can only be synced with projects using the same key, enhancing security.",
       "Repeat steps 1-8 as needed, updating translations, icons, and the project key until you're satisfied with the results.",
-      "When ready, use the 'Generate CoMapeo Category' option to create your final configuration. This process may take a few minutes and will produce a zip file containing your .comapeocat file, ready for use with the CoMapeo app.",
+      "When ready, use the 'Generate CoMapeo Category' option to create your final configuration. This process may take a few minutes and will produce a .comapeocat file, ready for use with the CoMapeo app.",
     ],
     footer: "For more information, visit our Github repository",
     buttonText:  "Visit GitHub Repository"
@@ -156,31 +156,31 @@ let processingDialogTexts: Record<string,DialogText>[] = [
   {
     en: {
       title: processingDialogTitle['en'],
-      message:  ["Saving generated categories to drive (6/8)"]
+      message:  ["Generating .comapeocat file (6/8)"]
     },
     es: {
       title: processingDialogTitle['es'],
-      message:  ["Guardando categrías generadas al drive (6/8)"]
+      message:  ["Generando archivo .comapeocat (6/8)"]
     },
   },
   {
     en: {
       title: processingDialogTitle['en'],
-      message:  ["Zipping folder (7/8)"]
+      message:  ["Finalizing configuration (7/8)"]
     },
     es: {
       title: processingDialogTitle['es'],
-      message:  ["Comprimiendo carpeta (7/8)"]
+      message:  ["Finalizando configuración (7/8)"]
     },
   },
   {
     en: {
       title: processingDialogTitle['en'],
-      message:  ["Retrieving URL for zipped folder (8/8)"]
+      message:  ["Retrieving download URL (8/8)"]
     },
     es: {
       title: processingDialogTitle['es'],
-      message:  ["Obteniendo URL para carpeta comprimida (7/8)"]
+      message:  ["Obteniendo URL de descarga (8/8)"]
     },
   }
 ]
