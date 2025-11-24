@@ -810,29 +810,33 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
 
   // Process field helper text translations
   // Match by helper text value (not by index) to handle blank rows in Details sheet
+  // Build array of fields with their corresponding helper text for matching
   const helperTrans = data['Detail Helper Text Translations']?.slice(1) || [];
-  // Build map from helper text to field
-  const helperTextToField = new Map<string, Field>();
+  const fieldsWithHelperText: Array<{field: Field, helperText: string}> = [];
   for (const field of fields) {
     if (field.description) {
-      helperTextToField.set(field.description, field);
+      fieldsWithHelperText.push({field, helperText: field.description});
     }
   }
 
   for (const row of helperTrans) {
     const sourceHelperText = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
-    const field = helperTextToField.get(sourceHelperText);
-    if (!field) continue;
 
-    const fieldId = field.id;
-    for (let j = 0; j < langs.length; j++) {
-      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(row[colIndex] || '').trim();
-      if (value && translations[langs[j]].fields) {
-        if (!translations[langs[j]].fields![fieldId]) {
-          translations[langs[j]].fields![fieldId] = {};
+    // Find ALL fields that match this helper text (handles duplicate helper texts)
+    const matchingFields = fieldsWithHelperText.filter(item => item.helperText === sourceHelperText);
+    if (matchingFields.length === 0) continue;
+
+    for (const {field} of matchingFields) {
+      const fieldId = field.id;
+      for (let j = 0; j < langs.length; j++) {
+        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+        const value = String(row[colIndex] || '').trim();
+        if (value && translations[langs[j]].fields) {
+          if (!translations[langs[j]].fields![fieldId]) {
+            translations[langs[j]].fields![fieldId] = {};
+          }
+          translations[langs[j]].fields![fieldId].description = value;
         }
-        translations[langs[j]].fields![fieldId].description = value;
       }
     }
   }

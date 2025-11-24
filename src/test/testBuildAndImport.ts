@@ -1324,6 +1324,97 @@ function testTranslationsWithBlankRows(): boolean {
   }
 }
 
+function testDuplicateHelperTextTranslations(): boolean {
+  console.log("=== Test: Duplicate Helper Text Translation ===");
+
+  try {
+    // Create mock data with multiple fields sharing same helper text (e.g., multiple numeric measurements)
+    const testData: SheetData = {
+      documentName: "Duplicate Helper Text Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Measurements", "", "width, height, depth", "measurements", "#FF0000", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Width", "Enter measurement in meters", "n", "", "width", "FALSE"],
+        ["Height", "Enter measurement in meters", "n", "", "height", "FALSE"],
+        ["Depth", "Enter measurement in meters", "n", "", "depth", "FALSE"]
+      ],
+      "Detail Helper Text Translations": [
+        ["Helper Text", "Spanish", "French"],
+        ["Enter measurement in meters", "Ingrese la medida en metros", "Entrez la mesure en mètres"],  // Shared translation row
+        ["Enter measurement in meters", "Ingrese la medida en metros", "Entrez la mesure en mètres"],  // Duplicate
+        ["Enter measurement in meters", "Ingrese la medida en metros", "Entrez la mesure en mètres"]   // Duplicate
+      ]
+    } as SheetData;
+
+    // Build fields
+    const fields = buildFields(testData);
+    if (fields.length !== 3) {
+      console.error(`FAIL: Expected 3 fields, got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: Three fields with shared helper text created");
+
+    // Verify all fields have same helper text
+    for (const field of fields) {
+      if (field.description !== "Enter measurement in meters") {
+        console.error(`FAIL: Field ${field.id} should have shared helper text, got '${field.description}'`);
+        return false;
+      }
+    }
+    console.log("PASS: All fields share same helper text");
+
+    // Build categories
+    const categories = buildCategories(testData, fields);
+
+    // Build translations
+    const translations = buildTranslationsPayload(testData, categories, fields);
+
+    // Verify ALL three fields have translations (not just the last one)
+    for (const field of fields) {
+      if (!translations['es'] || !translations['es'].fields || !translations['es'].fields[field.id]) {
+        console.error(`FAIL: Spanish translations for ${field.id} not found`);
+        return false;
+      }
+
+      const helperTextTrans = translations['es'].fields[field.id].description;
+      if (!helperTextTrans) {
+        console.error(`FAIL: Helper text translation for ${field.id} not found`);
+        return false;
+      }
+
+      // Verify translation is correct
+      if (helperTextTrans !== "Ingrese la medida en metros") {
+        console.error(`FAIL: Helper text translation for ${field.id} should be 'Ingrese la medida en metros', got '${helperTextTrans}'`);
+        return false;
+      }
+    }
+    console.log("PASS: All fields with shared helper text have correct translations (no data loss)");
+
+    // Verify French translations too
+    for (const field of fields) {
+      const helperTextTrans = translations['fr'].fields[field.id].description;
+      if (!helperTextTrans) {
+        console.error(`FAIL: French helper text translation for ${field.id} not found`);
+        return false;
+      }
+      if (helperTextTrans !== "Entrez la mesure en mètres") {
+        console.error(`FAIL: French helper text translation for ${field.id} incorrect`);
+        return false;
+      }
+    }
+    console.log("PASS: French translations also correct for all fields");
+
+    console.log("=== Duplicate Helper Text Translation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
 function testDuplicateOptionTranslations(): boolean {
   console.log("=== Test: Duplicate Option Lists Translation ===");
 
@@ -1471,6 +1562,7 @@ function runAllTests(): void {
     { name: "Empty Inputs", fn: testEmptyInputs },
     { name: "buildFields Skips Blank Rows", fn: testBuildFieldsSkipsBlankRows },
     { name: "Translations With Blank Rows", fn: testTranslationsWithBlankRows },
+    { name: "Duplicate Helper Text Translation", fn: testDuplicateHelperTextTranslations },
     { name: "Duplicate Option Lists Translation", fn: testDuplicateOptionTranslations },
 
     // Category and API tests
