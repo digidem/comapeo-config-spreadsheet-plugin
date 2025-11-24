@@ -752,13 +752,17 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const catHeaders = ['Name', ...locales.map(l => `${l}`)];
   catSheet.getRange(1, 1, 1, catHeaders.length).setValues([catHeaders]).setFontWeight('bold');
 
-  // Set column A formula to reference Categories sheet
+  // Set column A formulas to reference Categories sheet (individual cell references)
   const categoriesSheet = spreadsheet.getSheetByName('Categories');
   if (categoriesSheet && config.categories && config.categories.length > 0) {
     const lastRow = categoriesSheet.getLastRow();
     if (lastRow > 1) {
-      const formula = `=Categories!A2:A${lastRow}`;
-      catSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      // Generate individual formulas for each row (setFormula only populates first cell)
+      const formulas: string[][] = [];
+      for (let i = 2; i <= lastRow; i++) {
+        formulas.push([`=Categories!A${i}`]);
+      }
+      catSheet.getRange(2, 1, lastRow - 1, 1).setFormulas(formulas);
     }
 
     // Write translation values (columns B+)
@@ -788,13 +792,17 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const labelHeaders = ['Name', ...locales.map(l => `${l}`)];
   labelSheet.getRange(1, 1, 1, labelHeaders.length).setValues([labelHeaders]).setFontWeight('bold');
 
-  // Set column A formula to reference Details sheet column A (field names)
+  // Set column A formulas to reference Details sheet column A (field names, individual cell references)
   const detailsSheet = spreadsheet.getSheetByName('Details');
   if (detailsSheet && config.fields && config.fields.length > 0) {
     const lastRow = detailsSheet.getLastRow();
     if (lastRow > 1) {
-      const formula = `=Details!A2:A${lastRow}`;
-      labelSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      // Generate individual formulas for each row (setFormula only populates first cell)
+      const formulas: string[][] = [];
+      for (let i = 2; i <= lastRow; i++) {
+        formulas.push([`=Details!A${i}`]);
+      }
+      labelSheet.getRange(2, 1, lastRow - 1, 1).setFormulas(formulas);
     }
 
     // Write translation values (columns B+)
@@ -824,12 +832,16 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const helperHeaders = ['Helper Text', ...locales.map(l => `${l}`)];
   helperSheet.getRange(1, 1, 1, helperHeaders.length).setValues([helperHeaders]).setFontWeight('bold');
 
-  // Set column A formula to reference Details sheet column B (helper text)
+  // Set column A formulas to reference Details sheet column B (helper text, individual cell references)
   if (detailsSheet && config.fields && config.fields.length > 0) {
     const lastRow = detailsSheet.getLastRow();
     if (lastRow > 1) {
-      const formula = `=Details!B2:B${lastRow}`;
-      helperSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      // Generate individual formulas for each row (setFormula only populates first cell)
+      const formulas: string[][] = [];
+      for (let i = 2; i <= lastRow; i++) {
+        formulas.push([`=Details!B${i}`]);
+      }
+      helperSheet.getRange(2, 1, lastRow - 1, 1).setFormulas(formulas);
     }
 
     // Write translation values (columns B+)
@@ -859,12 +871,16 @@ function populateTranslationSheets(spreadsheet: GoogleAppsScript.Spreadsheet.Spr
   const optionHeaders = ['Options', ...locales.map(l => `${l}`)];
   optionSheet.getRange(1, 1, 1, optionHeaders.length).setValues([optionHeaders]).setFontWeight('bold');
 
-  // Set column A formula to reference Details sheet column D (options)
+  // Set column A formulas to reference Details sheet column D (options, individual cell references)
   if (detailsSheet && config.fields && config.fields.length > 0) {
     const lastRow = detailsSheet.getLastRow();
     if (lastRow > 1) {
-      const formula = `=Details!D2:D${lastRow}`;
-      optionSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      // Generate individual formulas for each row (setFormula only populates first cell)
+      const formulas: string[][] = [];
+      for (let i = 2; i <= lastRow; i++) {
+        formulas.push([`=Details!D${i}`]);
+      }
+      optionSheet.getRange(2, 1, lastRow - 1, 1).setFormulas(formulas);
     }
 
     // Write translation values (columns B+)
