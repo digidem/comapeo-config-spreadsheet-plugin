@@ -634,8 +634,18 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
       const iconIdStr = String(row[CATEGORY_COL.ICON_ID] || '').trim();
-      // Use explicit color from column E if present, otherwise fall back to background color
-      const color = colorStr || backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] || '#0000FF';
+
+      // Only use color if explicitly provided in column E or background color
+      // Don't force a default - let downstream systems apply their own defaults
+      let color: string | undefined;
+      if (colorStr) {
+        color = colorStr;
+      } else if (backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] &&
+                 backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND] !== '#ffffff') {
+        // Only use background color if it's not white (default empty cell background)
+        color = backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND];
+      }
+      // If no explicit color, leave undefined to preserve colorless state
 
       // Convert field names to field IDs using actual IDs from Details sheet
       const explicitFieldIds: string[] = [];

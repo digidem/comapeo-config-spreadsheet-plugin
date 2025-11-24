@@ -475,10 +475,13 @@ function populateCategoriesSheet(
       fieldsValue = fieldNames.join(', ');
     }
 
-    const colorValue = cat.color || '#FFFFFF';
+    // Only set color if explicitly provided in the config
+    // Leave empty to preserve undefined state (allows downstream defaults)
+    const colorValue = cat.color || '';
 
     rows.push([cat.name, iconValue, fieldsValue, cat.id || '', colorValue, cat.iconId || '']);
-    colors.push(colorValue);
+    // Only set background color if we have a valid color value
+    colors.push(colorValue || '#FFFFFF');  // Use white as background default for empty cells
   }
 
   if (rows.length === 0) return;
