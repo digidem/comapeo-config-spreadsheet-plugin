@@ -1324,6 +1324,114 @@ function testTranslationsWithBlankRows(): boolean {
   }
 }
 
+function testFieldTranslationsWithoutCategorySheet(): boolean {
+  console.log("=== Test: Field Translations Without Category Translations Sheet ===");
+
+  try {
+    // Create mock data with field translations but NO Category Translations sheet
+    const testData: SheetData = {
+      documentName: "Field Only Translations Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Test Category", "", "field1, field2", "test-cat", "#FF0000", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Field 1", "Help for field 1", "t", "", "field1", "FALSE"],
+        ["Field 2", "Help for field 2", "s", "Option A, Option B", "field2", "FALSE"]
+      ],
+      // NOTE: No "Category Translations" sheet
+      "Detail Label Translations": [
+        ["Name", "Spanish", "French"],
+        ["Field 1", "Campo 1", "Champ 1"],
+        ["Field 2", "Campo 2", "Champ 2"]
+      ],
+      "Detail Helper Text Translations": [
+        ["Helper Text", "Spanish", "French"],
+        ["Help for field 1", "Ayuda para campo 1", "Aide pour champ 1"],
+        ["Help for field 2", "Ayuda para campo 2", "Aide pour champ 2"]
+      ],
+      "Detail Option Translations": [
+        ["Options", "Spanish", "French"],
+        ["Option A, Option B", "Opción A, Opción B", "Option A, Option B"]
+      ]
+    } as SheetData;
+
+    // Build fields and categories
+    const fields = buildFields(testData);
+    const categories = buildCategories(testData, fields);
+
+    if (fields.length !== 2) {
+      console.error(`FAIL: Expected 2 fields, got ${fields.length}`);
+      return false;
+    }
+    console.log("PASS: Fields built correctly");
+
+    // Build translations (should work even without Category Translations sheet)
+    const translations = buildTranslationsPayload(testData, categories, fields);
+
+    // Verify translations object was created with languages
+    if (!translations['es'] || !translations['fr']) {
+      console.error("FAIL: Translations should include Spanish and French even without Category Translations sheet");
+      return false;
+    }
+    console.log("PASS: Translation languages detected from Detail sheets");
+
+    // Verify category translations are empty (no Category Translations sheet)
+    if (Object.keys(translations['es'].categories || {}).length > 0) {
+      console.error("FAIL: Category translations should be empty when Category Translations sheet is missing");
+      return false;
+    }
+    console.log("PASS: Category translations correctly empty");
+
+    // Verify field label translations exist
+    if (!translations['es'].fields['field1'] || !translations['es'].fields['field1'].name) {
+      console.error("FAIL: Field label translation for field1 should exist");
+      return false;
+    }
+    if (translations['es'].fields['field1'].name !== "Campo 1") {
+      console.error(`FAIL: Field1 Spanish translation incorrect: ${translations['es'].fields['field1'].name}`);
+      return false;
+    }
+    console.log("PASS: Field label translations work without Category Translations sheet");
+
+    // Verify helper text translations exist
+    if (!translations['es'].fields['field1'].description) {
+      console.error("FAIL: Helper text translation for field1 should exist");
+      return false;
+    }
+    if (translations['es'].fields['field1'].description !== "Ayuda para campo 1") {
+      console.error(`FAIL: Field1 helper text Spanish translation incorrect`);
+      return false;
+    }
+    console.log("PASS: Helper text translations work without Category Translations sheet");
+
+    // Verify option translations exist
+    if (!translations['es'].fields['field2'].options) {
+      console.error("FAIL: Option translations for field2 should exist");
+      return false;
+    }
+    if (translations['es'].fields['field2'].options['option-a'] !== "Opción A") {
+      console.error("FAIL: Option translation for 'option-a' incorrect");
+      return false;
+    }
+    console.log("PASS: Option translations work without Category Translations sheet");
+
+    // Verify French translations too
+    if (translations['fr'].fields['field2'].name !== "Champ 2") {
+      console.error("FAIL: French field label translation incorrect");
+      return false;
+    }
+    console.log("PASS: All French field translations work correctly");
+
+    console.log("=== Field Translations Without Category Translations Sheet: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
 function testDuplicateHelperTextTranslations(): boolean {
   console.log("=== Test: Duplicate Helper Text Translation ===");
 
@@ -1562,6 +1670,7 @@ function runAllTests(): void {
     { name: "Empty Inputs", fn: testEmptyInputs },
     { name: "buildFields Skips Blank Rows", fn: testBuildFieldsSkipsBlankRows },
     { name: "Translations With Blank Rows", fn: testTranslationsWithBlankRows },
+    { name: "Field Translations Without Category Translations Sheet", fn: testFieldTranslationsWithoutCategorySheet },
     { name: "Duplicate Helper Text Translation", fn: testDuplicateHelperTextTranslations },
     { name: "Duplicate Option Lists Translation", fn: testDuplicateOptionTranslations },
 

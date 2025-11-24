@@ -752,17 +752,55 @@ function extractLanguagesFromHeaders(headers: any[]): string[] {
  * Translation sheet structure:
  * - Column A (index 0): Source text (linked to Categories/Details)
  * - Column B+ (index 1+): Language translations
+ *
+ * Processes category and detail translations independently so field translations
+ * are still included even when the Category Translations sheet is absent.
  */
 function buildTranslationsPayload(data: SheetData, categories: Category[], fields: Field[]): TranslationsByLocale {
   const translations: TranslationsByLocale = {};
 
+  // Determine available languages from any translation sheet
+  // Try Category Translations first, then fall back to Detail translation sheets
+  let langs: string[] = [];
+
   const catTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Category Translations');
-  if (!catTransSheet) return translations;
+  if (catTransSheet) {
+    const headerRow = catTransSheet.getRange(1, 1, 1, catTransSheet.getLastColumn()).getValues()[0];
+    langs = extractLanguagesFromHeaders(headerRow);
+  }
 
-  const headerRow = catTransSheet.getRange(1, 1, 1, catTransSheet.getLastColumn()).getValues()[0];
-  const langs = extractLanguagesFromHeaders(headerRow);
+  // If no languages found in Category Translations, try Detail Label Translations
+  if (langs.length === 0) {
+    const labelTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Label Translations');
+    if (labelTransSheet) {
+      const headerRow = labelTransSheet.getRange(1, 1, 1, labelTransSheet.getLastColumn()).getValues()[0];
+      langs = extractLanguagesFromHeaders(headerRow);
+    }
+  }
 
-  if (langs.length === 0) return translations;
+  // If still no languages found, try Detail Helper Text Translations
+  if (langs.length === 0) {
+    const helperTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Helper Text Translations');
+    if (helperTransSheet) {
+      const headerRow = helperTransSheet.getRange(1, 1, 1, helperTransSheet.getLastColumn()).getValues()[0];
+      langs = extractLanguagesFromHeaders(headerRow);
+    }
+  }
+
+  // If still no languages found, try Detail Option Translations
+  if (langs.length === 0) {
+    const optionTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Option Translations');
+    if (optionTransSheet) {
+      const headerRow = optionTransSheet.getRange(1, 1, 1, optionTransSheet.getLastColumn()).getValues()[0];
+      langs = extractLanguagesFromHeaders(headerRow);
+    }
+  }
+
+  // If no translation sheets found with languages, return empty translations
+  if (langs.length === 0) {
+    console.log('No translation sheets found with language columns');
+    return translations;
+  }
 
   console.log(`Found ${langs.length} languages for translations:`, langs);
 
@@ -772,18 +810,21 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   }
 
   // Process category translations - match by name to handle blank rows
-  const catTrans = data['Category Translations']?.slice(1) || [];
-  const catNameToId = new Map(categories.map(c => [c.name, c.id]));
-  for (const row of catTrans) {
-    const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
-    const catId = catNameToId.get(sourceName);
-    if (!catId) continue;  // Skip rows that don't match a category
+  // Only process if Category Translations sheet exists
+  if (catTransSheet) {
+    const catTrans = data['Category Translations']?.slice(1) || [];
+    const catNameToId = new Map(categories.map(c => [c.name, c.id]));
+    for (const row of catTrans) {
+      const sourceName = String(row[TRANSLATION_COL.SOURCE_TEXT] || '').trim();
+      const catId = catNameToId.get(sourceName);
+      if (!catId) continue;  // Skip rows that don't match a category
 
-    for (let j = 0; j < langs.length; j++) {
-      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(row[colIndex] || '').trim();
-      if (value && translations[langs[j]].categories) {
-        translations[langs[j]].categories![catId] = { name: value };
+      for (let j = 0; j < langs.length; j++) {
+        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
+        const value = String(row[colIndex] || '').trim();
+        if (value && translations[langs[j]].categories) {
+          translations[langs[j]].categories![catId] = { name: value };
+        }
       }
     }
   }
