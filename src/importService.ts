@@ -405,7 +405,7 @@ function populateSpreadsheetFromConfig(config: BuildRequest): void {
   // Fields are placed exactly as they appear in the imported config's defaultFieldIds.
   populateCategoriesSheet(spreadsheet, config.categories || [], iconMap, config.fields);
   populateDetailsSheet(spreadsheet, config.fields || []);
-  populateMetadataSheet(spreadsheet, config.metadata);
+  populateMetadataSheet(spreadsheet, config.metadata, config);
   populateIconsSheet(spreadsheet, config.icons);
 
   // Populate translations if present, otherwise clear existing translation sheets
@@ -582,9 +582,67 @@ function mapFieldTypeToChar(type: FieldType): string {
 }
 
 /**
- * Populates the Metadata sheet
+ * Detects the primary language from the config structure.
+ * The primary language is the language in which category/field names are originally authored.
+ * All other languages in translations are considered secondary.
+ *
+ * Strategy:
+ * 1. If no translations exist, default to English
+ * 2. Compare base names against translation locales to find which locale matches the base
+ * 3. If no match, default to English
  */
-function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, metadata: Metadata): void {
+function detectPrimaryLanguage(config: BuildRequest): string {
+  const allLanguages = {
+    en: 'English',
+    es: 'Español',
+    pt: 'Português'
+  };
+
+  // No translations means English default
+  if (!config.translations || Object.keys(config.translations).length === 0) {
+    return 'English';
+  }
+
+  const locales = Object.keys(config.translations);
+
+  // Try to detect which locale the base content is authored in
+  // by checking if any category names match their "translations"
+  if (config.categories && config.categories.length > 0) {
+    for (const locale of locales) {
+      const categoryTranslations = config.translations[locale]?.categories;
+      if (!categoryTranslations) continue;
+
+      // Check if base names match this locale's translations
+      // (indicating base content is in this language)
+      let matchCount = 0;
+      let totalChecked = 0;
+
+      for (const cat of config.categories) {
+        if (!cat || !cat.id) continue;
+        const translation = categoryTranslations[cat.id]?.name;
+        if (translation) {
+          totalChecked++;
+          if (cat.name === translation) {
+            matchCount++;
+          }
+        }
+      }
+
+      // If majority of translations match base names, this is likely the primary language
+      if (totalChecked > 0 && matchCount / totalChecked > 0.5) {
+        return allLanguages[locale] || 'English';
+      }
+    }
+  }
+
+  // Default to English if no clear match
+  return 'English';
+}
+
+/**
+ * Populates the Metadata sheet, including primary language detection
+ */
+function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, metadata: Metadata, config?: BuildRequest): void {
   if (!metadata) return;
 
   let sheet = spreadsheet.getSheetByName('Metadata');
@@ -599,10 +657,14 @@ function populateMetadataSheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreads
     }
   }
 
+  // Detect primary language from config structure
+  const primaryLanguage = config ? detectPrimaryLanguage(config) : 'English';
+
   const rows = [
     ['name', metadata.name || ''],
     ['version', metadata.version || ''],
-    ['description', metadata.description || '']
+    ['description', metadata.description || ''],
+    ['primaryLanguage', primaryLanguage]
   ];
 
   sheet.getRange(2, 1, rows.length, 2).setValues(rows);
