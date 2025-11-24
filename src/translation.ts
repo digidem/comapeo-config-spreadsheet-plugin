@@ -54,8 +54,17 @@ function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
     const categoriesSheet = spreadsheet.getSheetByName(CATEGORIES_SHEET);
     if (categoriesSheet) {
       const lastRow = categoriesSheet.getLastRow();
-      const formula = `=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}2:${MAIN_LANGUAGE_COLUMN}${lastRow}`;
-      sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+
+      // Create individual formulas for each row to avoid spill conflicts
+      // Each cell references its corresponding row in the Categories sheet
+      const formulas: string[][] = [];
+      for (let i = 2; i <= lastRow; i++) {
+        formulas.push([`=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}${i}`]);
+      }
+
+      if (formulas.length > 0) {
+        sheet.getRange(2, 1, formulas.length, 1).setFormulas(formulas);
+      }
     }
   }
   return sheet;
@@ -104,8 +113,17 @@ function autoTranslateSheets(): void {
           throw new Error(`Source sheet ${sourceSheet} not found`);
         }
         const lastRow = sourceSheetObj.getLastRow();
-        const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
-        sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+
+        // Create individual formulas for each row to avoid spill conflicts
+        // Each cell references its corresponding row in the source sheet
+        const formulas: string[][] = [];
+        for (let i = 2; i <= lastRow; i++) {
+          formulas.push([`=${sourceSheet}!${sourceColumn}${i}`]);
+        }
+
+        if (formulas.length > 0) {
+          sheet.getRange(2, 1, formulas.length, 1).setFormulas(formulas);
+        }
       }
     }
     for (const lang of Object.keys(languages())) {
