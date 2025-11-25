@@ -34,7 +34,53 @@ function languages(includePrimary = false): Record<string, string> {
     }
   }
 
-  return Object.entries(ALL_LANGUAGES)
+  // Detect which languages are actually configured in the spreadsheet
+  // by reading headers from an existing translation sheet
+  const translationSheet = spreadsheet.getSheetByName("Category Translations");
+  let configuredLanguages: Record<string, string> = {};
+
+  if (translationSheet && translationSheet.getLastColumn() > 0) {
+    // Read headers from existing translation sheet
+    const headers = translationSheet.getRange(1, 1, 1, translationSheet.getLastColumn()).getValues()[0];
+
+    // Map headers back to language codes
+    // Headers can be either "Language Name" or "Language Name - code" format
+    for (const header of headers) {
+      if (typeof header === 'string' && header.trim() !== '') {
+        // Try to find matching language in ALL_LANGUAGES
+        const headerStr = String(header).trim();
+
+        // Check if header matches "Language Name - code" format
+        const dashMatch = headerStr.match(/^(.+?)\s*-\s*([a-z]{2,3})$/);
+        if (dashMatch) {
+          const [, langName, code] = dashMatch;
+          if (ALL_LANGUAGES[code] && ALL_LANGUAGES[code] === langName.trim()) {
+            configuredLanguages[code] = ALL_LANGUAGES[code];
+          }
+        } else {
+          // Check if header matches a language name directly
+          for (const [code, name] of Object.entries(ALL_LANGUAGES)) {
+            if (name === headerStr) {
+              configuredLanguages[code] = name;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // If no configured languages found (first run), default to en, es, pt
+  if (Object.keys(configuredLanguages).length === 0) {
+    configuredLanguages = {
+      en: 'English',
+      es: 'Español',
+      pt: 'Português'
+    };
+  }
+
+  // Filter based on includePrimary parameter
+  return Object.entries(configuredLanguages)
     .filter(([_, name]) => includePrimary ? name === primaryLanguage : name !== primaryLanguage)
     .reduce((acc, [code, name]) => {
       acc[code] = name;
