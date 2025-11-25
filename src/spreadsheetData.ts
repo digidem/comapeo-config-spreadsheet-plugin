@@ -20,14 +20,8 @@ function languages(includePrimary = false): Record<string, string> {
     const categoriesSheet = spreadsheet.getSheetByName("Categories");
     const a1Value = categoriesSheet?.getRange("A1").getValue() as string;
 
-    const allLanguages = {
-      en: 'English',
-      es: 'Español',
-      pt: 'Português'
-    };
-
     // Check if A1 contains a valid language name
-    if (a1Value && Object.values(allLanguages).includes(a1Value)) {
+    if (a1Value && Object.values(ALL_LANGUAGES).includes(a1Value)) {
       primaryLanguage = a1Value;
     } else {
       // Default to English if no primary language is set
@@ -40,13 +34,7 @@ function languages(includePrimary = false): Record<string, string> {
     }
   }
 
-  const allLanguages = {
-    en: 'English',
-    es: 'Español',
-    pt: 'Português'
-  };
-
-  return Object.entries(allLanguages)
+  return Object.entries(ALL_LANGUAGES)
     .filter(([_, name]) => includePrimary ? name === primaryLanguage : name !== primaryLanguage)
     .reduce((acc, [code, name]) => {
       acc[code] = name;
