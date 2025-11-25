@@ -280,6 +280,12 @@ function migrateSpreadsheetFormat(): void {
           headers[5] === expectedNewHeaders[5]) {
         console.log('Categories sheet already in new 6-column format, skipping migration');
       }
+      // Accept current flexible format used by this plugin (Name, Icons, Details, Tracks)
+      else if (headers.length >= 3 &&
+               String(headers[0]).toLowerCase() === 'name' &&
+               String(headers[1]).toLowerCase() === 'icons') {
+        console.log('Categories sheet in flexible format (Name/Icons/Details/Tracks); skipping migration');
+      }
       // Check if it's the exact old 4-column format that needs migration
       else if (headers.length === 4 &&
                headers[0] === 'Name' &&
@@ -366,6 +372,12 @@ function migrateSpreadsheetFormat(): void {
           headers[4] === expectedNewHeaders[4] &&
           headers[5] === expectedNewHeaders[5]) {
         console.log('Details sheet already in new format with ID column, skipping migration');
+      }
+      // Accept flexible format (Label, Helper Text, Type, Options)
+      else if (headers.length >= 4 &&
+               String(headers[0]).toLowerCase() === 'label' &&
+               String(headers[1]).toLowerCase() === 'helper text') {
+        console.log('Details sheet in flexible format (Label/Helper Text/Type/Options); skipping migration');
       }
       // Check if it's old format without ID column (4 or 5 columns)
       else if ((headers.length === 4 || headers.length === 5) &&
