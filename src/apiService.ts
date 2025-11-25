@@ -220,7 +220,15 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob): string {
   const fileUrl = file.getUrl();
   console.log(`Download the .comapeocat file here: ${fileUrl}`);
 
-  return fileUrl;
+  // Also create a ZIP archive of the .comapeocat file for easier sharing
+  const zipName = `${blob.getName()}.zip`;
+  const zipBlob = Utilities.zip([blob], zipName);
+  const zipFile = buildsFolderObj.createFile(zipBlob);
+  const zipUrl = zipFile.getUrl();
+  console.log(`Download the zipped .comapeocat file here: ${zipUrl}`);
+
+  // Return ZIP URL by default
+  return zipUrl;
 }
 
 // =============================================================================
