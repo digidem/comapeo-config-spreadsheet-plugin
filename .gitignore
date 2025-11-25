@@ -176,3 +176,4 @@ dist
 .clasp.json
 .clasp.all.json
 .aider*
+fixture.json
