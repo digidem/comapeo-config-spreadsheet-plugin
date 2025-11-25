@@ -12,6 +12,7 @@ interface SheetData {
 
 interface BuildRequest {
   metadata: Metadata;
+  locales: string[];  // At least one locale is required by API v2
   categories: Category[];
   fields: Field[];
   icons?: Icon[];

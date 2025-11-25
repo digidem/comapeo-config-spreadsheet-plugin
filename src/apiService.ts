@@ -428,6 +428,7 @@ function createBuildPayload(data: SheetData): BuildRequest {
   const categories = buildCategories(data, fields);
   const icons = buildIconsFromSheet(data);
   const metadata = buildMetadata(data);
+  const locales = buildLocales();
   // Temporarily disable translations until schema matches API v2 expectations
   const translations: TranslationsByLocale = {};
 
@@ -435,6 +436,7 @@ function createBuildPayload(data: SheetData): BuildRequest {
     categories: categories.length,
     fields: fields.length,
     icons: icons.length,
+    locales: locales.length,
     translations: Object.keys(translations || {}).length
   });
 
@@ -446,11 +448,37 @@ function createBuildPayload(data: SheetData): BuildRequest {
 
   return {
     metadata,
+    locales,
     categories,
     fields,
     icons: icons.length > 0 ? icons : undefined,
     translations: Object.keys(translations).length > 0 ? translations : undefined
   };
+}
+
+/**
+ * Builds locales array required by API v2
+ * Uses Metadata!primaryLanguage if present, otherwise defaults to 'en'
+ */
+function buildLocales(): string[] {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const metadataSheet = spreadsheet.getSheetByName('Metadata');
+
+  if (!metadataSheet) {
+    return ['en'];
+  }
+
+  const data = metadataSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'primaryLanguage') {
+      const lang = String(data[i][1] || '').trim();
+      if (lang) {
+        return [lang.toLowerCase()];
+      }
+    }
+  }
+
+  return ['en'];
 }
 
 /**
