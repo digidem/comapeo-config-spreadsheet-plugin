@@ -582,56 +582,26 @@ function buildFields(data: SheetData): Field[] {
         case 'm':
         case 'multi':
         case 'multiselect':
-          type = 'multiselect';
+          type = 'multi';
           options = parseOptions(optionsStr);
           break;
         case 'n':
         case 'number':
           type = 'number';
           break;
-        case 'i':
-        case 'int':
-        case 'integer':
-          type = 'integer';
-          break;
         case 't':
         case 'text':
           type = 'text';
           break;
-        case 'textarea':
-        case 'long':
-        case 'T':
-          type = 'textarea';
-          break;
-        case 'b':
-        case 'bool':
-        case 'boolean':
-          type = 'boolean';
-          break;
-        case 'd':
-        case 'date':
-          type = 'date';
-          break;
-        case 'D':
-        case 'datetime':
-        case 'dt':
-          type = 'datetime';
-          break;
-        case 'p':
-        case 'photo':
-        case 'image':
-          type = 'photo';
-          break;
-        case 'l':
-        case 'loc':
-        case 'location':
-          type = 'location';
-          break;
         case 'single':
         case 'select':
         case 's':
+        case '':
+          type = 'single';
+          options = parseOptions(optionsStr);
+          break;
         default:
-          type = 'select';
+          type = 'single';
           options = parseOptions(optionsStr);
       }
 

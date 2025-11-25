@@ -61,16 +61,9 @@ interface Field {
 
 type FieldType =
   | "text"
-  | "textarea"
   | "number"
-  | "integer"
-  | "boolean"
-  | "select"
-  | "multiselect"
-  | "date"
-  | "datetime"
-  | "photo"
-  | "location";
+  | "single"
+  | "multi";
 
 interface SelectOption {
   value: string;
