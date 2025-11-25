@@ -58,11 +58,17 @@ function languages(includePrimary = false): Record<string, string> {
             configuredLanguages[code] = ALL_LANGUAGES[code];
           }
         } else {
-          // Check if header matches a language name directly
-          for (const [code, name] of Object.entries(ALL_LANGUAGES)) {
-            if (name === headerStr) {
-              configuredLanguages[code] = name;
-              break;
+          // Check if header is a raw ISO code (e.g., from imported configs)
+          const lowerHeader = headerStr.toLowerCase();
+          if (ALL_LANGUAGES[lowerHeader]) {
+            configuredLanguages[lowerHeader] = ALL_LANGUAGES[lowerHeader];
+          } else {
+            // Check if header matches a language name directly
+            for (const [code, name] of Object.entries(ALL_LANGUAGES)) {
+              if (name === headerStr) {
+                configuredLanguages[code] = name;
+                break;
+              }
             }
           }
         }
