@@ -428,7 +428,8 @@ function createBuildPayload(data: SheetData): BuildRequest {
   const categories = buildCategories(data, fields);
   const icons = buildIconsFromSheet(data);
   const metadata = buildMetadata(data);
-  const translations = buildTranslationsPayload(data, categories, fields);
+  // Temporarily disable translations until schema matches API v2 expectations
+  const translations: TranslationsByLocale = {};
 
   // Set category selection in exact spreadsheet order
   const categoryIds = categories.map(c => c.id);
@@ -657,7 +658,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         return null;  // Skip blank rows
       }
 
-      const iconData = String(row[CATEGORY_COL.ICON] || '').trim();
+      const iconDataRaw = String(row[CATEGORY_COL.ICON] || '').trim();
+      const iconLooksValid = /^<svg|^https?:\/\//i.test(iconDataRaw) || iconDataRaw.startsWith('data:');
+      const iconData = iconLooksValid ? iconDataRaw : '';
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
@@ -697,7 +700,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         name,
         appliesTo: ['observation'],  // API v2 accepts only "observation" or "track"; default to observation
         color,
-        iconId: iconIdStr || (iconData ? categoryId : undefined),  // Use explicit iconId from column F, or categoryId if icon data present
+        iconId: iconIdStr || (iconData ? categoryId : undefined),  // Use explicit iconId from column F, or categoryId if icon data present and valid
         defaultFieldIds
       } as Category;
     })
@@ -715,6 +718,12 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
   // Helper function to process icon data
   const processIconData = (iconId: string, iconUrlOrData: string) => {
     if (!iconId || !iconUrlOrData || iconIds.has(iconId)) return;
+
+    // Basic validation to avoid sending invalid SVG/URL to API
+    const trimmed = iconUrlOrData.trim();
+    const isInlineSvg = trimmed.startsWith('<svg');
+    const isUrl = /^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:');
+    if (!isInlineSvg && !isUrl) return;
 
     iconIds.add(iconId);
 
