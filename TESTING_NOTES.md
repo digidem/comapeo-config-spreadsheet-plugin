@@ -7,9 +7,9 @@ This repo currently runs with a few features intentionally disabled to keep the 
 - **Icons omitted from payloads**: `buildIconsFromSheet` returns an empty array and categories do not set `iconId`. Reason: API rejects non-SVG / malformed SVG; current spreadsheet cells often contain PNG/JPEG/Drive links. Disabled in `src/apiService.ts` (buildIconsFromSheet returns `[]`; iconId set to `undefined`).
 - **Translations omitted**: `translations` is forced to `{}` before the build payload is sent. Reason: v2 translation schema not yet mapped; avoids validation failures. Disabled in `createBuildPayload` in `src/apiService.ts`.
 
-## Field type constraints
+## Field type mapping (spec-compliant)
 
-- Field types are limited to the comapeocat spec: `text`, `number`, `selectOne`, `selectMultiple`. Spreadsheet tokens map as: `t/text -> text`, `n/number -> number`, `m/multi -> selectMultiple`, `s/single/blank -> selectOne`. Select fields without options are skipped.
+- Field types are locked to the comapeocat spec: `text`, `number`, `selectOne`, `selectMultiple`. Spreadsheet tokens map as: `t/text -> text`, `n/number -> number`, `m/multi -> selectMultiple`, `s/single/blank -> selectOne`. Select fields without options are skipped. This is production-ready (not a temporary safeguard).
 
 ## Locales
 
