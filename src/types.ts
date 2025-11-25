@@ -43,6 +43,7 @@ interface Category {
 
 interface Field {
   id: string;
+  tagKey: string; // required by API v2
   name: string;
   type: FieldType;
   description?: string;
@@ -54,6 +55,7 @@ interface Field {
   min?: number;
   max?: number;
   step?: number;
+  appliesTo?: string[];
   tags?: string[];
 }
 

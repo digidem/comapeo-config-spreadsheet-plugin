@@ -602,10 +602,12 @@ function buildFields(data: SheetData): Field[] {
 
       return {
         id: idStr || slugify(name),  // Use explicit ID if provided, otherwise slugify name
+        tagKey: idStr || slugify(name), // API v2 requires tagKey
         name,
         type,
         description: helperText || undefined,
-        options
+        options,
+        appliesTo: ['observation']
         // Note: required property is not set from spreadsheet - universal flag is separate from required
       } as Field;
     })
