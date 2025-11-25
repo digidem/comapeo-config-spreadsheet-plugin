@@ -16,12 +16,12 @@
  *
  * Note: HTTP is acceptable for trusted networks. Use HTTPS for public deployments.
  */
-export const API_BASE_URL = "http://137.184.153.36:3000";
+const API_BASE_URL = "http://137.184.153.36:3000";
 
 /**
  * API retry configuration
  */
-export const RETRY_CONFIG = {
+const RETRY_CONFIG = {
   /** Maximum number of retry attempts for API requests */
   MAX_RETRIES: 3,
   /** Base delay in milliseconds between retries (uses exponential backoff) */
@@ -33,7 +33,7 @@ export const RETRY_CONFIG = {
 /**
  * Plugin identification
  */
-export const PLUGIN_INFO = {
+const PLUGIN_INFO = {
   NAME: "comapeo-config-spreadsheet-plugin",
   VERSION: "2.0.0"
 };

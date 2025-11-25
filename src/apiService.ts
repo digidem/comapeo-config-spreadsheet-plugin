@@ -3,8 +3,6 @@
  * JSON-only build endpoint, no ZIP workflow
  */
 
-import { API_BASE_URL, RETRY_CONFIG, PLUGIN_INFO } from './config';
-
 // =============================================================================
 // Constants
 // =============================================================================
