@@ -3,12 +3,11 @@
  * JSON-only build endpoint, no ZIP workflow
  */
 
+import { API_BASE_URL, RETRY_CONFIG, PLUGIN_INFO } from './config';
+
 // =============================================================================
 // Constants
 // =============================================================================
-
-/** API base URL */
-const API_BASE_URL = "http://137.184.153.36:3000";
 
 /** Column indices for Categories sheet (0-based) */
 const CATEGORY_COL = {
@@ -84,18 +83,6 @@ function validateSheetHeaders(
   return true;
 }
 
-/** Default retry configuration */
-const RETRY_CONFIG = {
-  MAX_RETRIES: 3,
-  BASE_DELAY_MS: 1000
-};
-
-/** Plugin identification */
-const PLUGIN_INFO = {
-  NAME: "comapeo-config-spreadsheet-plugin",
-  VERSION: "2.0.0"
-};
-
 // =============================================================================
 // API Communication
 // =============================================================================
@@ -111,8 +98,20 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
   const apiUrl = `${API_BASE_URL}/v2`;
   let attemptNumber = 0;
   let lastError: Error | null = null;
+  const startTime = Date.now();
 
   while (attemptNumber < maxRetries) {
+    // Check total timeout before attempting
+    const elapsedTime = Date.now() - startTime;
+    if (elapsedTime >= RETRY_CONFIG.MAX_TOTAL_TIMEOUT_MS) {
+      const ui = SpreadsheetApp.getUi();
+      const errorMessage = `API request timed out after ${Math.round(elapsedTime / 1000)} seconds.\n\n` +
+        `Last error: ${lastError?.message || "Maximum timeout exceeded"}\n\n` +
+        `Please check your connection and try again.`;
+      ui.alert("Request Timeout", errorMessage, ui.ButtonSet.OK);
+      throw new Error(`API request exceeded maximum timeout of ${RETRY_CONFIG.MAX_TOTAL_TIMEOUT_MS}ms: ${lastError?.message || "timeout"}`);
+    }
+
     attemptNumber++;
 
     try {
