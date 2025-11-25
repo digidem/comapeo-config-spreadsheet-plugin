@@ -659,9 +659,8 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       }
 
       const iconDataRaw = String(row[CATEGORY_COL.ICON] || '').trim();
-      const isInlineSvg = iconDataRaw.startsWith('<svg');
-      const isSvgUrl = /^https?:\/\/.*\.svg(\?|#|$)/i.test(iconDataRaw) || iconDataRaw.startsWith('data:image/svg+xml');
-      const iconData = (isInlineSvg || isSvgUrl) ? iconDataRaw : '';
+      // Icons disabled for now to avoid API SVG validation failures
+      const iconData = '';
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
@@ -701,7 +700,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         name,
         appliesTo: ['observation'],  // API v2 accepts only "observation" or "track"; default to observation
         color,
-        iconId: iconIdStr || (iconData ? categoryId : undefined),  // Use explicit iconId from column F, or categoryId if icon data present and valid
+        iconId: undefined,
         defaultFieldIds
       } as Category;
     })
@@ -713,94 +712,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
  * This preserves all icons from imported configs AND standard workflow icons
  */
 function buildIconsFromSheet(data: SheetData): Icon[] {
-  const icons: Icon[] = [];
-  const iconIds = new Set<string>();  // Track icon IDs to avoid duplicates
-
-  // Helper function to process icon data
-  const processIconData = (iconId: string, iconUrlOrData: string) => {
-    if (!iconId || !iconUrlOrData || iconIds.has(iconId)) return;
-
-    // Basic validation to avoid sending invalid SVG/URL to API
-    const trimmed = iconUrlOrData.trim();
-    const isInlineSvg = trimmed.startsWith('<svg');
-    const isSvgUrl = /^https?:\/\/.*\.svg(\?|#|$)/i.test(trimmed) || trimmed.startsWith('data:image/svg+xml');
-    if (!isInlineSvg && !isSvgUrl) return;
-
-    iconIds.add(iconId);
-
-    if (iconUrlOrData.startsWith('<svg')) {
-      // Inline SVG data
-      icons.push({ id: iconId, svgData: iconUrlOrData });
-    } else if (iconUrlOrData.startsWith('data:image/svg+xml')) {
-      // Data URI SVG - handle both plain and base64 encoded
-      let svgContent: string;
-      if (iconUrlOrData.includes(';base64,')) {
-        // Base64 encoded data URI
-        const base64Data = iconUrlOrData.replace(/^data:image\/svg\+xml;base64,/, '');
-        svgContent = Utilities.newBlob(Utilities.base64Decode(base64Data)).getDataAsString();
-      } else {
-        // Plain data URI (URL-encoded)
-        svgContent = decodeURIComponent(iconUrlOrData.replace(/^data:image\/svg\+xml,/, ''));
-      }
-      icons.push({ id: iconId, svgData: svgContent });
-    } else if (iconUrlOrData.startsWith('https://drive.google.com')) {
-      // Google Drive URL - fetch and convert to inline SVG
-      try {
-        const fileId = iconUrlOrData.split('/d/')[1]?.split('/')[0];
-        if (fileId) {
-          const file = DriveApp.getFileById(fileId);
-          const svgContent = file.getBlob().getDataAsString();
-          icons.push({ id: iconId, svgData: svgContent });
-        }
-      } catch (e) {
-        console.warn(`Failed to fetch icon from Drive for ${iconId}:`, e);
-        // Fall back to URL reference
-        icons.push({ id: iconId, svgUrl: iconUrlOrData });
-      }
-    } else if (iconUrlOrData.startsWith('http')) {
-      // External URL
-      icons.push({ id: iconId, svgUrl: iconUrlOrData });
-    }
-  };
-
-  // First, read from Icons sheet (for imported icons)
-  const iconsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Icons');
-  if (iconsSheet) {
-    const lastRow = iconsSheet.getLastRow();
-    if (lastRow >= 2) {
-      const sheetData = iconsSheet.getRange(2, 1, lastRow - 1, 2).getValues();
-      for (const row of sheetData) {
-        const iconId = String(row[0] || '').trim();
-        const iconUrlOrData = String(row[1] || '').trim();
-        processIconData(iconId, iconUrlOrData);
-      }
-    }
-  }
-
-  // Second, read from Categories sheet column B (for standard workflow icons)
-  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
-  if (categoriesSheet) {
-    const lastRow = categoriesSheet.getLastRow();
-    if (lastRow >= 2) {
-      const categories = data.Categories?.slice(1) || [];
-      const sheetData = categoriesSheet.getRange(2, 1, Math.min(lastRow - 1, categories.length), 6).getValues();
-
-      for (const row of sheetData) {
-        const name = String(row[CATEGORY_COL.NAME] || '').trim();
-        const iconUrlOrData = String(row[CATEGORY_COL.ICON] || '').trim();
-        const idStr = String(row[CATEGORY_COL.ID] || '').trim();
-        const iconIdStr = String(row[CATEGORY_COL.ICON_ID] || '').trim();
-
-        if (!name || !iconUrlOrData) continue;
-
-        // Determine icon ID: use explicit iconId, then category ID, then slugified name
-        const iconId = iconIdStr || idStr || slugify(name);
-        processIconData(iconId, iconUrlOrData);
-      }
-    }
-  }
-
-  return icons;
+  // Icons temporarily disabled to avoid server-side SVG parsing errors
+  return [];
+  // If/when icon handling is re-enabled, restore previous logic with SVG-only validation
 }
 
 // =============================================================================
