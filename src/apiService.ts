@@ -802,6 +802,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const allFieldIds = [...new Set([...universalFieldIds, ...explicitFieldIds])];
       const defaultFieldIds = allFieldIds.length > 0 ? allFieldIds : undefined;
 
+      // If no explicit ID, derive from name only (do not use applies tokens)
       const categoryId = idStr || slugify(name);  // Use explicit ID if provided, otherwise slugify name
 
       return {
