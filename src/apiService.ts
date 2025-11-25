@@ -537,65 +537,100 @@ function buildMetadata(data: SheetData): Metadata {
 function buildFields(data: SheetData): Field[] {
   const details = data.Details?.slice(1) || [];
 
-  // Validate Details sheet headers
+  // Flexible header mapping: supports both legacy and current sheet headers
   const detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Details');
+  let headerMap: Record<string, number> = {};
   if (detailsSheet) {
-    const headers = detailsSheet.getRange(1, 1, 1, 6).getValues()[0];
-    validateSheetHeaders('Details', headers, EXPECTED_HEADERS.DETAILS);
+    const headers = detailsSheet.getRange(1, 1, 1, detailsSheet.getLastColumn()).getValues()[0];
+    headers.forEach((h, idx) => {
+      const key = String(h || '').trim().toLowerCase();
+      if (key) headerMap[key] = idx;
+    });
   }
+
+  const getCol = (...names: string[]): number | undefined => {
+    for (const n of names) {
+      const key = n.toLowerCase();
+      if (headerMap[key] !== undefined) return headerMap[key];
+    }
+    return undefined;
+  };
+
+  const nameCol = getCol('name', 'label') ?? DETAILS_COL.NAME;
+  const helperCol = getCol('helper text', 'helper', 'help') ?? DETAILS_COL.HELPER_TEXT;
+  const typeCol = getCol('type') ?? DETAILS_COL.TYPE;
+  const optionsCol = getCol('options') ?? DETAILS_COL.OPTIONS;
+  const idCol = getCol('id') ?? DETAILS_COL.ID;
 
   return details
     .map((row, index) => {
-      const name = String(row[DETAILS_COL.NAME] || '').trim();
+      const name = String(row[nameCol] || '').trim();
       if (!name) {
         console.log(`Skipping Details row ${index + 2}: empty field name`);
         return null;  // Skip blank rows
       }
 
-      const helperText = String(row[DETAILS_COL.HELPER_TEXT] || '');
-      const typeStr = String(row[DETAILS_COL.TYPE] || 't').charAt(0);  // Case-sensitive: 'd' = date, 'D' = datetime
-      const optionsStr = String(row[DETAILS_COL.OPTIONS] || '');
-      const idStr = String(row[DETAILS_COL.ID] || '').trim();
-      // Note: DETAILS_COL.UNIVERSAL is used by buildCategories to add fields to all categories,
-      // but it does NOT map to field.required (universal fields can be optional)
+      const helperText = String(row[helperCol] || '');
+      const typeRaw = String(row[typeCol] || 'text').trim().toLowerCase();
+      const optionsStr = String(row[optionsCol] || '');
+      const idStr = String(row[idCol] || '').trim();
 
       let type: FieldType;
       let options: SelectOption[] | undefined;
 
-      switch (typeStr) {
+      switch (typeRaw) {
         case 'm':
+        case 'multi':
+        case 'multiselect':
           type = 'multiselect';
           options = parseOptions(optionsStr);
           break;
         case 'n':
+        case 'number':
           type = 'number';
           break;
         case 'i':
+        case 'int':
+        case 'integer':
           type = 'integer';
           break;
         case 't':
+        case 'text':
           type = 'text';
           break;
+        case 'textarea':
+        case 'long':
         case 'T':
           type = 'textarea';
           break;
         case 'b':
+        case 'bool':
+        case 'boolean':
           type = 'boolean';
           break;
         case 'd':
+        case 'date':
           type = 'date';
           break;
         case 'D':
+        case 'datetime':
+        case 'dt':
           type = 'datetime';
           break;
         case 'p':
+        case 'photo':
+        case 'image':
           type = 'photo';
           break;
         case 'l':
+        case 'loc':
+        case 'location':
           type = 'location';
           break;
+        case 'single':
+        case 'select':
+        case 's':
         default:
-          // Default to 'select' for 's' or any other value
           type = 'select';
           options = parseOptions(optionsStr);
       }
@@ -607,7 +642,7 @@ function buildFields(data: SheetData): Field[] {
         type,
         description: helperText || undefined,
         options,
-        appliesTo: ['observation']
+        appliesTo: ['observation', 'track']
         // Note: required property is not set from spreadsheet - universal flag is separate from required
       } as Field;
     })
@@ -654,9 +689,29 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     return [];
   }
 
-  // Validate Categories sheet headers
-  const headers = categoriesSheet.getRange(1, 1, 1, 6).getValues()[0];
-  validateSheetHeaders('Categories', headers, EXPECTED_HEADERS.CATEGORIES);
+  // Flexible header mapping
+  const headerRow = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0];
+  const headerMap: Record<string, number> = {};
+  headerRow.forEach((h, idx) => {
+    const key = String(h || '').trim().toLowerCase();
+    if (key) headerMap[key] = idx;
+  });
+
+  const getCol = (...names: string[]): number | undefined => {
+    for (const n of names) {
+      const key = n.toLowerCase();
+      if (headerMap[key] !== undefined) return headerMap[key];
+    }
+    return undefined;
+  };
+
+  const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
+  const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
+  const fieldsCol = getCol('fields', 'details') ?? CATEGORY_COL.FIELDS;
+  const idCol = getCol('id') ?? CATEGORY_COL.ID;
+  const colorCol = getCol('color') ?? CATEGORY_COL.COLOR;
+  const iconIdCol = getCol('icon id', 'iconid') ?? CATEGORY_COL.ICON_ID;
+  const tracksCol = getCol('tracks', 'applies to', 'appliesto');
 
   // Build map from field name to field ID for converting defaultFieldIds
   const fieldNameToId = new Map<string, string>();
@@ -695,13 +750,16 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         return null;  // Skip blank rows
       }
 
-      const iconDataRaw = String(row[CATEGORY_COL.ICON] || '').trim();
+      const iconDataRaw = String(row[iconCol] || '').trim();
       // Icons disabled for now to avoid API SVG validation failures
       const iconData = '';
-      const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
-      const idStr = String(row[CATEGORY_COL.ID] || '').trim();
-      const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
-      const iconIdStr = String(row[CATEGORY_COL.ICON_ID] || '').trim();
+      const fieldsStr = String(row[fieldsCol] || '');
+      const idStr = String(row[idCol] || '').trim();
+      const colorStr = String(row[colorCol] || '').trim();
+      const iconIdStr = String(row[iconIdCol] || '').trim();
+
+      const appliesRaw = tracksCol !== undefined ? row[tracksCol] : undefined;
+      const isTrack = appliesRaw === true || String(appliesRaw).toLowerCase() === 'true';
 
       // Only use color if explicitly provided in column E or background color
       // Don't force a default - let downstream systems apply their own defaults
@@ -735,7 +793,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       return {
         id: categoryId,
         name,
-        appliesTo: ['observation'],  // API v2 accepts only "observation" or "track"; default to observation
+        appliesTo: [isTrack ? 'track' : 'observation'],
         color,
         iconId: undefined,
         defaultFieldIds
