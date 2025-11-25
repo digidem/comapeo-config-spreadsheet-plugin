@@ -431,6 +431,13 @@ function createBuildPayload(data: SheetData): BuildRequest {
   // Temporarily disable translations until schema matches API v2 expectations
   const translations: TranslationsByLocale = {};
 
+  console.log('Build payload summary', {
+    categories: categories.length,
+    fields: fields.length,
+    icons: icons.length,
+    translations: Object.keys(translations || {}).length
+  });
+
   // Set category selection in exact spreadsheet order
   const categoryIds = categories.map(c => c.id);
   setCategorySelection(categoryIds);
