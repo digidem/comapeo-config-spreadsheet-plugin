@@ -93,7 +93,8 @@ function validateSheetHeaders(
  * @returns URL to the saved .comapeocat file
  */
 function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY_CONFIG.MAX_RETRIES): string {
-  const apiUrl = `${API_BASE_URL}/build`;
+  // v2 JSON endpoint (legacy ZIP endpoint was /v1, prior code used /build)
+  const apiUrl = `${API_BASE_URL}/v2`;
   let attemptNumber = 0;
   let lastError: Error | null = null;
   const startTime = Date.now();

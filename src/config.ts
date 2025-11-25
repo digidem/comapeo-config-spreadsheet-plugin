@@ -5,9 +5,9 @@
  */
 
 /**
- * CoMapeo Config API base URL
+ * CoMapeo Config API base URL (do not include /v2 here)
  *
- * This is the endpoint where the plugin will send build requests.
+ * This is the endpoint where the plugin will send build requests (POST /v2).
  * Update this to point to your CoMapeo Config API server.
  *
  * Examples:
