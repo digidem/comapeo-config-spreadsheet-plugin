@@ -707,7 +707,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
   const idCol = getCol('id') ?? CATEGORY_COL.ID;
   const colorCol = getCol('color') ?? CATEGORY_COL.COLOR;
   const iconIdCol = getCol('icon id', 'iconid') ?? CATEGORY_COL.ICON_ID;
-  const tracksCol = getCol('tracks', 'applies to', 'appliesto');
+  const appliesCol = getCol('applies', 'tracks', 'applies to', 'appliesto');
 
   // Build map from field name to field ID for converting defaultFieldIds
   const fieldNameToId = new Map<string, string>();
@@ -754,8 +754,26 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const colorStr = String(row[colorCol] || '').trim();
       const iconIdStr = String(row[iconIdCol] || '').trim();
 
-      const appliesRaw = tracksCol !== undefined ? row[tracksCol] : undefined;
-      const isTrack = appliesRaw === true || String(appliesRaw).toLowerCase() === 'true';
+      // Applies column: accepts o/observation, t/track, comma separated; defaults to observation
+      let appliesTo: string[] = ['observation'];
+      if (appliesCol !== undefined) {
+        const raw = row[appliesCol];
+        if (raw !== undefined && raw !== '') {
+          const tokens = String(raw)
+            .split(',')
+            .map(t => t.trim().toLowerCase())
+            .filter(Boolean)
+            .map(t => {
+              if (t === 'o' || t === 'obs' || t === 'observation') return 'observation';
+              if (t === 't' || t === 'track' || t === 'tracks') return 'track';
+              return undefined;
+            })
+            .filter((v): v is string => Boolean(v));
+          if (tokens.length > 0) {
+            appliesTo = Array.from(new Set(tokens));
+          }
+        }
+      }
 
       // Only use color if explicitly provided in column E or background color
       // Don't force a default - let downstream systems apply their own defaults
@@ -789,7 +807,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       return {
         id: categoryId,
         name,
-        appliesTo: [isTrack ? 'track' : 'observation'],
+        appliesTo,
         color,
         iconId: undefined,
         defaultFieldIds
