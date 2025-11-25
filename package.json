@@ -7,7 +7,8 @@
     "dev": "clasp push --watch",
     "push": "clasp push",
     "lint": "bunx biome lint --write --unsafe .",
-    "push:all": "bash src/scripts/push-all.sh"
+    "push:all": "bash src/scripts/push-all.sh",
+    "fixture": "bun run scripts/generate-fixture.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
