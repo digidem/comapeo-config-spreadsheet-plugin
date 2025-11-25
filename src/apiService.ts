@@ -594,7 +594,7 @@ function buildFields(data: SheetData): Field[] {
         case 'm':
         case 'multi':
         case 'multiselect':
-          type = 'multi';
+          type = 'selectMultiple';
           options = parseOptions(optionsStr);
           break;
         case 'n':
@@ -609,12 +609,18 @@ function buildFields(data: SheetData): Field[] {
         case 'select':
         case 's':
         case '':
-          type = 'single';
+          type = 'selectOne';
           options = parseOptions(optionsStr);
           break;
         default:
-          type = 'single';
+          type = 'selectOne';
           options = parseOptions(optionsStr);
+      }
+
+      // selectOne/selectMultiple require at least one option; skip invalid rows
+      if ((type === 'selectOne' || type === 'selectMultiple') && (!options || options.length === 0)) {
+        console.warn(`Skipping Details row ${index + 2}: select field without options`);
+        return null;
       }
 
       return {

@@ -62,8 +62,8 @@ interface Field {
 type FieldType =
   | "text"
   | "number"
-  | "single"
-  | "multi";
+  | "selectOne"
+  | "selectMultiple";
 
 interface SelectOption {
   value: string;
