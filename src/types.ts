@@ -30,8 +30,8 @@ interface Category {
   id: string;
   name: string;
   description?: string;
-  // API v2 requires an appliesTo target (e.g., 'node'). We currently default to 'node'.
-  appliesTo?: string | string[];
+  // API v2 requires appliesTo; represent as array to satisfy stricter validators
+  appliesTo?: string[];
   color?: string;
   iconId?: string;
   parentCategoryId?: string;

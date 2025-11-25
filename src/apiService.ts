@@ -695,7 +695,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       return {
         id: categoryId,
         name,
-        appliesTo: 'node',  // Default target required by API v2; spreadsheet does not yet expose geometry
+        appliesTo: ['node'],  // Default target required by API v2; spreadsheet does not yet expose geometry
         color,
         iconId: iconIdStr || (iconData ? categoryId : undefined),  // Use explicit iconId from column F, or categoryId if icon data present
         defaultFieldIds
