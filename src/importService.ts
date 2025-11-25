@@ -592,10 +592,51 @@ function mapFieldTypeToChar(type: FieldType): string {
  * 3. If no match, default to English
  */
 function detectPrimaryLanguage(config: BuildRequest): string {
-  const allLanguages = {
+  // Comprehensive language map covering common locales
+  const allLanguages: Record<string, string> = {
+    // Western European
     en: 'English',
     es: 'Español',
-    pt: 'Português'
+    pt: 'Português',
+    fr: 'Français',
+    de: 'Deutsch',
+    it: 'Italiano',
+    nl: 'Nederlands',
+    sv: 'Svenska',
+    no: 'Norsk',
+    da: 'Dansk',
+    fi: 'Suomi',
+    // Eastern European
+    pl: 'Polski',
+    cs: 'Čeština',
+    sk: 'Slovenčina',
+    hu: 'Magyar',
+    ro: 'Română',
+    bg: 'Български',
+    hr: 'Hrvatski',
+    sr: 'Српски',
+    uk: 'Українська',
+    ru: 'Русский',
+    // Asian
+    zh: '中文',
+    ja: '日本語',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    th: 'ไทย',
+    vi: 'Tiếng Việt',
+    id: 'Bahasa Indonesia',
+    ms: 'Bahasa Melayu',
+    // Middle Eastern & African
+    ar: 'العربية',
+    he: 'עברית',
+    tr: 'Türkçe',
+    fa: 'فارسی',
+    sw: 'Kiswahili',
+    // Other
+    el: 'Ελληνικά',
+    ca: 'Català',
+    eu: 'Euskara',
+    gl: 'Galego'
   };
 
   // No translations means English default
@@ -630,7 +671,8 @@ function detectPrimaryLanguage(config: BuildRequest): string {
 
       // If majority of translations match base names, this is likely the primary language
       if (totalChecked > 0 && matchCount / totalChecked > 0.5) {
-        return allLanguages[locale] || 'English';
+        // Use the language name from map if available, otherwise capitalize the locale code
+        return allLanguages[locale] || locale.charAt(0).toUpperCase() + locale.slice(1);
       }
     }
   }
