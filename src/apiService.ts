@@ -720,8 +720,16 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
       // Inline SVG data
       icons.push({ id: iconId, svgData: iconUrlOrData });
     } else if (iconUrlOrData.startsWith('data:image/svg+xml')) {
-      // Data URI SVG
-      const svgContent = decodeURIComponent(iconUrlOrData.replace(/^data:image\/svg\+xml,/, ''));
+      // Data URI SVG - handle both plain and base64 encoded
+      let svgContent: string;
+      if (iconUrlOrData.includes(';base64,')) {
+        // Base64 encoded data URI
+        const base64Data = iconUrlOrData.replace(/^data:image\/svg\+xml;base64,/, '');
+        svgContent = Utilities.newBlob(Utilities.base64Decode(base64Data)).getDataAsString();
+      } else {
+        // Plain data URI (URL-encoded)
+        svgContent = decodeURIComponent(iconUrlOrData.replace(/^data:image\/svg\+xml,/, ''));
+      }
       icons.push({ id: iconId, svgData: svgContent });
     } else if (iconUrlOrData.startsWith('https://drive.google.com')) {
       // Google Drive URL - fetch and convert to inline SVG
