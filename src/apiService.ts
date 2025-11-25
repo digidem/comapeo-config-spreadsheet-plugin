@@ -749,7 +749,7 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const iconDataRaw = String(row[iconCol] || '').trim();
       // Icons disabled for now to avoid API SVG validation failures
       const iconData = '';
-      const fieldsStr = String(row[fieldsCol] || '');
+      const fieldsStr = Array.isArray(row[fieldsCol]) ? row[fieldsCol].join(',') : String(row[fieldsCol] || '');
       const idStr = String(row[idCol] || '').trim();
       const colorStr = String(row[colorCol] || '').trim();
       const iconIdStr = String(row[iconIdCol] || '').trim();
