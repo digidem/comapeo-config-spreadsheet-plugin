@@ -139,10 +139,13 @@ function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
   // Get current headers
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  // Find first empty column after D
-  let startCol = 4; // Start from column D
-  while (startCol <= headers.length && headers[startCol - 1] !== "") {
-    startCol++;
+  // Find first empty column after the last non-empty column
+  // This prevents gaps in the column sequence that would break buildTranslationsPayload
+  let startCol = 1;  // Start from column A
+  for (let i = 0; i < headers.length; i++) {
+    if (headers[i] && String(headers[i]).trim() !== "") {
+      startCol = i + 2;  // Next column after last non-empty (1-indexed)
+    }
   }
 
   // Add new language columns
