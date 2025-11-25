@@ -99,9 +99,19 @@ function saveIconToFolder(folder: GoogleAppsScript.Drive.Folder, name: string, i
 }
 
 function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeType: string } {
-  if (icon.svg.startsWith('data:image/svg+xml,')) {
+  if (icon.svg.startsWith('data:image/svg+xml')) {
+    // Handle both plain and base64 encoded data URIs
+    let iconContent: string;
+    if (icon.svg.includes(';base64,')) {
+      // Base64 encoded data URI
+      const base64Data = icon.svg.replace(/^data:image\/svg\+xml;base64,/, '');
+      iconContent = Utilities.newBlob(Utilities.base64Decode(base64Data)).getDataAsString();
+    } else {
+      // Plain data URI (URL-encoded)
+      iconContent = decodeURIComponent(icon.svg.replace(/^data:image\/svg\+xml,/, ''));
+    }
     return {
-      iconContent: decodeURIComponent(icon.svg.replace(/data:image\/svg\+xml,/, '')),
+      iconContent,
       mimeType: MimeType.SVG
     };
   } else if (icon.svg.startsWith('https://drive.google.com/file/d/')) {
