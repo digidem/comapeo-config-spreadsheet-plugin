@@ -704,9 +704,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
   const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
   const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
   const fieldsCol = getCol('fields', 'details') ?? CATEGORY_COL.FIELDS;
-  const idCol = getCol('id') ?? CATEGORY_COL.ID;
-  const colorCol = getCol('color') ?? CATEGORY_COL.COLOR;
-  const iconIdCol = getCol('icon id', 'iconid') ?? CATEGORY_COL.ICON_ID;
+  const idCol = getCol('id');
+  const colorCol = getCol('color');
+  const iconIdCol = getCol('icon id', 'iconid');
   const appliesCol = getCol('applies', 'tracks', 'applies to', 'appliesto');
 
   // Build map from field name to field ID for converting defaultFieldIds
@@ -740,24 +740,27 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
 
   return categories
     .map((row, index) => {
-      const name = String(row[CATEGORY_COL.NAME] || '').trim();
+      const getVal = (col?: number) => (col === undefined ? '' : row[col]);
+
+      const name = String(getVal(nameCol) || '').trim();
       if (!name) {
         console.log(`Skipping Categories row ${index + 2}: empty category name`);
         return null;  // Skip blank rows
       }
 
-      const iconDataRaw = String(row[iconCol] || '').trim();
+      const iconDataRaw = String(getVal(iconCol) || '').trim();
       // Icons disabled for now to avoid API SVG validation failures
       const iconData = '';
-      const fieldsStr = Array.isArray(row[fieldsCol]) ? row[fieldsCol].join(',') : String(row[fieldsCol] || '');
-      const idStr = String(row[idCol] || '').trim();
-      const colorStr = String(row[colorCol] || '').trim();
-      const iconIdStr = String(row[iconIdCol] || '').trim();
+      const fieldsVal = getVal(fieldsCol);
+      const fieldsStr = Array.isArray(fieldsVal) ? fieldsVal.join(',') : String(fieldsVal || '');
+      const idStr = String(getVal(idCol) || '').trim();
+      const colorStr = String(getVal(colorCol) || '').trim();
+      const iconIdStr = String(getVal(iconIdCol) || '').trim();
 
       // Applies column: accepts o/observation, t/track, comma separated; defaults to observation
       let appliesTo: string[] = ['observation'];
       if (appliesCol !== undefined) {
-        const raw = row[appliesCol];
+        const raw = getVal(appliesCol);
         if (raw !== undefined && raw !== '') {
           const tokens = String(raw)
             .split(',')
