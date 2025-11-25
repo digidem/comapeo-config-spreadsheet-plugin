@@ -659,8 +659,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       }
 
       const iconDataRaw = String(row[CATEGORY_COL.ICON] || '').trim();
-      const iconLooksValid = /^<svg|^https?:\/\//i.test(iconDataRaw) || iconDataRaw.startsWith('data:');
-      const iconData = iconLooksValid ? iconDataRaw : '';
+      const isInlineSvg = iconDataRaw.startsWith('<svg');
+      const isSvgUrl = /^https?:\/\/.*\.svg(\?|#|$)/i.test(iconDataRaw) || iconDataRaw.startsWith('data:image/svg+xml');
+      const iconData = (isInlineSvg || isSvgUrl) ? iconDataRaw : '';
       const fieldsStr = String(row[CATEGORY_COL.FIELDS] || '');
       const idStr = String(row[CATEGORY_COL.ID] || '').trim();
       const colorStr = String(row[CATEGORY_COL.COLOR] || '').trim();
@@ -722,8 +723,8 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
     // Basic validation to avoid sending invalid SVG/URL to API
     const trimmed = iconUrlOrData.trim();
     const isInlineSvg = trimmed.startsWith('<svg');
-    const isUrl = /^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:');
-    if (!isInlineSvg && !isUrl) return;
+    const isSvgUrl = /^https?:\/\/.*\.svg(\?|#|$)/i.test(trimmed) || trimmed.startsWith('data:image/svg+xml');
+    if (!isInlineSvg && !isSvgUrl) return;
 
     iconIds.add(iconId);
 
