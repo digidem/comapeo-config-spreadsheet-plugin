@@ -236,6 +236,12 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob): string {
  * This function is idempotent - it checks if migration is needed before proceeding.
  * It validates the exact format before migrating to prevent data corruption.
  *
+ * Safety features:
+ * - Validates format before any modifications
+ * - Warns user about unexpected formats and requires manual verification
+ * - Logs all operations for debugging
+ * - Preserves all existing data during column insertion
+ *
  * MANUAL TESTING CHECKLIST (cannot be automated due to SpreadsheetApp dependency):
  * [ ] Test migration from old 4-column Categories format (Name, Icon, Fields, Color)
  * [ ] Test migration from old Details format without ID column
@@ -248,6 +254,8 @@ function saveComapeocatToDrive(blob: GoogleAppsScript.Base.Blob): string {
  */
 function migrateSpreadsheetFormat(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const migrationWarnings: string[] = [];
 
   // Get or create Metadata sheet first (needed for storing primary language)
   let metadataSheet = spreadsheet.getSheetByName('Metadata');
@@ -329,12 +337,16 @@ function migrateSpreadsheetFormat(): void {
             console.log('Updated Categories!A1 header from language name to "Name"');
           }
         } else {
-          console.warn(`Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+          const warning = `Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
+          console.warn(warning);
+          migrationWarnings.push(warning);
         }
       }
       // Ambiguous format - log warning and skip to prevent data corruption
       else {
-        console.warn(`Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+        const warning = `Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
+        console.warn(warning);
+        migrationWarnings.push(warning);
       }
     }
   }
@@ -382,9 +394,27 @@ function migrateSpreadsheetFormat(): void {
       }
       // Ambiguous format - log warning and skip to prevent data corruption
       else {
-        console.warn(`Details sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss. Please verify the sheet format manually.`);
+        const warning = `Details sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
+        console.warn(warning);
+        migrationWarnings.push(warning);
       }
     }
+  }
+
+  // Show warnings to user if any were encountered
+  if (migrationWarnings.length > 0) {
+    const warningMessage = 'Spreadsheet format warnings detected during migration:\n\n' +
+      migrationWarnings.map((w, i) => `${i + 1}. ${w}`).join('\n\n') +
+      '\n\nPlease verify your sheet formats match the expected structure:\n' +
+      '• Categories: Name, Icon, Fields, ID, Color, Icon ID\n' +
+      '• Details: Name, Helper Text, Type, Options, ID, Universal\n\n' +
+      'You may need to manually adjust your sheets to match this format.';
+
+    ui.alert(
+      'Migration Warnings',
+      warningMessage,
+      ui.ButtonSet.OK
+    );
   }
 }
 
