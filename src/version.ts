@@ -4,11 +4,11 @@
  */
 
 const versionData = {
-  "version": "2.0.0+16f3ad1",
-  "commit": "16f3ad1",
+  "version": "2.0.0+24edb1f",
+  "commit": "24edb1f",
   "branch": "integration/import-category-v2",
   "isDirty": false,
-  "buildDate": "2025-11-26T11:13:32.057Z"
+  "buildDate": "2025-11-26T11:17:14.582Z"
 };
 
 export function getVersionInfo(): string {

@@ -267,17 +267,8 @@ function validateLanguageName(
 }
 
 /**
- * Validates the primary language from cell A1
- *
- * Supports both English and native language names.
- *
- * @param primaryLanguage - The primary language from cell A1
- * @returns Validation result
- *
- * @example
- * validatePrimaryLanguage("Portuguese") // { valid: true }
- * validatePrimaryLanguage("Português")  // { valid: true }
- * validatePrimaryLanguage("Invalid")    // { valid: false, error: "..." }
+ * Validates the primary language value (Metadata!primaryLanguage preferred,
+ * Categories!A1 fallback). Supports English and native names.
  */
 function validatePrimaryLanguage(
   primaryLanguage: string,

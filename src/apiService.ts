@@ -880,8 +880,6 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
 
   const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
   const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
-  const idCol = getCol('id');
-  const iconIdCol = getCol('icon id', 'iconid');
 
   const iconsById = new Map<string, Icon>();
   const addIcon = (icon: Icon) => {
@@ -909,16 +907,11 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
     const iconStr = typeof iconRaw === 'string' ? iconRaw.trim() : '';
     if (!name || !iconStr) return;
 
-    const idStr = String(getVal(idCol) || '').trim();
-    const iconIdStr = String(getVal(iconIdCol) || '').trim();
-    const categoryId = idStr || slugify(name);
-    const iconId = iconIdStr || categoryId;
+    const categoryId = slugify(name);
+    const iconId = categoryId;
 
     const parsed = parseIconSource(iconStr);
-    if (!parsed) {
-      console.warn(`Skipping icon for category "${name}" (row ${index + 2}): unsupported icon format`);
-      return;
-    }
+    if (!parsed) return;
 
     addIcon({ id: iconId, ...parsed });
   });
@@ -934,10 +927,7 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
         const iconStr = String(row[1] || '').trim();
         if (!iconId || !iconStr) return;
         const parsed = parseIconSource(iconStr);
-        if (!parsed) {
-          console.warn(`Skipping icon in Icons sheet row ${idx + 2}: unsupported icon format`);
-          return;
-        }
+        if (!parsed) return;
         addIcon({ id: iconId, ...parsed });
       });
     }
