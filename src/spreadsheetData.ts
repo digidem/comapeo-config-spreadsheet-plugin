@@ -32,10 +32,29 @@ function getLanguageLookup(): LanguageLookup {
 /**
  * Gets the primary language name from cell A1 of the Categories sheet.
  *
+ * Prefers the Metadata sheet key `primaryLanguage` (set during migrations) and
+ * falls back to Categories!A1 for legacy sheets or when metadata is missing.
+ *
  * @returns Primary language display name (e.g., "English", "Español").
  */
 function getPrimaryLanguageName(): string {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1) Prefer Metadata sheet entry if present
+  const metadataSheet = spreadsheet.getSheetByName("Metadata");
+  if (metadataSheet) {
+    const values = metadataSheet.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]).trim() === "primaryLanguage") {
+        const lang = String(values[i][1] || "").trim();
+        if (lang) {
+          return lang;
+        }
+      }
+    }
+  }
+
+  // 2) Fallback to Categories!A1 (legacy behavior)
   const categoriesSheet = spreadsheet.getSheetByName("Categories");
   return categoriesSheet?.getRange("A1").getValue() as string;
 }
@@ -71,7 +90,7 @@ function filterLanguagesByPrimary(
   if (!primaryCode) {
     log.warn(
       `Primary language "${primaryLanguageName}" not recognized in language lookup. ` +
-      `Including all languages. Check cell A1 in Categories sheet for valid language name.`
+      `Including all languages. Set "primaryLanguage" in Metadata sheet or put a valid language name in Categories!A1.`
     );
     return allLanguages;
   }

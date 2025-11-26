@@ -287,7 +287,7 @@ function validatePrimaryLanguage(
   if (!result.valid) {
     return {
       valid: false,
-      error: `Invalid primary language in cell A1: ${result.error}`,
+      error: `Invalid primary language (Metadata!primaryLanguage or Categories!A1): ${result.error}`,
     };
   }
 
