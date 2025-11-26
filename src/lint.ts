@@ -695,11 +695,10 @@ function validateCategoryIcons(): void {
       } else if (/^https?:\/\//i.test(iconValue)) {
         const segment = iconValue.split("/").pop() || "";
         const fileName = segment.split("?")[0];
-        const baseName = fileName.replace(/\.[^/.]+$/, "");
-        iconSlug = normalizeIconSlug(slugify(baseName));
         if (!/\.svg(\?|$)/i.test(fileName)) {
           addIssue(rowNumber, "Icon URL must point to an SVG file.");
         }
+        iconSlug = presetSlug;
       } else {
         iconSlug = normalizeIconSlug(slugify(iconValue));
         if (!iconValue.toLowerCase().endsWith(".svg")) {
