@@ -12,10 +12,8 @@ const CATEGORY_COL = {
   NAME: 0,
   ICON: 1,
   FIELDS: 2,
-  ID: 3,  // Category ID (optional, for preserving original IDs on import)
-  COLOR: 4,  // Explicit color value (column E)
-  ICON_ID: 5,  // Icon ID (optional, for preserving original iconId on import)
-  COLOR_BACKGROUND: 0  // Fallback: Color from background of column A
+  APPLIES: 3, // Tracks (t) / Observations (o)
+  COLOR_BACKGROUND: 0 // Fallback: Color from background of column A
 };
 
 /** Column indices for Details sheet (0-based) */
@@ -36,7 +34,7 @@ const TRANSLATION_COL = {
 
 /** Expected sheet headers for validation */
 const EXPECTED_HEADERS = {
-  CATEGORIES: ['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID'],
+  CATEGORIES: ['Name', 'Icon', 'Fields', 'Applies'],
   DETAILS: ['Name', 'Helper Text', 'Type', 'Options', 'ID', 'Universal']
 };
 
@@ -280,38 +278,36 @@ function migrateSpreadsheetFormat(): void {
     } else {
       const headers = categoriesSheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
-      // Check if already in new 6-column format (idempotency check)
-      const expectedNewHeaders = ['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID'];
-      if (headers.length >= 6 &&
-          headers[0] === expectedNewHeaders[0] &&
-          headers[3] === expectedNewHeaders[3] &&
-          headers[5] === expectedNewHeaders[5]) {
-        console.log('Categories sheet already in new 6-column format, skipping migration');
+      // Expected v2 layout: Name, Icon, Fields, Applies
+      const expectedHeaders = ['Name', 'Icon', 'Fields', 'Applies'];
+      const headersLower = headers.map(h => String(h || '').toLowerCase());
+
+      if (headersLower.length >= 4 &&
+          headersLower[0] === 'name' &&
+          headersLower[1] === 'icon' &&
+          headersLower[2].startsWith('field') &&
+          (headersLower[3].startsWith('appl') || headersLower[3] === 'tracks')) {
+        console.log('Categories sheet already in expected format (Name/Icon/Fields/Applies); skipping migration');
       }
-      // Accept current flexible format used by this plugin (Name, Icons, Details, Tracks)
-      else if (headers.length >= 3 &&
-               String(headers[0]).toLowerCase() === 'name' &&
-               String(headers[1]).toLowerCase() === 'icons') {
-        console.log('Categories sheet in flexible format (Name/Icons/Details/Tracks); skipping migration');
-      }
-      // Check if it's the exact old 4-column format that needs migration
+      // Old 4-column format with Color in column D -> rename to Applies, no extra columns
       else if (headers.length === 4 &&
                headers[0] === 'Name' &&
                headers[1] === 'Icon' &&
                headers[2] === 'Fields' &&
                headers[3] === 'Color') {
-        console.log('Migrating Categories sheet from 4-column to 6-column format...');
-
-        // Insert column D for ID (this shifts Color from D to E)
-        categoriesSheet.insertColumnAfter(3);
-
-        // Insert column F for Icon ID (after the new column E which has Color)
-        categoriesSheet.insertColumnAfter(5);
-
-        // Update headers
-        categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
-
-        console.log('Categories sheet migrated successfully');
+        console.log('Updating Categories header Color -> Applies (no extra columns)');
+        categoriesSheet.getRange(1, 1, 1, 4)
+          .setValues([['Name', 'Icon', 'Fields', 'Applies']])
+          .setFontWeight('bold');
+      }
+      // Flexible format (Name, Icons, Details, Tracks) -> normalize 4th col to Applies
+      else if (headers.length >= 4 &&
+               headersLower[0] === 'name' &&
+               headersLower[1].startsWith('icon')) {
+        console.log('Normalizing Categories headers to Name/Icon/Fields/Applies');
+        categoriesSheet.getRange(1, 1, 1, 4)
+          .setValues([['Name', 'Icon', 'Fields', 'Applies']])
+          .setFontWeight('bold');
       }
       // Check if A1 contains a language name (old pre-v2 format) that needs to be preserved
       else if (headers[0] && headers[0] !== 'Name') {
@@ -336,19 +332,11 @@ function migrateSpreadsheetFormat(): void {
             console.log(`Stored primaryLanguage='${a1Value}' in Metadata sheet`);
           }
 
-          // Now proceed with header migration
-          // Determine number of columns and update headers accordingly
-          if (lastCol === 4) {
-            // Old 4-column format: Language Name, Icon, Fields, Color
-            categoriesSheet.insertColumnAfter(3);  // Insert ID column
-            categoriesSheet.insertColumnAfter(5);  // Insert Icon ID column
-            categoriesSheet.getRange(1, 1, 1, 6).setValues([['Name', 'Icon', 'Fields', 'ID', 'Color', 'Icon ID']]).setFontWeight('bold');
-            console.log('Migrated from old language-based 4-column format to new 6-column format');
-          } else {
-            // Just update the A1 header
-            categoriesSheet.getRange('A1').setValue('Name');
-            console.log('Updated Categories!A1 header from language name to "Name"');
-          }
+          // Normalize headers without adding columns
+          categoriesSheet.getRange(1, 1, 1, 4)
+            .setValues([['Name', 'Icon', 'Fields', 'Applies']])
+            .setFontWeight('bold');
+          console.log('Updated Categories headers to Name/Icon/Fields/Applies');
         } else {
           const warning = `Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
           console.warn(warning);
@@ -709,9 +697,6 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
   const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
   const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
   const fieldsCol = getCol('fields', 'details') ?? CATEGORY_COL.FIELDS;
-  const idCol = getCol('id');
-  const colorCol = getCol('color');
-  const iconIdCol = getCol('icon id', 'iconid');
   const appliesCol = getCol('applies', 'tracks', 'applies to', 'appliesto');
 
   // Build map from field name to field ID for converting defaultFieldIds
@@ -767,10 +752,6 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       if (fieldsTokens.length === 0) {
         fieldsTokens = normalizeFieldTokens(fieldsVal);
       }
-      const idStr = String(getVal(idCol) || '').trim();
-      const colorStr = String(getVal(colorCol) || '').trim();
-      const iconIdStr = String(getVal(iconIdCol) || '').trim();
-
       // Applies column: accepts o/observation, t/track, comma separated; defaults to observation
       let appliesTo: string[] = ['observation'];
       if (appliesCol !== undefined) {
@@ -792,14 +773,10 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         }
       }
 
-      // Only use color if explicitly provided in column E or background color
-      // Don't force a default - let downstream systems apply their own defaults
+      // Derive color from background of column A (only if not white)
       let color: string | undefined;
-      if (colorStr) {
-        color = colorStr;
-      } else if (backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] &&
-                 backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND] !== '#ffffff') {
-        // Only use background color if it's not white (default empty cell background)
+      if (backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] &&
+                 backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND].toLowerCase() !== '#ffffff') {
         color = backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND];
       }
       // If no explicit color, leave undefined to preserve colorless state
@@ -818,11 +795,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const allFieldIds = [...new Set([...universalFieldIds, ...explicitFieldIds])];
       const defaultFieldIds = allFieldIds.length > 0 ? allFieldIds : undefined;
 
-      // If no explicit ID, derive from name only (do not use applies tokens)
-      const categoryId = idStr || slugify(name);  // Use explicit ID if provided, otherwise slugify name
-
-      // Icon ID uses explicit value when provided; otherwise default to categoryId when icon data exists
-      const resolvedIconId = iconIdStr || (iconData ? categoryId : undefined);
+      // Derive IDs from name (no manual ID/iconId columns)
+      const categoryId = slugify(name);
+      const resolvedIconId = iconData ? categoryId : undefined;
 
       return {
         id: categoryId,
