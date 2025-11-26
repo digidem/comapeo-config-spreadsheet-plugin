@@ -25,11 +25,8 @@ function onOpen() {
     )
     .addItem(menuTexts[locale].generateIcons, "generateIcons")
     .addSeparator()
-    .addItem(
-      menuTexts[locale].generateCoMapeoCategory,
-      "generateCoMapeoCategory",
-    )
-    .addItem(menuTexts[locale].importCategoryFile, "importCategoryFile")
+    .addItem(menuTexts[locale].generateCoMapeoCategory, "generateCoMapeoCategory")
+    .addItem(menuTexts[locale].importCoMapeoCategory, "importCoMapeoCategory")
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
@@ -169,6 +166,27 @@ function generateCoMapeoCategoryDebug() {
       ui.alert(
         categoryDebugMenuTexts[locale].error,
         categoryDebugMenuTexts[locale].errorText + error.message,
+        ui.ButtonSet.OK,
+      );
+    }
+  }
+}
+
+function importCoMapeoCategory() {
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.alert(
+    importMenuTexts[locale].action,
+    importMenuTexts[locale].actionText,
+    ui.ButtonSet.YES_NO,
+  );
+
+  if (result === ui.Button.YES) {
+    try {
+      importCoMapeoCatFile();
+    } catch (error) {
+      ui.alert(
+        importMenuTexts[locale].error,
+        importMenuTexts[locale].errorText + error.message,
         ui.ButtonSet.OK,
       );
     }

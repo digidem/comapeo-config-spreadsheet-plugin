@@ -176,6 +176,8 @@ dist
 .clasp.json
 .clasp.all.json
 .aider*
+fixture.json
+sample.comapeocat
 
 # Auto-generated version info
 .version.json
