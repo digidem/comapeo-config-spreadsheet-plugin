@@ -433,10 +433,9 @@ function migrateSpreadsheetFormat(): void {
  */
 function createBuildPayload(data: SheetData): BuildRequest {
   const fields = buildFields(data);
-  const categories = buildCategories(data, fields).map(cat => ({
-    ...cat,
-    fields: cat.fields || cat.defaultFieldIds || undefined
-  }));
+  // buildCategories now returns categories with both defaultFieldIds and fields populated.
+  // Avoid remapping here to prevent accidentally clearing the arrays.
+  const categories = buildCategories(data, fields);
   const icons = buildIconsFromSheet(data);
   const metadata = buildMetadata(data);
   const locales = buildLocales();
@@ -457,7 +456,7 @@ function createBuildPayload(data: SheetData): BuildRequest {
 
   console.log(`Built payload with ${categories.length} categories, ${fields.length} fields, ${icons.length} icons`);
 
-  return {
+  const payload: BuildRequest = {
     metadata,
     locales,
     categories,
@@ -465,6 +464,8 @@ function createBuildPayload(data: SheetData): BuildRequest {
     icons: icons.length > 0 ? icons : undefined,
     translations: Object.keys(translations).length > 0 ? translations : undefined
   };
+
+  return payload;
 }
 
 /**
@@ -548,16 +549,13 @@ function buildMetadata(data: SheetData): Metadata {
 function buildFields(data: SheetData): Field[] {
   const details = data.Details?.slice(1) || [];
 
-  // Flexible header mapping: supports both legacy and current sheet headers
-  const detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Details');
-  let headerMap: Record<string, number> = {};
-  if (detailsSheet) {
-    const headers = detailsSheet.getRange(1, 1, 1, detailsSheet.getLastColumn()).getValues()[0];
-    headers.forEach((h, idx) => {
-      const key = String(h || '').trim().toLowerCase();
-      if (key) headerMap[key] = idx;
-    });
-  }
+  // Use headers from data directly instead of fetching from sheet again
+  const headerRow = data.Details?.[0] || [];
+  const headerMap: Record<string, number> = {};
+  headerRow.forEach((h, idx) => {
+    const key = String(h || '').trim().toLowerCase();
+    if (key) headerMap[key] = idx;
+  });
 
   const getCol = (...names: string[]): number | undefined => {
     for (const n of names) {
@@ -669,17 +667,26 @@ function parseOptions(optionsStr: string): SelectOption[] | undefined {
  * Categories are built in exact spreadsheet order for setCategorySelection
  */
 function buildCategories(data: SheetData, fields: Field[]): Category[] {
-  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
   const categories = data.Categories?.slice(1) || [];
-
-  if (!categoriesSheet || categories.length === 0) {
+  if (categories.length === 0) {
     return [];
   }
 
-  const displayValues = categoriesSheet.getRange(2, 1, categories.length, categoriesSheet.getLastColumn()).getDisplayValues();
+  // Try to get display values if available (for cleaner token parsing), but handle failure gracefully
+  let displayValues: string[][] = [];
+  let backgroundColors: string[][] = [];
+  try {
+    const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
+    if (categoriesSheet) {
+      displayValues = categoriesSheet.getRange(2, 1, categories.length, categoriesSheet.getLastColumn()).getDisplayValues();
+      backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
+    }
+  } catch (e) {
+    console.warn('Could not fetch display values or backgrounds from sheet (might be running in test/mock mode):', e);
+  }
 
-  // Flexible header mapping
-  const headerRow = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0];
+  // Use headers from data directly
+  const headerRow = data.Categories?.[0] || [];
   const headerMap: Record<string, number> = {};
   headerRow.forEach((h, idx) => {
     const key = String(h || '').trim().toLowerCase();
@@ -711,7 +718,6 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       }
     }
   }
-
   // Identify universal fields (fields marked as Universal in Details sheet)
   const details = data.Details?.slice(1) || [];
   const universalFieldIds: string[] = [];
@@ -785,15 +791,29 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       const explicitFieldIds: string[] = [];
       if (fieldsTokens.length > 0) {
         const fieldIds = fieldsTokens
-          .map(name => fieldNameToId.get(name) || fieldNameToId.get(name.toLowerCase()) || slugify(name))
+          .map(name => {
+            const id = fieldNameToId.get(name) || fieldNameToId.get(name.toLowerCase()) || slugify(name);
+            if (!id) {
+              console.log(`DEBUG: Could not map field token '${name}' to an ID. Available keys sample:`, Array.from(fieldNameToId.keys()).slice(0, 5));
+            }
+            return id;
+          })
           .filter(Boolean);
         explicitFieldIds.push(...fieldIds);
       }
-
       // Merge universal fields with explicit fields (universal fields first, then explicit)
-      // Use Set to avoid duplicates if a universal field is also explicitly listed
-      const allFieldIds = [...new Set([...universalFieldIds, ...explicitFieldIds])];
-      const defaultFieldIds = allFieldIds.length > 0 ? allFieldIds : undefined;
+      // Avoid relying on Set in Apps Script; manual de-dup to sidestep any V8 quirks
+      const allFieldIds: string[] = [];
+      const pushUnique = (id?: string) => {
+        // Normalize to string in case Apps Script gives us String objects
+        const val = id !== undefined && id !== null ? String(id) : '';
+        if (!val) return;
+        if (!allFieldIds.includes(val)) allFieldIds.push(val);
+      };
+      universalFieldIds.forEach(pushUnique);
+      explicitFieldIds.forEach(pushUnique);
+      // Always set both properties so downstream code (and the API) see the IDs.
+      const defaultFieldIds = allFieldIds;
 
       // Derive IDs from name (no manual ID/iconId columns)
       const categoryId = slugify(name);
@@ -858,12 +878,8 @@ function normalizeFieldTokens(raw: any): string[] {
  * This preserves all icons from imported configs AND standard workflow icons
  */
 function buildIconsFromSheet(data: SheetData): Icon[] {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName('Categories');
-
-  if (!categoriesSheet) return [];
-
-  const headerRow = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0] || [];
+  // Use headers from data directly
+  const headerRow = data.Categories?.[0] || [];
   const headerMap: Record<string, number> = {};
   headerRow.forEach((h, idx) => {
     const key = String(h || '').trim().toLowerCase();
@@ -917,20 +933,18 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
   });
 
   // Icons sheet (secondary source to preserve imported/extra icons)
-  const iconsSheet = spreadsheet.getSheetByName('Icons');
-  if (iconsSheet) {
-    const lastRow = iconsSheet.getLastRow();
-    if (lastRow > 1) {
-      const values = iconsSheet.getRange(2, 1, lastRow - 1, 2).getValues();
-      values.forEach((row, idx) => {
-        const iconId = String(row[0] || '').trim();
-        const iconStr = String(row[1] || '').trim();
-        if (!iconId || !iconStr) return;
-        const parsed = parseIconSource(iconStr);
-        if (!parsed) return;
-        addIcon({ id: iconId, ...parsed });
-      });
-    }
+  const iconsData = data['Icons'];
+  if (iconsData && iconsData.length > 1) {
+    // Skip header (row 0)
+    const rows = iconsData.slice(1);
+    rows.forEach((row) => {
+      const iconId = String(row[0] || '').trim();
+      const iconStr = String(row[1] || '').trim();
+      if (!iconId || !iconStr) return;
+      const parsed = parseIconSource(iconStr);
+      if (!parsed) return;
+      addIcon({ id: iconId, ...parsed });
+    });
   }
 
   return Array.from(iconsById.values());
