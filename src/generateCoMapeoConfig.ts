@@ -11,21 +11,16 @@ function generateCoMapeoConfig() {
     // Step 1.5: Migrate old spreadsheet format if needed
     migrateSpreadsheetFormat();
 
-    // Step 2: Auto translate
-    showProcessingModalDialog(processingDialogTexts[1][locale]);
-    console.log('Auto translating...');
-    autoTranslateSheets();
-
-    // Step 3: Lint (passing false to prevent UI alerts)
+    // Step 2: Lint (passing false to prevent UI alerts)
     console.log('Linting CoMapeo config...');
     showProcessingModalDialog(processingDialogTexts[2][locale]);
     lintAllSheets(false);
 
-    // Step 4: Get data
+    // Step 3: Get data
     const data = getSpreadsheetData();
     showProcessingModalDialog(processingDialogTexts[3][locale]);
 
-    // Step 5: Create build payload (JSON)
+    // Step 4: Create build payload (JSON)
     showProcessingModalDialog(processingDialogTexts[4][locale]);
     console.log('Creating build payload...');
     const buildRequest = createBuildPayload(data);
@@ -33,12 +28,12 @@ function generateCoMapeoConfig() {
     // Log category selection for verification
     console.log('Category selection order:', getCategorySelection());
 
-    // Step 6: Send to API (JSON mode)
+    // Step 5: Send to API (JSON mode)
     showProcessingModalDialog(processingDialogTexts[5][locale]);
     console.log('Sending JSON request to API...');
     const configUrl = sendBuildRequest(buildRequest);
 
-    // Step 7: Show success dialog
+    // Step 6: Show success dialog
     showProcessingModalDialog(processingDialogTexts[7][locale]);
     showConfigurationGeneratedDialog(configUrl);
   } catch (error) {
