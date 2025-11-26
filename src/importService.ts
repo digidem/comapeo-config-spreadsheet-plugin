@@ -468,8 +468,12 @@ function populateCategoriesSheet(
     // Convert field IDs to field names for column C
     // Preserve ALL fields exactly as they appear in the imported config (no filtering)
     let fieldsValue = '';
-    if (Array.isArray(cat.defaultFieldIds) && cat.defaultFieldIds.length > 0) {
-      const fieldNames = cat.defaultFieldIds
+    const fieldIds = Array.isArray(cat.defaultFieldIds) && cat.defaultFieldIds.length > 0
+      ? cat.defaultFieldIds
+      : (Array.isArray((cat as any).fields) ? (cat as any).fields : []);
+
+    if (fieldIds && fieldIds.length > 0) {
+      const fieldNames = fieldIds
         .map(id => fieldIdToName.get(id) || id)  // Fall back to ID if name not found
         .filter(Boolean);
       fieldsValue = fieldNames.join(', ');

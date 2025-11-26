@@ -36,7 +36,8 @@ interface Category {
   color?: string;
   iconId?: string;
   parentCategoryId?: string;
-  defaultFieldIds?: string[];
+  defaultFieldIds?: string[]; // legacy/internal
+  fields?: string[]; // API v2 field list (alias of defaultFieldIds)
   tags?: string[];
   visible?: boolean;
 }

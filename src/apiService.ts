@@ -445,7 +445,10 @@ function migrateSpreadsheetFormat(): void {
  */
 function createBuildPayload(data: SheetData): BuildRequest {
   const fields = buildFields(data);
-  const categories = buildCategories(data, fields);
+  const categories = buildCategories(data, fields).map(cat => ({
+    ...cat,
+    fields: cat.fields || cat.defaultFieldIds || undefined
+  }));
   const icons = buildIconsFromSheet(data);
   const metadata = buildMetadata(data);
   const locales = buildLocales();
@@ -685,6 +688,8 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     return [];
   }
 
+  const displayValues = categoriesSheet.getRange(2, 1, categories.length, categoriesSheet.getLastColumn()).getDisplayValues();
+
   // Flexible header mapping
   const headerRow = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0];
   const headerMap: Record<string, number> = {};
@@ -715,6 +720,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     for (const field of fields) {
       if (field.name && field.id) {
         fieldNameToId.set(field.name, field.id);
+        fieldNameToId.set(field.name.toLowerCase(), field.id);
+        fieldNameToId.set(field.id, field.id);
+        fieldNameToId.set(field.id.toLowerCase(), field.id);
       }
     }
   }
@@ -748,11 +756,17 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         return null;  // Skip blank rows
       }
 
-      const iconDataRaw = String(getVal(iconCol) || '').trim();
-      // Icons disabled for now to avoid API SVG validation failures
-      const iconData = '';
+      const iconData = String(getVal(iconCol) || '').trim();
+      const displayVal = fieldsCol !== undefined
+        ? displayValues[index]?.[fieldsCol] ?? ''
+        : '';
       const fieldsVal = getVal(fieldsCol);
-      const fieldsStr = Array.isArray(fieldsVal) ? fieldsVal.join(',') : String(fieldsVal || '');
+
+      // Prefer what the user sees (display value), fall back to raw value
+      let fieldsTokens = normalizeFieldTokens(displayVal);
+      if (fieldsTokens.length === 0) {
+        fieldsTokens = normalizeFieldTokens(fieldsVal);
+      }
       const idStr = String(getVal(idCol) || '').trim();
       const colorStr = String(getVal(colorCol) || '').trim();
       const iconIdStr = String(getVal(iconIdCol) || '').trim();
@@ -792,10 +806,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
 
       // Convert field names to field IDs using actual IDs from Details sheet
       const explicitFieldIds: string[] = [];
-      if (fieldsStr) {
-        const fieldNames = fieldsStr.split(',').map(f => f.trim()).filter(Boolean);
-        const fieldIds = fieldNames
-          .map(name => fieldNameToId.get(name) || slugify(name))  // Fall back to slugify if not found
+      if (fieldsTokens.length > 0) {
+        const fieldIds = fieldsTokens
+          .map(name => fieldNameToId.get(name) || fieldNameToId.get(name.toLowerCase()) || slugify(name))
           .filter(Boolean);
         explicitFieldIds.push(...fieldIds);
       }
@@ -808,16 +821,61 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       // If no explicit ID, derive from name only (do not use applies tokens)
       const categoryId = idStr || slugify(name);  // Use explicit ID if provided, otherwise slugify name
 
+      // Icon ID uses explicit value when provided; otherwise default to categoryId when icon data exists
+      const resolvedIconId = iconIdStr || (iconData ? categoryId : undefined);
+
       return {
         id: categoryId,
         name,
         appliesTo,
         color,
-        iconId: undefined,
-        defaultFieldIds
+        iconId: resolvedIconId,
+        defaultFieldIds,
+        fields: defaultFieldIds
       } as Category;
     })
     .filter((cat): cat is Category => cat !== null);
+}
+
+/**
+ * Normalizes field list tokens from the Categories sheet.
+ * Supports:
+ * - Strings with commas/semicolons/newlines
+ * - Multi-select dropdown arrays
+ * - Fallback to stringified objects
+ */
+function normalizeFieldTokens(raw: any): string[] {
+  if (raw === undefined || raw === null) return [];
+
+  const tokens: string[] = [];
+
+  const pushTokensFromString = (str: string) => {
+    const cleaned = str
+      .replace(/\n/g, ',')
+      .replace(/;/g, ',')
+      .replace(/[•·]/g, ',')
+      .replace(/，/g, ',');
+    cleaned.split(',').forEach(tok => {
+      const t = tok.trim();
+      if (t) tokens.push(t);
+    });
+  };
+
+  if (Array.isArray(raw)) {
+    raw.flat(Infinity).forEach(item => {
+      if (typeof item === 'string') {
+        pushTokensFromString(item);
+      } else if (item !== undefined && item !== null) {
+        pushTokensFromString(String(item));
+      }
+    });
+  } else if (typeof raw === 'string') {
+    pushTokensFromString(raw);
+  } else if (raw !== undefined && raw !== null) {
+    pushTokensFromString(String(raw));
+  }
+
+  return tokens;
 }
 
 /**
@@ -825,9 +883,180 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
  * This preserves all icons from imported configs AND standard workflow icons
  */
 function buildIconsFromSheet(data: SheetData): Icon[] {
-  // Icons temporarily disabled to avoid server-side SVG parsing errors
-  return [];
-  // If/when icon handling is re-enabled, restore previous logic with SVG-only validation
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName('Categories');
+
+  if (!categoriesSheet) return [];
+
+  const headerRow = categoriesSheet.getRange(1, 1, 1, categoriesSheet.getLastColumn()).getValues()[0] || [];
+  const headerMap: Record<string, number> = {};
+  headerRow.forEach((h, idx) => {
+    const key = String(h || '').trim().toLowerCase();
+    if (key) headerMap[key] = idx;
+  });
+
+  const getCol = (...names: string[]): number | undefined => {
+    for (const n of names) {
+      const key = n.toLowerCase();
+      if (headerMap[key] !== undefined) return headerMap[key];
+    }
+    return undefined;
+  };
+
+  const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
+  const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
+  const idCol = getCol('id');
+  const iconIdCol = getCol('icon id', 'iconid');
+
+  const iconsById = new Map<string, Icon>();
+  const addIcon = (icon: Icon) => {
+    if (!icon.id) return;
+    const existing = iconsById.get(icon.id);
+    if (existing) {
+      // Prefer keeping svgData; if existing lacks it and new has it, replace
+      if (!existing.svgData && icon.svgData) {
+        iconsById.set(icon.id, icon);
+      } else if (!existing.svgUrl && icon.svgUrl) {
+        iconsById.set(icon.id, { ...existing, svgUrl: icon.svgUrl });
+      }
+      return;
+    }
+    iconsById.set(icon.id, icon);
+  };
+
+  // Icons from Categories sheet (primary source)
+  const categories = data.Categories?.slice(1) || [];
+  categories.forEach((row, index) => {
+    const getVal = (col?: number) => (col === undefined ? '' : row[col]);
+
+    const name = String(getVal(nameCol) || '').trim();
+    const iconRaw = getVal(iconCol);
+    const iconStr = typeof iconRaw === 'string' ? iconRaw.trim() : '';
+    if (!name || !iconStr) return;
+
+    const idStr = String(getVal(idCol) || '').trim();
+    const iconIdStr = String(getVal(iconIdCol) || '').trim();
+    const categoryId = idStr || slugify(name);
+    const iconId = iconIdStr || categoryId;
+
+    const parsed = parseIconSource(iconStr);
+    if (!parsed) {
+      console.warn(`Skipping icon for category "${name}" (row ${index + 2}): unsupported icon format`);
+      return;
+    }
+
+    addIcon({ id: iconId, ...parsed });
+  });
+
+  // Icons sheet (secondary source to preserve imported/extra icons)
+  const iconsSheet = spreadsheet.getSheetByName('Icons');
+  if (iconsSheet) {
+    const lastRow = iconsSheet.getLastRow();
+    if (lastRow > 1) {
+      const values = iconsSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+      values.forEach((row, idx) => {
+        const iconId = String(row[0] || '').trim();
+        const iconStr = String(row[1] || '').trim();
+        if (!iconId || !iconStr) return;
+        const parsed = parseIconSource(iconStr);
+        if (!parsed) {
+          console.warn(`Skipping icon in Icons sheet row ${idx + 2}: unsupported icon format`);
+          return;
+        }
+        addIcon({ id: iconId, ...parsed });
+      });
+    }
+  }
+
+  return Array.from(iconsById.values());
+}
+
+/**
+ * Normalizes supported icon sources into svgData/svgUrl
+ * Accepts inline <svg>, data:image/svg+xml (plain or base64), Google Drive links,
+ * and public URLs ending in .svg
+ */
+function parseIconSource(iconStr: string): { svgData?: string; svgUrl?: string } | null {
+  const trimmed = iconStr.trim();
+  if (!trimmed) return null;
+
+  // Inline SVG markup
+  if (trimmed.startsWith('<svg')) {
+    return { svgData: trimmed };
+  }
+
+  // data:image/svg+xml (plain or base64)
+  if (trimmed.toLowerCase().startsWith('data:image/svg+xml')) {
+    const svg = decodeDataSvg(trimmed);
+    if (svg && svg.trim().startsWith('<svg')) {
+      return { svgData: svg.trim() };
+    }
+    return null;
+  }
+
+  // Google Drive file links → inline SVG (API cannot fetch Drive URLs)
+  if (isGoogleDriveLink(trimmed)) {
+    const svgData = loadDriveSvg(trimmed);
+    return svgData ? { svgData } : null;
+  }
+
+  // Direct SVG URLs
+  if (isSvgUrl(trimmed)) {
+    return { svgUrl: trimmed };
+  }
+
+  return null;
+}
+
+function decodeDataSvg(dataUri: string): string | null {
+  try {
+    if (dataUri.includes(';base64,')) {
+      const base64 = dataUri.split(';base64,')[1];
+      const decoded = Utilities.newBlob(Utilities.base64Decode(base64)).getDataAsString();
+      return decoded;
+    }
+
+    const commaIndex = dataUri.indexOf(',');
+    if (commaIndex === -1) return null;
+    const payload = dataUri.substring(commaIndex + 1);
+    return decodeURIComponent(payload);
+  } catch (err) {
+    console.warn('Failed to decode data URI icon:', err);
+    return null;
+  }
+}
+
+function isGoogleDriveLink(url: string): boolean {
+  return url.startsWith('https://drive.google.com/file/d/');
+}
+
+function loadDriveSvg(url: string): string | null {
+  try {
+    const fileId = url.split('/d/')[1]?.split('/')[0];
+    if (!fileId) return null;
+
+    const file = DriveApp.getFileById(fileId);
+    const mime = file.getMimeType();
+    const text = file.getBlob().getDataAsString();
+
+    // Accept SVG mime types or raw SVG content
+    const isSvgMime = mime?.toLowerCase().includes('svg');
+    const looksLikeSvg = text.trim().startsWith('<svg');
+    if (isSvgMime || looksLikeSvg) {
+      return text.trim();
+    }
+
+    console.warn(`Drive icon ${fileId} rejected: mime=${mime}`);
+    return null;
+  } catch (err) {
+    console.warn(`Failed to inline Drive icon ${url}:`, err);
+    return null;
+  }
+}
+
+function isSvgUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return lower.startsWith('http') && lower.includes('.svg');
 }
 
 // =============================================================================
