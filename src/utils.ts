@@ -70,6 +70,13 @@ function slugify(input: string | any): string {
     .replace(/^-+|-+$/g, "");    // Remove leading/trailing hyphens
 }
 
+function sanitizeIconSlug(slug: string | null | undefined): string {
+  if (!slug) return "";
+  const normalized = String(slug).trim();
+  if (!normalized) return "";
+  return normalized.replace(/(\.(svg|png))+$/i, "");
+}
+
 /**
  * Ensures a deterministic slug for spreadsheet-derived identifiers.
  * Falls back to a prefix + index pattern when the source cannot produce a slug.

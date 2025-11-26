@@ -47,6 +47,7 @@ interface Field {
   name: string;
   type: FieldType;
   description?: string;
+  helperText?: string;
   options?: SelectOption[];
   iconId?: string;
   required?: boolean;

@@ -159,7 +159,7 @@ function testExtractAndValidate(): void {
                 // Show details if available
                 if (result.details) {
                   const detailsStr = Object.entries(result.details)
-                    .map(([key, value]) => `${key}: ${value}`)
+                    .map(([key, value]) => key + ': ' + value)
                     .join('\n');
                   addLogEntry('Details:\n' + detailsStr, 'info');
                 }

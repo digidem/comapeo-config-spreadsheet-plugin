@@ -281,6 +281,7 @@ function migrateSpreadsheetFormat(): void {
       // Expected v2 layout: Name, Icon, Fields, Applies
       const expectedHeaders = ['Name', 'Icon', 'Fields', 'Applies'];
       const headersLower = headers.map(h => String(h || '').toLowerCase());
+      let shouldEnsureCategoryIdColumn = false;
 
       if (headersLower.length >= 4 &&
           headersLower[0] === 'name' &&
@@ -288,6 +289,7 @@ function migrateSpreadsheetFormat(): void {
           headersLower[2].startsWith('field') &&
           (headersLower[3].startsWith('appl') || headersLower[3] === 'tracks')) {
         console.log('Categories sheet already in expected format (Name/Icon/Fields/Applies); skipping migration');
+        shouldEnsureCategoryIdColumn = true;
       }
       // Old 4-column format with Color in column D -> rename to Applies, no extra columns
       else if (headers.length === 4 &&
@@ -299,6 +301,7 @@ function migrateSpreadsheetFormat(): void {
         categoriesSheet.getRange(1, 1, 1, 4)
           .setValues([['Name', 'Icon', 'Fields', 'Applies']])
           .setFontWeight('bold');
+        shouldEnsureCategoryIdColumn = true;
       }
       // Flexible format (Name, Icons, Details, Tracks) -> normalize 4th col to Applies
       else if (headers.length >= 4 &&
@@ -308,6 +311,7 @@ function migrateSpreadsheetFormat(): void {
         categoriesSheet.getRange(1, 1, 1, 4)
           .setValues([['Name', 'Icon', 'Fields', 'Applies']])
           .setFontWeight('bold');
+        shouldEnsureCategoryIdColumn = true;
       }
       // Check if A1 contains a language name (old pre-v2 format) that needs to be preserved
       else if (headers[0] && headers[0] !== 'Name') {
@@ -337,6 +341,7 @@ function migrateSpreadsheetFormat(): void {
             .setValues([['Name', 'Icon', 'Fields', 'Applies']])
             .setFontWeight('bold');
           console.log('Updated Categories headers to Name/Icon/Fields/Applies');
+          shouldEnsureCategoryIdColumn = true;
         } else {
           const warning = `Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
           console.warn(warning);
@@ -348,6 +353,16 @@ function migrateSpreadsheetFormat(): void {
         const warning = `Categories sheet has unexpected format (${headers.length} columns: ${headers.join(', ')}). Skipping migration to avoid data loss.`;
         console.warn(warning);
         migrationWarnings.push(warning);
+      }
+
+      if (shouldEnsureCategoryIdColumn) {
+        try {
+          ensureCategoryIdColumn(categoriesSheet);
+        } catch (error) {
+          const warning = `Failed to ensure Category ID column on Categories sheet: ${(error as Error).message}`;
+          console.warn(warning);
+          migrationWarnings.push(warning);
+        }
       }
     }
   }
@@ -425,6 +440,65 @@ function migrateSpreadsheetFormat(): void {
   }
 }
 
+function normalizeHeaderLabel(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function ensureCategoryIdColumn(categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet): void {
+  const lastCol = categoriesSheet.getLastColumn();
+  if (lastCol === 0) return;
+
+  const headers = categoriesSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const normalized = headers.map(normalizeHeaderLabel);
+  let idColIndex = normalized.findIndex((header) => header === 'category id' || header === 'id');
+
+  if (idColIndex === -1) {
+    const appliesIndex = normalized.findIndex((header) => header.startsWith('appl'));
+    const insertAfterPosition = appliesIndex >= 0 ? appliesIndex + 1 : headers.length;
+    categoriesSheet.insertColumnAfter(insertAfterPosition);
+    idColIndex = insertAfterPosition;
+  }
+
+  // Ensure header label is consistently "Category ID"
+  categoriesSheet
+    .getRange(1, idColIndex + 1, 1, 1)
+    .setValue('Category ID')
+    .setFontWeight('bold');
+
+  populateMissingCategoryIds(categoriesSheet, idColIndex);
+}
+
+function populateMissingCategoryIds(
+  categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  idColIndex: number,
+): void {
+  const lastRow = categoriesSheet.getLastRow();
+  if (lastRow <= 1) return;
+
+  const nameRange = categoriesSheet.getRange(2, CATEGORY_COL.NAME + 1, lastRow - 1, 1);
+  const idRange = categoriesSheet.getRange(2, idColIndex + 1, lastRow - 1, 1);
+  const names = nameRange.getValues();
+  const ids = idRange.getValues();
+
+  let needsWrite = false;
+  const updated = ids.map((row, index) => {
+    let currentId = String(row[0] || '').trim();
+    if (!currentId) {
+      const name = String(names[index]?.[0] || '').trim();
+      if (!name) {
+        return [''];
+      }
+      currentId = slugify(name) || `category-${index + 1}`;
+      needsWrite = true;
+    }
+    return [currentId];
+  });
+
+  if (needsWrite) {
+    idRange.setValues(updated);
+  }
+}
+
 /**
  * Creates a BuildRequest payload from spreadsheet data
  *
@@ -439,8 +513,7 @@ function createBuildPayload(data: SheetData): BuildRequest {
   const icons = buildIconsFromSheet(data);
   const metadata = buildMetadata(data);
   const locales = buildLocales();
-  // Temporarily disable translations until schema matches API v2 expectations
-  const translations: TranslationsByLocale = {};
+  const translations = buildTranslationsPayload(data, categories, fields);
 
   console.log('Build payload summary', {
     categories: categories.length,
@@ -462,8 +535,16 @@ function createBuildPayload(data: SheetData): BuildRequest {
     categories,
     fields,
     icons: icons.length > 0 ? icons : undefined,
-    translations: Object.keys(translations).length > 0 ? translations : undefined
+    translations: Object.keys(translations).length > 0
+      ? translations as unknown as TranslationsByLocale
+      : undefined
   };
+
+  const debugPayloadPreview = {
+    ...payload,
+    icons: payload.icons ? `<<${payload.icons.length} icons omitted from preview>>` : undefined
+  };
+  console.log('[DEBUG] BuildRequest payload preview:', JSON.stringify(debugPayloadPreview, null, 2));
 
   return payload;
 }
@@ -473,6 +554,47 @@ function createBuildPayload(data: SheetData): BuildRequest {
  * Uses Metadata!primaryLanguage if present, otherwise defaults to 'en'
  */
 function buildLocales(): string[] {
+  const normalizeLocaleInput = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    // Already an ISO code
+    if (/^[a-z]{2,3}(-[a-z]{2,3})?$/i.test(trimmed)) {
+      return trimmed.toLowerCase();
+    }
+
+    try {
+      if (typeof validateLanguageName === 'function') {
+        const validation = validateLanguageName(trimmed);
+        if (validation?.valid && validation.code) {
+          return validation.code;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to map primary language name to locale code:', error);
+    }
+
+    return null;
+  };
+
+  // Prefer the Categories!A1 value resolved via getPrimaryLanguage
+  try {
+    if (typeof getPrimaryLanguage === 'function') {
+      const primary = getPrimaryLanguage();
+      if (primary?.code) {
+        return [primary.code];
+      }
+      const normalized = normalizeLocaleInput(primary?.name);
+      if (normalized) {
+        return [normalized];
+      }
+    }
+  } catch (error) {
+    console.warn('Falling back to Metadata primaryLanguage for locales:', error);
+  }
+
+  // Fallback to Metadata sheet entry (legacy behavior)
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const metadataSheet = spreadsheet.getSheetByName('Metadata');
 
@@ -483,9 +605,9 @@ function buildLocales(): string[] {
   const data = metadataSheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim() === 'primaryLanguage') {
-      const lang = String(data[i][1] || '').trim();
-      if (lang) {
-        return [lang.toLowerCase()];
+      const normalized = normalizeLocaleInput(String(data[i][1] || ''));
+      if (normalized) {
+        return [normalized];
       }
     }
   }
@@ -626,6 +748,7 @@ function buildFields(data: SheetData): Field[] {
         name,
         type,
         description: helperText || undefined,
+        helperText: helperText || undefined,
         options,
         appliesTo: ['observation', 'track']
         // Note: required property is not set from spreadsheet - universal flag is separate from required
@@ -675,8 +798,9 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
   // Try to get display values if available (for cleaner token parsing), but handle failure gracefully
   let displayValues: string[][] = [];
   let backgroundColors: string[][] = [];
+  let categoriesSheet: GoogleAppsScript.Spreadsheet.Sheet | null = null;
   try {
-    const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
+    categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
     if (categoriesSheet) {
       displayValues = categoriesSheet.getRange(2, 1, categories.length, categoriesSheet.getLastColumn()).getDisplayValues();
       backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
@@ -703,8 +827,11 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
 
   const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
   const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
+  const categoryIdCol = getCol('category id', 'id');
+  const iconIdCol = getCol('icon id', 'iconid');
   const fieldsCol = getCol('fields', 'details') ?? CATEGORY_COL.FIELDS;
   const appliesCol = getCol('applies', 'tracks', 'applies to', 'appliesto');
+  const colorCol = getCol('color');
 
   // Build map from field name to field ID for converting defaultFieldIds
   const fieldNameToId = new Map<string, string>();
@@ -733,9 +860,6 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       }
     }
   });
-
-  // Get background colors from column A (where category names are)
-  const backgroundColors = categoriesSheet.getRange(2, 1, categories.length, 1).getBackgrounds();
 
   return categories
     .map((row, index) => {
@@ -779,13 +903,28 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
         }
       }
 
-      // Derive color from background of column A (only if not white)
+      // Determine category ID from Column E (Category ID) when available
+      const idFromSheet = categoryIdCol !== undefined
+        ? String(getVal(categoryIdCol) || '').trim()
+        : '';
+      let categoryId = idFromSheet;
+      if (!categoryId) {
+        const fallbackId = slugify(name) || `category-${index + 1}`;
+        categoryId = fallbackId;
+        if (categoryIdCol !== undefined) {
+          row[categoryIdCol] = categoryId;
+        }
+      }
+
+      // Determine color from explicit column first, then fallback to background
       let color: string | undefined;
-      if (backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] &&
+      const colorFromColumn = colorCol !== undefined ? String(getVal(colorCol) || '').trim() : '';
+      if (colorFromColumn) {
+        color = colorFromColumn;
+      } else if (backgroundColors[index]?.[CATEGORY_COL.COLOR_BACKGROUND] &&
                  backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND].toLowerCase() !== '#ffffff') {
         color = backgroundColors[index][CATEGORY_COL.COLOR_BACKGROUND];
       }
-      // If no explicit color, leave undefined to preserve colorless state
 
       // Convert field names to field IDs using actual IDs from Details sheet
       const explicitFieldIds: string[] = [];
@@ -815,9 +954,8 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
       // Always set both properties so downstream code (and the API) see the IDs.
       const defaultFieldIds = allFieldIds;
 
-      // Derive IDs from name (no manual ID/iconId columns)
-      const categoryId = slugify(name);
-      const resolvedIconId = iconData ? categoryId : undefined;
+      const explicitIconId = iconIdCol !== undefined ? String(getVal(iconIdCol) || '').trim() : '';
+      const resolvedIconId = explicitIconId || (iconData ? categoryId : undefined);
 
       return {
         id: categoryId,
@@ -896,6 +1034,8 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
 
   const nameCol = getCol('name') ?? CATEGORY_COL.NAME;
   const iconCol = getCol('icon', 'icons') ?? CATEGORY_COL.ICON;
+  const categoryIdCol = getCol('category id', 'id');
+  const iconIdCol = getCol('icon id', 'iconid');
 
   const iconsById = new Map<string, Icon>();
   const addIcon = (icon: Icon) => {
@@ -923,8 +1063,18 @@ function buildIconsFromSheet(data: SheetData): Icon[] {
     const iconStr = typeof iconRaw === 'string' ? iconRaw.trim() : '';
     if (!name || !iconStr) return;
 
-    const categoryId = slugify(name);
-    const iconId = categoryId;
+    const idFromSheet = categoryIdCol !== undefined
+      ? String(getVal(categoryIdCol) || '').trim()
+      : '';
+    let categoryId = idFromSheet || slugify(name) || `category-${index + 1}`;
+    if (!idFromSheet && categoryIdCol !== undefined) {
+      row[categoryIdCol] = categoryId;
+    }
+
+    const iconIdFromSheet = iconIdCol !== undefined
+      ? String(getVal(iconIdCol) || '').trim()
+      : '';
+    const iconId = iconIdFromSheet || categoryId;
 
     const parsed = parseIconSource(iconStr);
     if (!parsed) return;
@@ -1170,8 +1320,72 @@ function extractLanguagesFromHeaders(headers: any[]): string[] {
  * Processes category and detail translations independently so field translations
  * are still included even when the Category Translations sheet is absent.
  */
-function buildTranslationsPayload(data: SheetData, categories: Category[], fields: Field[]): TranslationsByLocale {
-  const translations: TranslationsByLocale = {};
+type LocaleTranslationFields = Record<string, string>;
+
+interface ApiTranslationLocale {
+  category?: Record<string, LocaleTranslationFields>;
+  field?: Record<string, LocaleTranslationFields>;
+}
+
+type ApiTranslationsByLocale = Record<string, ApiTranslationLocale>;
+
+function splitTranslatedOptions(optionRow: string): string[] {
+  if (!optionRow) {
+    return [];
+  }
+  return optionRow
+    .split(/[;,，、]/)
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function buildTranslationsPayload(data: SheetData, categories: Category[], fields: Field[]): ApiTranslationsByLocale {
+  const translations: ApiTranslationsByLocale = {};
+
+  const ensureLocaleEntry = (lang: string): ApiTranslationLocale => {
+    if (!translations[lang]) {
+      translations[lang] = {};
+    }
+    return translations[lang];
+  };
+
+  const ensureCategoryEntry = (lang: string, id: string): LocaleTranslationFields => {
+    const localeEntry = ensureLocaleEntry(lang);
+    localeEntry.category = localeEntry.category || {};
+    localeEntry.category[id] = localeEntry.category[id] || {};
+    return localeEntry.category[id]!;
+  };
+
+  const ensureFieldEntry = (lang: string, id: string): LocaleTranslationFields => {
+    const localeEntry = ensureLocaleEntry(lang);
+    localeEntry.field = localeEntry.field || {};
+    localeEntry.field[id] = localeEntry.field[id] || {};
+    return localeEntry.field[id]!;
+  };
+
+  const setCategoryNameTranslation = (lang: string, categoryId: string, value: string) => {
+    if (!value) return;
+    const entry = ensureCategoryEntry(lang, categoryId);
+    entry.name = value;
+  };
+
+  const setFieldLabelTranslation = (lang: string, fieldId: string, value: string) => {
+    if (!value) return;
+    const entry = ensureFieldEntry(lang, fieldId);
+    entry.label = value;
+  };
+
+  const setFieldHelperTextTranslation = (lang: string, fieldId: string, value: string) => {
+    if (!value) return;
+    const entry = ensureFieldEntry(lang, fieldId);
+    entry.helperText = value;
+  };
+
+  const setFieldOptionTranslation = (lang: string, fieldId: string, optionIndex: number, value: string) => {
+    if (!value) return;
+    const entry = ensureFieldEntry(lang, fieldId);
+    entry[`options.${optionIndex}`] = value;
+  };
 
   // Determine available languages from any translation sheet
   // Try Category Translations first, then fall back to Detail translation sheets
@@ -1219,10 +1433,6 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   console.log(`Found ${langs.length} languages for translations:`, langs);
 
   // Initialize translations structure
-  for (const lang of langs) {
-    translations[lang] = { categories: {}, fields: {} };
-  }
-
   // Process category translations - match by name to handle blank rows
   // Only process if Category Translations sheet exists
   if (catTransSheet) {
@@ -1236,8 +1446,8 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
       for (let j = 0; j < langs.length; j++) {
         const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
         const value = String(row[colIndex] || '').trim();
-        if (value && translations[langs[j]].categories) {
-          translations[langs[j]].categories![catId] = { name: value };
+        if (value) {
+          setCategoryNameTranslation(langs[j], catId, value);
         }
       }
     }
@@ -1254,11 +1464,8 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     for (let j = 0; j < langs.length; j++) {
       const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
       const value = String(row[colIndex] || '').trim();
-      if (value && translations[langs[j]].fields) {
-        if (!translations[langs[j]].fields![fieldId]) {
-          translations[langs[j]].fields![fieldId] = {};
-        }
-        translations[langs[j]].fields![fieldId].name = value;
+      if (value) {
+        setFieldLabelTranslation(langs[j], fieldId, value);
       }
     }
   }
@@ -1269,8 +1476,9 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
   const helperTrans = data['Detail Helper Text Translations']?.slice(1) || [];
   const fieldsWithHelperText: Array<{field: Field, helperText: string}> = [];
   for (const field of fields) {
-    if (field.description) {
-      fieldsWithHelperText.push({field, helperText: field.description});
+    const helperTextValue = field.helperText || field.description;
+    if (helperTextValue) {
+      fieldsWithHelperText.push({field, helperText: helperTextValue});
     }
   }
 
@@ -1286,11 +1494,8 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
       for (let j = 0; j < langs.length; j++) {
         const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
         const value = String(row[colIndex] || '').trim();
-        if (value && translations[langs[j]].fields) {
-          if (!translations[langs[j]].fields![fieldId]) {
-            translations[langs[j]].fields![fieldId] = {};
-          }
-          translations[langs[j]].fields![fieldId].description = value;
+        if (value) {
+          setFieldHelperTextTranslation(langs[j], fieldId, value);
         }
       }
     }
@@ -1332,21 +1537,26 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
         const optStr = String(row[colIndex] || '').trim();
         if (!optStr) continue;
 
-        const translatedOpts = optStr.split(',').map(s => s.trim());
-
-        if (!translations[langs[j]].fields![fieldId]) {
-          translations[langs[j]].fields![fieldId] = {};
-        }
-        if (!translations[langs[j]].fields![fieldId].options) {
-          translations[langs[j]].fields![fieldId].options = {};
-        }
+        const translatedOpts = splitTranslatedOptions(optStr);
 
         for (let k = 0; k < translatedOpts.length && k < field.options.length; k++) {
-          translations[langs[j]].fields![fieldId].options![field.options[k].value] = translatedOpts[k];
+          setFieldOptionTranslation(langs[j], fieldId, k, translatedOpts[k]);
         }
       }
     }
   }
+
+
+  // Remove languages without any translation data
+  Object.keys(translations).forEach(lang => {
+    const entry = translations[lang];
+    const hasCategoryTranslations = Boolean(entry.category && Object.keys(entry.category).length > 0);
+    const hasFieldTranslations = Boolean(entry.field && Object.keys(entry.field).length > 0);
+
+    if (!hasCategoryTranslations && !hasFieldTranslations) {
+      delete translations[lang];
+    }
+  });
 
   return translations;
 }

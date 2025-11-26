@@ -2,7 +2,7 @@ let selectTranslationLanguagesDialogText: Record<string, SelectTranslationDialog
   es: {
     title: "Seleccionar idiomas de destino",
     buttonText: "Traducir",
-    skipButtonText: "Continuar sin traducir",
+    skipButtonText: "Cancelar",
     message: [
       "Selecciona los idiomas a los que deseas traducir automáticamente desde {{sourceLanguage}}:",
       "Las traducciones se aplicarán solo a los idiomas marcados abajo.",
@@ -18,7 +18,7 @@ let selectTranslationLanguagesDialogText: Record<string, SelectTranslationDialog
     manualNamePlaceholder: "Nombre del idioma (ej. Quechua)",
     manualIsoPlaceholder: "Código ISO (ej. qu)",
     validationMessages: {
-      noAutoSelection: "Selecciona al menos un idioma para traducir o usa 'Continuar sin traducir'.",
+      noAutoSelection: "Selecciona al menos un idioma para traducir o haz clic en 'Cancelar'.",
       missingCustomFields: "Completa el nombre y el código ISO para cada idioma personalizado.",
       duplicateCustomIso: "Hay códigos ISO personalizados duplicados. Verifica e intenta nuevamente.",
       invalidCustomIso: "Algunos códigos ISO personalizados no tienen formato válido. Usa letras (a-z) y guiones bajos.",
@@ -27,7 +27,7 @@ let selectTranslationLanguagesDialogText: Record<string, SelectTranslationDialog
   en: {
     title: "Select Target Languages",
     buttonText: "Translate",
-    skipButtonText: "Skip Translation",
+    skipButtonText: "Cancel",
     message: [
       "Choose the languages you want to auto-translate from {{sourceLanguage}}:",
       "Only the languages you select below will receive automatic translations.",
@@ -43,7 +43,7 @@ let selectTranslationLanguagesDialogText: Record<string, SelectTranslationDialog
     manualNamePlaceholder: "Language name (e.g. Quechua)",
     manualIsoPlaceholder: "ISO code (e.g. qu)",
     validationMessages: {
-      noAutoSelection: "Select at least one language to translate or use 'Skip Translation'.",
+      noAutoSelection: "Select at least one language to translate or click 'Cancel'.",
       missingCustomFields: "Please fill in both the language name and ISO code for each custom language.",
       duplicateCustomIso: "Duplicate custom ISO codes detected. Please ensure each custom language has a unique code.",
       invalidCustomIso: "Custom ISO codes should contain letters and optional hyphens (e.g. qu, quz, pt-br).",

@@ -674,7 +674,8 @@ function saveExistingIconsToFolder(
 ): CoMapeoIcon[] {
   const iconMap = new Map<string, CoMapeoIcon>();
   for (const icon of config.icons) {
-    iconMap.set(icon.name, icon);
+    const normalizedName = sanitizeIconSlug(icon.name) || icon.name;
+    iconMap.set(normalizedName, { ...icon, name: normalizedName });
   }
 
   const { categories, backgroundColors, categoriesSheet } = getCategoryData();
@@ -1159,7 +1160,8 @@ function buildIconFileName(
 ): string {
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
   const suffixPart = sanitizedSize ? `-${sanitizedSize}` : "";
-  return `${presetSlug}${suffixPart}.${extension}`;
+  const baseSlug = sanitizeIconSlug(presetSlug) || presetSlug;
+  return `${baseSlug}${suffixPart}.${extension}`;
 }
 
 function createIconCacheStats(): IconCacheStats {

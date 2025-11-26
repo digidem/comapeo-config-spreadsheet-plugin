@@ -467,7 +467,8 @@ function createIconFile(
 ): GoogleAppsScript.Drive.File {
   const extension = mimeType === MimeType.SVG ? "svg" : "png";
   const sanitizedSize = size ? `-${size}` : "";
-  const fileName = `${slug}${sanitizedSize}.${extension}`;
+  const baseSlug = sanitizeIconSlug(slug) || slug;
+  const fileName = `${baseSlug}${sanitizedSize}.${extension}`;
   removeExistingFilesByName(folder, fileName);
   const blob = Utilities.newBlob(content, mimeType, fileName);
   const file = folder.createFile(blob);

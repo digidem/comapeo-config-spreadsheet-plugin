@@ -839,27 +839,10 @@ function showSelectTranslationLanguagesDialog() {
     "    });",
     "}",
     "",
-    "function skipTranslation() {",
-    "  console.log('[CLIENT] Skip Translation button clicked');",
-    "  var customLanguages = collectCustomLanguages();",
-    "  if (customLanguages === null) {",
-    "    resetProcessingState('.secondary-btn');",
-    "    return;",
-    "  }",
-    "",
-    "  google.script.run",
-    "    .withFailureHandler(function(error) {",
-    "      console.error('[CLIENT] Failed to process language selection:', error);",
-    "      resetProcessingState('.secondary-btn');",
-    "      alert('Operation failed: ' + error.message);",
-    "    })",
-    "    .withSuccessHandler(function() {",
-    "      google.script.host.close();",
-    "    })",
-    "    .handleLanguageSelection({",
-    "      autoTranslateLanguages: [],",
-    "      customLanguages: customLanguages",
-    "    });",
+    "function cancelTranslationSelection() {",
+    "  console.log('[CLIENT] Cancel Translation dialog');",
+    "  resetProcessingState('.secondary-btn');",
+    "  google.script.host.close();",
     "}",
     "",
     "window.filterLanguages = filterLanguages;",
@@ -869,7 +852,7 @@ function showSelectTranslationLanguagesDialog() {
     "window.addCustomLanguageRow = addCustomLanguageRow;",
     "window.prefillCustomLanguageRow = prefillCustomLanguageRow;",
     "window.getSelectedTargetLanguages = getSelectedTargetLanguages;",
-    "window.skipTranslation = skipTranslation;"
+    "window.cancelTranslationSelection = cancelTranslationSelection;"
   ];
   const allJavaScript = allJavaScriptLines.join("\n");
 
@@ -882,7 +865,7 @@ function showSelectTranslationLanguagesDialog() {
     null,
     "getSelectedTargetLanguages",
     skipButtonText,
-    "skipTranslation",
+    "cancelTranslationSelection",
   );
   showModalDialogSafe(html, title, 820, 950, "Translation Language Selection");
 }

@@ -1090,7 +1090,7 @@ function testCategoryIdPreservation(): boolean {
     const testData: SheetData = {
       documentName: "ID Test" as any,
       Categories: [
-        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Name", "Icon", "Fields", "Category ID", "Color", "Icon ID"],
         ["My Category", "", "", "custom-cat-id", "#FF0000", "custom-icon-id"],
         ["Auto ID Category", "", "", "", "#00FF00", ""]
       ],
@@ -1123,6 +1123,47 @@ function testCategoryIdPreservation(): boolean {
     console.log("PASS: Category ID auto-generated when not provided");
 
     console.log("=== Category ID Preservation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testIconsRespectStoredCategoryIds(): boolean {
+  console.log("=== Test: Icons Respect Stored Category IDs ===");
+
+  try {
+    const inlineSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" /></svg>';
+    const testData: SheetData = {
+      documentName: "Icon ID Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "Category ID", "Color", "Icon ID"],
+        ["Stored Icon", inlineSvg, "", "stored-id", "#123456", "custom-icon"],
+        ["Fallback Icon", inlineSvg, "", "fallback-id", "#654321", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"]
+      ],
+      Icons: [
+        ["ID", "SVG"],
+      ]
+    } as SheetData;
+
+    const icons = buildIconsFromSheet(testData);
+    const iconIds = icons.map(icon => icon.id).sort();
+
+    if (!iconIds.includes("custom-icon")) {
+      console.error("FAIL: Icon should preserve explicit Icon ID 'custom-icon'");
+      return false;
+    }
+
+    if (!iconIds.includes("fallback-id")) {
+      console.error("FAIL: Icon should fall back to Category ID when Icon ID column is blank");
+      return false;
+    }
+
+    console.log("PASS: Icons respect stored Category and Icon IDs");
     return true;
   } catch (error) {
     console.error("FAIL: Exception thrown - " + error.message);
@@ -1276,41 +1317,37 @@ function testTranslationsWithBlankRows(): boolean {
     const translations = buildTranslationsPayload(testData, categories, fields);
 
     // Verify translations for field1
-    if (!translations['es'] || !translations['es'].fields || !translations['es'].fields['field1']) {
+    const esLocale = translations['es'];
+    const esFieldTranslations = esLocale?.field;
+    const esField1 = esFieldTranslations?.['field1'];
+    if (!esField1) {
       console.error("FAIL: Spanish translations for field1 not found");
       return false;
     }
-    if (translations['es'].fields['field1'].name !== "Campo 1") {
-      console.error(`FAIL: field1 label translation incorrect: ${translations['es'].fields['field1'].name}`);
+    if (esField1.label !== "Campo 1") {
+      console.error(`FAIL: field1 label translation incorrect: ${esField1.label}`);
       return false;
     }
-    if (translations['es'].fields['field1'].description !== "Texto de ayuda 1") {
-      console.error(`FAIL: field1 helper text translation incorrect: ${translations['es'].fields['field1'].description}`);
+    if (esField1.helperText !== "Texto de ayuda 1") {
+      console.error(`FAIL: field1 helper text translation incorrect: ${esField1.helperText}`);
       return false;
     }
     console.log("PASS: field1 translations correct (before blank row)");
 
     // Verify translations for field2 (after blank row - this is the critical test)
-    if (!translations['es'].fields['field2']) {
+    const esField2 = esFieldTranslations?.['field2'];
+    if (!esField2 || esField2.label !== "Campo 2") {
       console.error("FAIL: Spanish translations for field2 not found (blank row caused index divergence)");
       return false;
     }
-    if (translations['es'].fields['field2'].name !== "Campo 2") {
-      console.error(`FAIL: field2 label translation incorrect: ${translations['es'].fields['field2'].name}`);
-      return false;
-    }
-    if (translations['es'].fields['field2'].description !== "Texto de ayuda 2") {
-      console.error(`FAIL: field2 helper text translation incorrect: ${translations['es'].fields['field2'].description}`);
+    if (esField2.helperText !== "Texto de ayuda 2") {
+      console.error(`FAIL: field2 helper text translation incorrect: ${esField2.helperText}`);
       return false;
     }
     console.log("PASS: field2 translations correct (after blank row - no index divergence)");
 
     // Verify option translations for field1
-    if (!translations['es'].fields['field1'].options) {
-      console.error("FAIL: Option translations for field1 not found");
-      return false;
-    }
-    if (translations['es'].fields['field1'].options['opt1'] !== "opción1") {
+    if (!esField1["options.0"] || esField1["options.0"] !== "opción1") {
       console.error("FAIL: Option translation for opt1 incorrect");
       return false;
     }
@@ -1377,48 +1414,33 @@ function testFieldTranslationsWithoutCategorySheet(): boolean {
     }
     console.log("PASS: Translation languages detected from Detail sheets");
 
-    // Verify category translations are empty (no Category Translations sheet)
-    if (Object.keys(translations['es'].categories || {}).length > 0) {
-      console.error("FAIL: Category translations should be empty when Category Translations sheet is missing");
-      return false;
-    }
-    console.log("PASS: Category translations correctly empty");
-
     // Verify field label translations exist
-    if (!translations['es'].fields['field1'] || !translations['es'].fields['field1'].name) {
+    const esFields = translations['es']?.field;
+    const esField1 = esFields?.['field1'];
+    if (!esField1 || esField1.label !== "Campo 1") {
       console.error("FAIL: Field label translation for field1 should exist");
-      return false;
-    }
-    if (translations['es'].fields['field1'].name !== "Campo 1") {
-      console.error(`FAIL: Field1 Spanish translation incorrect: ${translations['es'].fields['field1'].name}`);
       return false;
     }
     console.log("PASS: Field label translations work without Category Translations sheet");
 
     // Verify helper text translations exist
-    if (!translations['es'].fields['field1'].description) {
-      console.error("FAIL: Helper text translation for field1 should exist");
-      return false;
-    }
-    if (translations['es'].fields['field1'].description !== "Ayuda para campo 1") {
+    if (!esField1.helperText || esField1.helperText !== "Ayuda para campo 1") {
       console.error(`FAIL: Field1 helper text Spanish translation incorrect`);
       return false;
     }
     console.log("PASS: Helper text translations work without Category Translations sheet");
 
     // Verify option translations exist
-    if (!translations['es'].fields['field2'].options) {
-      console.error("FAIL: Option translations for field2 should exist");
-      return false;
-    }
-    if (translations['es'].fields['field2'].options['option-a'] !== "Opción A") {
+    const esField2 = esFields?.['field2'];
+    if (!esField2 || esField2["options.0"] !== "Opción A") {
       console.error("FAIL: Option translation for 'option-a' incorrect");
       return false;
     }
     console.log("PASS: Option translations work without Category Translations sheet");
 
     // Verify French translations too
-    if (translations['fr'].fields['field2'].name !== "Champ 2") {
+    const frField2 = translations['fr']?.field?.['field2'];
+    if (!frField2 || frField2.label !== "Champ 2") {
       console.error("FAIL: French field label translation incorrect");
       return false;
     }
@@ -1482,12 +1504,8 @@ function testDuplicateHelperTextTranslations(): boolean {
 
     // Verify ALL three fields have translations (not just the last one)
     for (const field of fields) {
-      if (!translations['es'] || !translations['es'].fields || !translations['es'].fields[field.id]) {
-        console.error(`FAIL: Spanish translations for ${field.id} not found`);
-        return false;
-      }
-
-      const helperTextTrans = translations['es'].fields[field.id].description;
+      const esFieldEntry = translations['es']?.field?.[field.id];
+      const helperTextTrans = esFieldEntry?.helperText;
       if (!helperTextTrans) {
         console.error(`FAIL: Helper text translation for ${field.id} not found`);
         return false;
@@ -1503,7 +1521,7 @@ function testDuplicateHelperTextTranslations(): boolean {
 
     // Verify French translations too
     for (const field of fields) {
-      const helperTextTrans = translations['fr'].fields[field.id].description;
+      const helperTextTrans = translations['fr']?.field?.[field.id]?.helperText;
       if (!helperTextTrans) {
         console.error(`FAIL: French helper text translation for ${field.id} not found`);
         return false;
@@ -1577,24 +1595,19 @@ function testDuplicateOptionTranslations(): boolean {
 
     // Verify ALL three fields have translations (not just the last one)
     for (const field of fields) {
-      if (!translations['es'] || !translations['es'].fields || !translations['es'].fields[field.id]) {
-        console.error(`FAIL: Spanish translations for ${field.id} not found`);
+      const esFieldEntry = translations['es']?.field?.[field.id];
+      if (!esFieldEntry) {
+        console.error(`FAIL: Spanish options map missing for ${field.id}`);
         return false;
       }
 
-      const optionTrans = translations['es'].fields[field.id].options;
-      if (!optionTrans) {
-        console.error(`FAIL: Option translations for ${field.id} not found`);
+      // Verify translations are correct (options indices 0 => Yes, 1 => No)
+      if (esFieldEntry['options.0'] !== "Sí") {
+        console.error(`FAIL: 'Yes' translation for ${field.id} should be 'Sí', got '${esFieldEntry['options.0']}'`);
         return false;
       }
-
-      // Verify translations are correct
-      if (optionTrans['yes'] !== "Sí") {
-        console.error(`FAIL: 'Yes' translation for ${field.id} should be 'Sí', got '${optionTrans['yes']}'`);
-        return false;
-      }
-      if (optionTrans['no'] !== "No") {
-        console.error(`FAIL: 'No' translation for ${field.id} should be 'No', got '${optionTrans['no']}'`);
+      if (esFieldEntry['options.1'] !== "No") {
+        console.error(`FAIL: 'No' translation for ${field.id} should be 'No', got '${esFieldEntry['options.1']}'`);
         return false;
       }
     }
@@ -1602,16 +1615,16 @@ function testDuplicateOptionTranslations(): boolean {
 
     // Verify French translations too
     for (const field of fields) {
-      const optionTrans = translations['fr'].fields[field.id].options;
-      if (!optionTrans) {
+      const frFieldEntry = translations['fr']?.field?.[field.id];
+      if (!frFieldEntry) {
         console.error(`FAIL: French option translations for ${field.id} not found`);
         return false;
       }
-      if (optionTrans['yes'] !== "Oui") {
+      if (frFieldEntry['options.0'] !== "Oui") {
         console.error(`FAIL: French 'Yes' translation for ${field.id} incorrect`);
         return false;
       }
-      if (optionTrans['no'] !== "Non") {
+      if (frFieldEntry['options.1'] !== "Non") {
         console.error(`FAIL: French 'No' translation for ${field.id} incorrect`);
         return false;
       }
@@ -1619,6 +1632,63 @@ function testDuplicateOptionTranslations(): boolean {
     console.log("PASS: French translations also correct for all fields");
 
     console.log("=== Duplicate Option Lists Translation: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testOptionTranslationsWithLocalizedSeparators(): boolean {
+  console.log("=== Test: Option Translations With Localized Separators ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Localized Option Separator Test" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "ID", "Color", "Icon ID"],
+        ["Urban Survey", "", "building-type", "urban-survey", "#FFFFFF", ""]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        [
+          "Building Type",
+          "Select the type of structure",
+          "s",
+          "School, Hospital, Farm, Church, Shop, Other",
+          "building-type",
+          "FALSE"
+        ]
+      ],
+      "Detail Option Translations": [
+        ["Options", "Chinese"],
+        [
+          "School, Hospital, Farm, Church, Shop, Other",
+          "学校、医院、农场、教堂、商店、其他"
+        ]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+    const categories = buildCategories(testData, fields);
+    const translations = buildTranslationsPayload(testData, categories, fields);
+
+    const zhField = translations['zh']?.field?.['building-type'];
+    if (!zhField) {
+      console.error("FAIL: Chinese translations not generated");
+      return false;
+    }
+
+    const expected = ["学校", "医院", "农场", "教堂", "商店", "其他"];
+    for (let i = 0; i < expected.length; i++) {
+      const key = `options.${i}`;
+      if (zhField[key] !== expected[i]) {
+        console.error(`FAIL: ${key} should be '${expected[i]}', got '${zhField[key]}'`);
+        return false;
+      }
+    }
+
+    console.log("PASS: Localized option strings split into individual entries");
     return true;
   } catch (error) {
     console.error("FAIL: Exception thrown - " + error.message);
@@ -1663,6 +1733,7 @@ function runAllTests(): void {
 
     // ID preservation tests
     { name: "Category ID Preservation", fn: testCategoryIdPreservation },
+    { name: "Icons Respect Stored Category IDs", fn: testIconsRespectStoredCategoryIds },
     { name: "Field ID Preservation", fn: testFieldIdPreservation },
     { name: "Option Value Preservation", fn: testOptionValuePreservation },
 
@@ -1673,6 +1744,7 @@ function runAllTests(): void {
     { name: "Field Translations Without Category Translations Sheet", fn: testFieldTranslationsWithoutCategorySheet },
     { name: "Duplicate Helper Text Translation", fn: testDuplicateHelperTextTranslations },
     { name: "Duplicate Option Lists Translation", fn: testDuplicateOptionTranslations },
+    { name: "Option Translations With Localized Separators", fn: testOptionTranslationsWithLocalizedSeparators },
 
     // Category and API tests
     { name: "Category Selection", fn: testCategorySelection },

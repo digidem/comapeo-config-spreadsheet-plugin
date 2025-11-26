@@ -83,6 +83,23 @@ function manageLanguagesAndTranslate(
   }
 }
 
+function handleLanguageSelection(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): void {
+  try {
+    manageLanguagesAndTranslate(selection);
+  } catch (error) {
+    const ui = SpreadsheetApp.getUi();
+    const message = error instanceof Error ? error.message : String(error);
+    ui.alert(
+      translateMenuTexts[locale].error,
+      `${translateMenuTexts[locale].errorText}${message}`,
+      ui.ButtonSet.OK,
+    );
+    throw error;
+  }
+}
+
 /**
  * Translates a sheet from source language to a single target language
  *
