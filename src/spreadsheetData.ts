@@ -417,7 +417,7 @@ function sheets(translationsOnly = false): string[] {
     return translationSheets;
   }
 
-  return [...translationSheets, "Categories", "Details"];
+  return [...translationSheets, "Categories", "Details", "Icons"];
 }
 /**
  * Reads spreadsheet data for all relevant sheets into a structured object.
