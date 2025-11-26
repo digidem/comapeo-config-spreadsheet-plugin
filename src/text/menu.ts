@@ -7,6 +7,7 @@ let menuTexts: Record<string, MainMenuText> = {
     generateCoMapeoCategory: "Generar Categoría CoMapeo",
     generateCoMapeoCategoryDebug: "Debug: Exportar Archivos Sin Procesar",
     importCategoryFile: "Importar archivo de categoría",
+    importCoMapeoCategory: "Importar archivo de categoría",
     lintAllSheets: "Validar Planillas",
     cleanAllSheets: "Resetear Planillas",
     openHelpPage: "Ayuda",
@@ -18,6 +19,7 @@ let menuTexts: Record<string, MainMenuText> = {
     generateCoMapeoCategory: "Generate CoMapeo Category",
     generateCoMapeoCategoryDebug: "Debug: Export Raw Files",
     importCategoryFile: "Import category file",
+    importCoMapeoCategory: "Import category file",
     lintAllSheets: "Lint Sheets",
     cleanAllSheets: "Reset Spreadsheet",
     openHelpPage: "Help",
@@ -139,7 +141,8 @@ let cleanAllMenuTexts: Record<string, MenuText> = {
   },
 };
 
-let importCategoryMenuTexts: Record<string, MenuText> = {
+// Alias used by index.ts (v2 API flow)
+let importMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Importar archivo de categoría",
     actionText:
@@ -159,6 +162,9 @@ let importCategoryMenuTexts: Record<string, MenuText> = {
     errorText: "An error occurred during import: ",
   },
 };
+
+// Backward-compatible alias for legacy references (if any)
+let importCategoryMenuTexts = importMenuTexts;
 
 let testExtractMenuTexts: Record<string, MenuText> = {
   es: {

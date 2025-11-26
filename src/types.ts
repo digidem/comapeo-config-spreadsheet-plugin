@@ -1,6 +1,116 @@
+// ============================================
+// Sheet Data Types
+// ============================================
+
 interface SheetData {
   [key: string]: (string | number | boolean)[][];
 }
+
+// ============================================
+// CoMapeo API v2.0.0 Types (Build Request)
+// ============================================
+
+interface BuildRequest {
+  metadata: Metadata;
+  locales: string[];  // At least one locale is required by API v2
+  categories: Category[];
+  fields: Field[];
+  icons?: Icon[];
+  translations?: TranslationsByLocale;
+}
+
+interface Metadata {
+  name: string;
+  version: string;
+  description?: string;
+  builderName?: string;
+  builderVersion?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  appliesTo?: string[];
+  color?: string;
+  iconId?: string;
+  parentCategoryId?: string;
+  defaultFieldIds?: string[];
+  fields?: string[];
+  tags?: string[];
+  visible?: boolean;
+}
+
+interface Field {
+  id: string;
+  tagKey: string;
+  name: string;
+  type: FieldType;
+  description?: string;
+  options?: SelectOption[];
+  iconId?: string;
+  required?: boolean;
+  defaultValue?: any;
+  visible?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  appliesTo?: string[];
+  tags?: string[];
+}
+
+type FieldType = "text" | "number" | "selectOne" | "selectMultiple";
+
+interface SelectOption {
+  value: string;
+  label: string;
+  iconId?: string;
+  tags?: string[];
+}
+
+interface Icon {
+  id: string;
+  svgData?: string;
+  svgUrl?: string;
+  altText?: string;
+  tags?: string[];
+}
+
+interface TranslationsByLocale {
+  [locale: string]: {
+    metadata?: {
+      name?: string;
+      description?: string;
+    };
+    categories?: {
+      [categoryId: string]: {
+        name?: string;
+        description?: string;
+      };
+    };
+    fields?: {
+      [fieldId: string]: {
+        name?: string;
+        description?: string;
+        options?: {
+          [optionValue: string]: string;
+        };
+      };
+    };
+  };
+}
+
+interface ApiErrorResponse {
+  error: string;
+  message: string;
+  details?: {
+    errors?: string[];
+  };
+}
+
+// ============================================
+// Legacy Types (for internal use during migration)
+// ============================================
 
 type LanguageCode = string;
 
@@ -100,6 +210,7 @@ interface MainMenuText {
   generateCoMapeoCategory: string;
   generateCoMapeoCategoryDebug: string;
   importCategoryFile: string;
+  importCoMapeoCategory: string;
   lintAllSheets: string;
   cleanAllSheets: string;
   openHelpPage: string;
