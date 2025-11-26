@@ -825,11 +825,12 @@ function lintCategoriesSheet(): void {
         }
       }
     },
-    // Rule 2: Validate icon URL - must not be empty/whitespace and must be valid Google Drive URL
+    // Rule 2: Validate icon value - must reference an SVG (Drive link, HTTPS URL, data URI, or filename)
     (value, row, col) => {
       try {
-        // Check if icon is missing or whitespace-only
-        if (isEmptyOrWhitespace(value)) {
+        const trimmedValue = value.trim();
+
+        if (!trimmedValue) {
           console.log("Missing icon at row " + row);
           const cell = categoriesSheetRef?.getRange(row, col);
           if (cell) {
@@ -839,20 +840,37 @@ function lintCategoriesSheet(): void {
           return;
         }
 
-        // Validate URL format
-        const isValidGoogleDriveUrl = (url: string): boolean => {
-          return (
-            url.startsWith("https://drive.google.com/") &&
-            extractDriveFileId(url) !== null
-          );
-        };
+        const isDriveUrl =
+          trimmedValue.startsWith("https://drive.google.com/") &&
+          extractDriveFileId(trimmedValue) !== null;
+        const isDataUri = trimmedValue.startsWith("data:image/svg+xml");
+        const isHttpUrl = /^https?:\/\//i.test(trimmedValue);
+        const endsWithSvg = /\.svg(?:[?#].*)?$/i.test(trimmedValue);
+        const isHttpSvg = isHttpUrl && endsWithSvg;
+        const isFilenameSvg = !isHttpUrl && endsWithSvg;
 
-        if (!isValidGoogleDriveUrl(value)) {
-          console.log("Invalid icon URL: " + value);
+        if (isHttpUrl && !isHttpSvg && !isDriveUrl) {
+          console.log("Icon URL must point to an SVG file: " + trimmedValue);
           const cell = categoriesSheetRef?.getRange(row, col);
           if (cell) {
             cell.setFontColor("red");
-            cell.setNote(`${LINT_NOTE_PREFIX}Invalid icon URL. Must be a valid Google Drive URL`);
+            cell.setNote(`${LINT_NOTE_PREFIX}Icon URL must point to an SVG file ending in .svg`);
+          }
+          return;
+        }
+
+        const isValidReference =
+          isDriveUrl ||
+          isDataUri ||
+          isHttpSvg ||
+          isFilenameSvg;
+
+        if (!isValidReference) {
+          console.log("Invalid icon reference: " + trimmedValue);
+          const cell = categoriesSheetRef?.getRange(row, col);
+          if (cell) {
+            cell.setFontColor("red");
+            cell.setNote(`${LINT_NOTE_PREFIX}Invalid icon reference. Provide a Drive link, HTTPS URL, data URI, or filename that ends with .svg`);
           }
         }
       } catch (error) {
