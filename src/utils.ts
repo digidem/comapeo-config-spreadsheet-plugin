@@ -184,3 +184,39 @@ function createOptionValue(label: string, fieldKey: string | undefined, index: n
   const baseKey = fieldKey && fieldKey.trim() !== "" ? fieldKey : "option";
   return buildSlugWithFallback(label, baseKey, index);
 }
+
+// =============================================================================
+// Category selection helpers (persisted in Script Properties)
+// =============================================================================
+
+const CATEGORY_SELECTION_KEY = "CATEGORY_SELECTION";
+
+/**
+ * Persists the current category order for later retrieval.
+ */
+function setCategorySelection(categoryIds: string[]): void {
+  const cleaned = (categoryIds || []).map((id) => String(id).trim()).filter(Boolean);
+  PropertiesService.getScriptProperties().setProperty(
+    CATEGORY_SELECTION_KEY,
+    JSON.stringify(cleaned),
+  );
+}
+
+/**
+ * Retrieves the stored category order. Returns a copy.
+ */
+function getCategorySelection(): string[] {
+  const raw = PropertiesService.getScriptProperties().getProperty(
+    CATEGORY_SELECTION_KEY,
+  );
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return [...parsed];
+    }
+  } catch (e) {
+    console.warn("Failed to parse CATEGORY_SELECTION script property", e);
+  }
+  return [];
+}
