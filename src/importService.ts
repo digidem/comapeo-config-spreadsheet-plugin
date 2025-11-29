@@ -136,7 +136,7 @@ function processImportFile(fileIdOrUrl: string): void {
 
   const content = extractConfigFromComapeocat(blob);
 
-  // Validate extracted content
+  // Validate extracted content (legacy rules to preserve compatibility)
   validateBuildRequest(content);
 
   populateSpreadsheetFromConfig(content);
@@ -148,10 +148,14 @@ function processImportFile(fileIdOrUrl: string): void {
   );
 }
 
+interface BuildValidationOptions {
+  strict?: boolean;
+}
+
 /**
  * Validates that a BuildRequest has required fields
  */
-function validateBuildRequest(content: BuildRequest): void {
+function validateBuildRequest(content: BuildRequest, options?: BuildValidationOptions): void {
   if (!content) {
     throw new Error('Invalid configuration: empty content.');
   }
@@ -175,6 +179,321 @@ function validateBuildRequest(content: BuildRequest): void {
   if (!Array.isArray(content.fields)) {
     throw new Error('Invalid configuration: fields must be an array.');
   }
+
+  if (options?.strict) {
+    runStrictBuildValidations(content);
+  }
+}
+
+function runStrictBuildValidations(buildRequest: BuildRequest): void {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const metadataName = String(buildRequest.metadata?.name || '').trim();
+  if (!metadataName) {
+    errors.push('metadata.name must be a non-empty string.');
+  } else if (containsUnsafeNameCharacters(metadataName)) {
+    errors.push('metadata.name cannot contain slashes, backslashes, or ellipses.');
+  }
+
+  const metadataVersion = buildRequest.metadata?.version;
+  if (metadataVersion) {
+    const versionStr = String(metadataVersion).trim();
+    if (!versionStr) {
+      errors.push('metadata.version must not be blank when provided.');
+    } else if (containsUnsafeNameCharacters(versionStr)) {
+      errors.push('metadata.version cannot contain slashes, backslashes, or ellipses.');
+    }
+  }
+
+  const categories = Array.isArray(buildRequest.categories) ? buildRequest.categories : [];
+  if (categories.length === 0) {
+    errors.push('At least one category is required.');
+  }
+
+  const fields = Array.isArray(buildRequest.fields) ? buildRequest.fields : [];
+  if (fields.length === 0) {
+    errors.push('At least one field is required.');
+  }
+
+  const allowedApplies = new Set(['observation', 'track']);
+  const normalizedFieldIds = new Set<string>();
+  const normalizedFieldIdsLower = new Set<string>();
+  const allowedFieldTypes = new Set([
+    'text',
+    'textarea',
+    'number',
+    'integer',
+    'select',
+    'selectone',
+    'multiselect',
+    'selectmultiple',
+    'boolean',
+    'date',
+    'datetime',
+    'photo',
+    'location'
+  ]);
+  const selectLikeTypes = new Set(['select', 'selectone', 'multiselect', 'selectmultiple']);
+
+  fields.forEach((field, index) => {
+    const fieldLabel = `Field ${field?.id || index + 1}`;
+    if (!field || typeof field !== 'object') {
+      errors.push(`${fieldLabel} is invalid.`);
+      return;
+    }
+
+    const fieldId = String(field.id || '').trim();
+    if (!fieldId) {
+      errors.push(`${fieldLabel} must have an id.`);
+    } else {
+      const lower = fieldId.toLowerCase();
+      if (normalizedFieldIdsLower.has(lower)) {
+        errors.push(`Duplicate field id detected: "${fieldId}".`);
+      }
+      normalizedFieldIds.add(fieldId);
+      normalizedFieldIdsLower.add(lower);
+    }
+
+    const normalizedType = normalizeFieldTypeForValidation(field.type);
+    if (!normalizedType) {
+      errors.push(`${fieldLabel} must have a valid type.`);
+      return;
+    }
+
+    if (!allowedFieldTypes.has(normalizedType)) {
+      errors.push(`${fieldLabel} has unsupported type "${field.type}".`);
+    }
+
+    if (selectLikeTypes.has(normalizedType)) {
+      if (!Array.isArray(field.options) || field.options.length === 0) {
+        errors.push(`${fieldLabel} (${field.type}) must include at least one option.`);
+      }
+    }
+  });
+
+  let hasTrackCategory = false;
+  const ensureFieldReferencesAreValid = (ids: string[] | undefined | null, label: string) => {
+    if (!ids || !Array.isArray(ids)) return;
+    ids.forEach(refId => {
+      if (!refId) return;
+      const normalizedRef = String(refId).trim();
+      if (!normalizedFieldIds.has(normalizedRef)) {
+        errors.push(`${label} references unknown field id "${refId}".`);
+      }
+    });
+  };
+
+  categories.forEach((category, index) => {
+    const categoryLabel = `Category ${category?.id || index + 1}`;
+    if (!category || typeof category !== 'object') {
+      errors.push(`${categoryLabel} is invalid.`);
+      return;
+    }
+
+    const categoryId = String(category.id || '').trim();
+    if (!categoryId) {
+      errors.push(`${categoryLabel} must have an id.`);
+    }
+
+    const categoryName = String(category.name || '').trim();
+    if (!categoryName) {
+      errors.push(`${categoryLabel} must have a name.`);
+    }
+
+    const appliesTo = category.appliesTo;
+    if (!Array.isArray(appliesTo) || appliesTo.length === 0) {
+      errors.push(`${categoryLabel} must include appliesTo values (observation and/or track).`);
+    } else {
+      const normalizedApplies = appliesTo.map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
+      const invalidApply = normalizedApplies.find(value => !allowedApplies.has(value));
+      if (invalidApply) {
+        errors.push(`${categoryLabel} has invalid appliesTo value "${invalidApply}".`);
+      }
+      if (normalizedApplies.includes('track')) {
+        hasTrackCategory = true;
+      }
+    }
+
+    ensureFieldReferencesAreValid(category.defaultFieldIds, `${categoryLabel} defaultFieldIds`);
+    ensureFieldReferencesAreValid(category.fields, `${categoryLabel} fields`);
+  });
+
+  if (!hasTrackCategory) {
+    warnings.push('No categories are marked with "track". The track viewer will be empty unless at least one category includes "track" in appliesTo.');
+  }
+
+  const icons = Array.isArray(buildRequest.icons) ? buildRequest.icons : [];
+  const iconIds = new Set<string>();
+  const MAX_INLINE_SVG_BYTES = 2 * 1024 * 1024; // 2 MB
+  const LARGE_SVG_WARNING_BYTES = 300 * 1024; // 300 KB
+
+  icons.forEach((icon, index) => {
+    const iconLabel = `Icon ${icon?.id || index + 1}`;
+    if (!icon || typeof icon !== 'object') {
+      errors.push(`${iconLabel} is invalid.`);
+      return;
+    }
+
+    const iconId = String(icon.id || '').trim();
+    if (!iconId) {
+      errors.push(`${iconLabel} must have an id.`);
+    } else if (iconIds.has(iconId)) {
+      errors.push(`Duplicate icon id detected: "${iconId}".`);
+    } else {
+      iconIds.add(iconId);
+    }
+
+    const hasSvgData = typeof icon.svgData === 'string' && icon.svgData.trim().length > 0;
+    const hasSvgUrl = typeof icon.svgUrl === 'string' && icon.svgUrl.trim().length > 0;
+    if (!hasSvgData && !hasSvgUrl) {
+      errors.push(`${iconLabel} must include svgData or svgUrl.`);
+    }
+
+    if (hasSvgData) {
+      const svgBytes = getByteLength(icon.svgData || '');
+      if (svgBytes > MAX_INLINE_SVG_BYTES) {
+        errors.push(`${iconLabel} inline SVG exceeds 2 MB (${Math.round(svgBytes / 1024)} KB).`);
+      } else if (svgBytes > LARGE_SVG_WARNING_BYTES) {
+        warnings.push(`${iconLabel} inline SVG is ${Math.round(svgBytes / 1024)} KB. Consider optimizing large assets.`);
+      }
+    }
+  });
+
+  const translations = buildRequest.translations;
+  const MAX_LOCALE_BYTES = 1 * 1024 * 1024; // 1 MB
+  if (translations && typeof translations === 'object') {
+    Object.keys(translations).forEach(locale => {
+      if (!isValidBcp47Locale(locale)) {
+        errors.push(`Translation locale "${locale}" must be a valid BCP-47 tag (use hyphens, not underscores).`);
+      }
+
+      const localeData = translations[locale];
+      const serialized = JSON.stringify(localeData || {});
+      const localeBytes = getByteLength(serialized);
+      if (localeBytes > MAX_LOCALE_BYTES) {
+        errors.push(`Translations for locale "${locale}" exceed 1 MB (${Math.round(localeBytes / 1024)} KB).`);
+      }
+    });
+  }
+
+  const optionCount = fields.reduce((total, field) => total + (Array.isArray(field.options) ? field.options.length : 0), 0);
+  const translationEntryCount = countTranslationEntries(translations);
+  const totalEntities = categories.length + fields.length + icons.length + optionCount + translationEntryCount;
+  const MAX_TOTAL_ENTITIES = 10000;
+  if (totalEntities > MAX_TOTAL_ENTITIES) {
+    errors.push(`Combined counts (categories + fields + icons + options + translations) exceed ${MAX_TOTAL_ENTITIES}. Current total: ${totalEntities}.`);
+  }
+
+  if (warnings.length > 0) {
+    warnings.forEach(warning => console.warn(`[Build Validation Warning] ${warning}`));
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Build payload validation failed:\n - ${errors.join('\n - ')}`);
+  }
+}
+
+function containsUnsafeNameCharacters(value: string): boolean {
+  return /[\\/]/.test(value) || value.includes('...');
+}
+
+function normalizeFieldTypeForValidation(type: any): string {
+  if (!type && type !== 0) return '';
+  const normalized = String(type).trim().toLowerCase();
+  const collapsed = normalized.replace(/[^a-z0-9]/g, '');
+  switch (collapsed) {
+    case 'selectone':
+    case 'single':
+      return 'select';
+    case 'selectmultiple':
+    case 'multiselect':
+    case 'multi':
+      return 'multiselect';
+    default:
+      return normalized;
+  }
+}
+
+function isValidBcp47Locale(locale: string): boolean {
+  if (!locale || typeof locale !== 'string') return false;
+  if (locale.includes('_')) return false;
+  const trimmed = locale.trim();
+  if (!trimmed) return false;
+  const bcp47Regex = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i;
+  return bcp47Regex.test(trimmed);
+}
+
+function countTranslationEntries(translations: any): number {
+  if (!translations || typeof translations !== 'object') {
+    return 0;
+  }
+
+  let total = 0;
+  Object.keys(translations).forEach(locale => {
+    const entry = translations[locale];
+    if (!entry || typeof entry !== 'object') {
+      return;
+    }
+
+    const metadata = entry.metadata;
+    if (metadata && typeof metadata === 'object') {
+      total += Object.values(metadata).filter(value => typeof value === 'string' && value).length;
+    }
+
+    const categories = entry.categories || entry.category;
+    if (categories && typeof categories === 'object') {
+      Object.keys(categories).forEach(catId => {
+        const catEntry = categories[catId];
+        if (!catEntry || typeof catEntry !== 'object') return;
+        total += Object.values(catEntry).filter(value => typeof value === 'string' && value).length;
+      });
+    }
+
+    const fields = entry.fields || entry.field;
+    if (fields && typeof fields === 'object') {
+      Object.keys(fields).forEach(fieldId => {
+        const fieldEntry = fields[fieldId];
+        if (!fieldEntry || typeof fieldEntry !== 'object') return;
+        total += Object.values(fieldEntry).filter(value => typeof value === 'string' && value).length;
+      });
+    }
+  });
+
+  return total;
+}
+
+function getByteLength(value: string): number {
+  const str = value || '';
+  try {
+    if (typeof Utilities !== 'undefined' && Utilities && typeof Utilities.newBlob === 'function') {
+      return Utilities.newBlob(str).getBytes().length;
+    }
+  } catch (error) {
+    console.warn('Unable to calculate byte length via Utilities:', error);
+  }
+
+  try {
+    const maybeBuffer = (globalThis as any)?.Buffer;
+    if (typeof maybeBuffer?.byteLength === 'function') {
+      return maybeBuffer.byteLength(str, 'utf8');
+    }
+  } catch (error) {
+    console.warn('Unable to calculate byte length via Buffer:', error);
+  }
+
+  let bytes = 0;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code <= 0x7f) bytes += 1;
+    else if (code <= 0x7ff) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdfff) {
+      bytes += 4;
+      i++;
+    } else if (code < 0xffff) bytes += 3;
+    else bytes += 4;
+  }
+  return bytes;
 }
 
 /**

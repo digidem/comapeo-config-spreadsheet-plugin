@@ -387,6 +387,65 @@ function testValidateBuildRequest(): boolean {
       return false;
     }
 
+    const strictValidRequest: BuildRequest = {
+      metadata: { name: "Strict Config", version: "1.0.0" },
+      locales: ["en"],
+      categories: [
+        { id: "cat-1", name: "Category", appliesTo: ["observation"], defaultFieldIds: ["field-1"], fields: ["field-1"] }
+      ],
+      fields: [
+        { id: "field-1", tagKey: "field-1", name: "Field", type: "text" }
+      ],
+      icons: [
+        { id: "icon-1", svgData: "<svg></svg>" }
+      ],
+      translations: {
+        es: {
+          categories: { "cat-1": { name: "Categoría" } },
+          fields: { "field-1": { label: "Campo" } }
+        }
+      }
+    };
+
+    try {
+      validateBuildRequest(strictValidRequest, { strict: true });
+      console.log("PASS: Strict validation accepts valid payload");
+    } catch (e) {
+      console.error("FAIL: Strict validation should accept valid payload", e);
+      return false;
+    }
+
+    const missingOptions = JSON.parse(JSON.stringify(strictValidRequest));
+    missingOptions.fields[0].type = "selectOne";
+    missingOptions.fields[0].options = [];
+    try {
+      validateBuildRequest(missingOptions, { strict: true });
+      console.error("FAIL: Select fields without options should throw");
+      return false;
+    } catch (e) {
+      console.log("PASS: Missing options detected");
+    }
+
+    const invalidLocale = JSON.parse(JSON.stringify(strictValidRequest));
+    invalidLocale.translations = { "es_MX": { category: { "cat-1": { name: "Categoría" } } } };
+    try {
+      validateBuildRequest(invalidLocale, { strict: true });
+      console.error("FAIL: Invalid locale tags should throw");
+      return false;
+    } catch (e) {
+      console.log("PASS: Invalid locale tag detected");
+    }
+
+    const unknownFieldRef = JSON.parse(JSON.stringify(strictValidRequest));
+    unknownFieldRef.categories[0].defaultFieldIds = ["missing-field"];
+    try {
+      validateBuildRequest(unknownFieldRef, { strict: true });
+      console.error("FAIL: Unknown field references should throw");
+      return false;
+    } catch (e) {
+      console.log("PASS: Unknown field reference detected");
+    }
+
     console.log("=== Validate BuildRequest: ALL TESTS PASSED ===");
     return true;
   } catch (error) {
@@ -848,6 +907,54 @@ function testUniversalFieldDoesNotSetRequired(): boolean {
     return true;
   } catch (error) {
     console.error("FAIL: Exception thrown - " + error.message);
+    return false;
+  }
+}
+
+function testCategoriesRequireAppliesSelection(): boolean {
+  console.log("=== Test: Categories Require Applies Selection ===");
+
+  try {
+    const testData: SheetData = {
+      documentName: "Applies Validation" as any,
+      Categories: [
+        ["Name", "Icon", "Fields", "Applies", "Category ID", "Icon ID"],
+        ["Track Missing", "", "field-a", "", "track-missing", "track-missing"]
+      ],
+      Details: [
+        ["Name", "Helper Text", "Type", "Options", "ID", "Universal"],
+        ["Field A", "Helper", "t", "", "field-a", "FALSE"]
+      ]
+    } as SheetData;
+
+    const fields = buildFields(testData);
+
+    try {
+      buildCategories(testData, fields);
+      console.error("FAIL: Missing Applies value should throw an error");
+      return false;
+    } catch (error) {
+      const message = (error as Error).message || String(error);
+      if (!message.includes("Applies")) {
+        console.error(`FAIL: Error message should reference Applies column, got '${message}'`);
+        return false;
+      }
+      console.log("PASS: Missing Applies value triggers validation error");
+    }
+
+    testData.Categories[1][3] = "Track";
+
+    const categories = buildCategories(testData, fields);
+    if (!categories[0].appliesTo || !categories[0].appliesTo?.includes("track")) {
+      console.error("FAIL: Category should include 'track' after valid Applies input");
+      return false;
+    }
+    console.log("PASS: Valid Applies entry sets appliesTo correctly");
+
+    console.log("=== Categories Require Applies Selection: ALL TESTS PASSED ===");
+    return true;
+  } catch (error) {
+    console.error("FAIL: Exception thrown - " + (error as Error).message);
     return false;
   }
 }
@@ -1726,6 +1833,7 @@ function runAllTests(): void {
     // Universal fields tests
     { name: "Universal Fields Added to All Categories", fn: testUniversalFieldsAddedToAllCategories },
     { name: "Universal Field Does Not Set Required", fn: testUniversalFieldDoesNotSetRequired },
+    { name: "Categories Require Applies Selection", fn: testCategoriesRequireAppliesSelection },
 
     // Round-trip integration tests
     { name: "Integer Field Round-Trip", fn: testIntegerFieldRoundTrip },
