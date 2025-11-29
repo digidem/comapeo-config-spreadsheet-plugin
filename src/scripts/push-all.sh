@@ -15,7 +15,7 @@ while IFS= read -r line; do
     echo "{\"scriptId\":\"$scriptId\",\"rootDir\":\"./\"}" > .clasp.json
 
     # Push code using clasp
-    clasp push
+    clasp push -f
   fi
 done < .clasp.all.json
 
@@ -23,4 +23,3 @@ done < .clasp.all.json
 mv .clasp.json.original .clasp.json 2>/dev/null
 
 echo "All pushes completed!"
-
