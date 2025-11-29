@@ -894,6 +894,7 @@ function importConfigurationFile(
         icons: configData.icons ? configData.icons.length : 0,
         languages: Object.keys(configData.messages).length,
       },
+      warnings: extractionResult.validationWarnings || [],
     };
   } catch (error) {
     console.error("Error importing configuration file:", error);

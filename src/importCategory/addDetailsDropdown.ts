@@ -225,20 +225,6 @@ function addAllDropdowns(): void {
   try {
     console.log("Adding all dropdowns to the spreadsheet...");
 
-    // First, clear all data validations to prevent conflicts
-    try {
-      // Only call if the function exists
-      if (typeof clearAllValidations === "function") {
-        clearAllValidations();
-      }
-    } catch (clearError) {
-      console.error("Error clearing all validations:", clearError);
-      // Continue anyway
-    }
-
-    // Wait a moment to ensure all validations are cleared
-    Utilities.sleep(500);
-
     // Add dropdown to Details column in Categories sheet
     try {
       addDetailsDropdown();

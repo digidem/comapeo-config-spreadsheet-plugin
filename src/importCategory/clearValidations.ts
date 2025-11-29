@@ -41,22 +41,29 @@ function clearSheetValidations(
 }
 
 /**
- * Clears all data validations from all sheets in the spreadsheet.
+ * Clears data validations only from sheets managed by the importer.
  */
-function clearAllValidations(): void {
+function clearManagedSheetValidations(
+  spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+): void {
   try {
-    console.log("Clearing all data validations from all sheets...");
+    const managedSheets = [
+      "Categories",
+      "Details",
+      "Metadata",
+      "Category Translations",
+      "Detail Label Translations",
+      "Detail Helper Text Translations",
+      "Detail Option Translations",
+    ];
 
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = spreadsheet.getSheets();
-
-    // Clear validations from each sheet
-    sheets.forEach((sheet) => {
-      clearSheetValidations(sheet);
+    managedSheets.forEach((name) => {
+      const sheet = spreadsheet.getSheetByName(name);
+      if (sheet) {
+        clearSheetValidations(sheet);
+      }
     });
-
-    console.log("Successfully cleared all data validations from all sheets");
   } catch (error) {
-    console.error("Error clearing all data validations:", error);
+    console.error("Error clearing managed sheet validations:", error);
   }
 }

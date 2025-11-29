@@ -25,22 +25,16 @@ function applyConfigurationToSpreadsheet(
     });
   }
 
-  // First, clear all data validations from all sheets
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Clear validations only on managed sheets now that parsing succeeded
   try {
-    // Only call if the function exists
-    if (typeof clearAllValidations === "function") {
-      clearAllValidations();
-    } else {
-      console.log(
-        "clearAllValidations function not found, skipping validation clearing",
-      );
+    if (typeof clearManagedSheetValidations === "function") {
+      clearManagedSheetValidations(spreadsheet);
     }
   } catch (error) {
-    console.error("Error clearing all validations:", error);
-    // Continue with the import process even if clearing validations fails
+    console.error("Error clearing managed validations:", error);
   }
-
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   // Create or clear necessary sheets
   const categoriesSheet = createOrClearSheet(spreadsheet, "Categories");

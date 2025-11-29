@@ -43,6 +43,98 @@ interface ExtractionOptions {
   onProgress?: (stage: string, percent: number) => void;
 }
 
+function extractJsonArchive(
+  fileBlob: GoogleAppsScript.Base.Blob,
+  tempFolder: GoogleAppsScript.Drive.Folder,
+): GoogleAppsScript.Base.Blob[] {
+  const extractedFiles: GoogleAppsScript.Base.Blob[] = [];
+  const raw = fileBlob.getDataAsString();
+  const jsonData = JSON.parse(raw);
+
+  const createAndStore = (
+    content: any,
+    name: string,
+    mimeType = "application/json",
+  ) => {
+    if (!content) {
+      return;
+    }
+    const blob = Utilities.newBlob(
+      typeof content === "string" ? content : JSON.stringify(content, null, 2),
+      mimeType,
+      name,
+    );
+    tempFolder.createFile(blob);
+    extractedFiles.push(blob);
+  };
+
+  if (jsonData.metadata) {
+    createAndStore(jsonData.metadata, "metadata.json");
+  }
+
+  if (jsonData.presets || jsonData.fields) {
+    const payload: Record<string, any> = {
+      presets: jsonData.presets || {},
+    };
+    if (jsonData.fields) {
+      payload.fields = jsonData.fields;
+    }
+    createAndStore(payload, "presets.json");
+  }
+
+  if (jsonData.translations) {
+    createAndStore(jsonData.translations, "translations.json");
+  }
+
+  if (jsonData.icons) {
+    try {
+      let iconsSvgContent = "";
+      if (typeof jsonData.icons === "string") {
+        iconsSvgContent = jsonData.icons;
+      } else if (jsonData.icons.svg) {
+        iconsSvgContent = jsonData.icons.svg;
+      } else if (Array.isArray(jsonData.icons)) {
+        iconsSvgContent = createIconSpriteFromArray(jsonData.icons);
+      }
+
+      if (iconsSvgContent) {
+        createAndStore(iconsSvgContent, "icons.svg", "image/svg+xml");
+      }
+    } catch (iconError) {
+      console.warn("Failed to generate icons.svg from JSON archive", iconError);
+    }
+  }
+
+  return extractedFiles;
+}
+
+/**
+ * Creates an SVG sprite string from an array of icon definitions
+ */
+function createIconSpriteFromArray(icons: Array<{ name?: string; svg?: string }>): string {
+  const safeIcons = Array.isArray(icons) ? icons : [];
+  let sprite = '<svg xmlns="http://www.w3.org/2000/svg">\n';
+
+  safeIcons.forEach((icon) => {
+    if (!icon || !icon.name || !icon.svg) {
+      return;
+    }
+
+    let svgContent = icon.svg;
+    const svgMatch = svgContent.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+    if (svgMatch) {
+      svgContent = svgMatch[1];
+    }
+
+    sprite += `  <symbol id="${icon.name}">\n`;
+    sprite += `    ${svgContent.trim()}\n`;
+    sprite += "  </symbol>\n";
+  });
+
+  sprite += "</svg>";
+  return sprite;
+}
+
 /**
  * Maximum file size for imports (100MB)
  */
@@ -119,13 +211,30 @@ function extractAndValidateFile(
     if (fileExtension === "comapeocat" || fileExtension === "zip") {
       reportProgress("Extracting ZIP file", 15);
       // Extract zip file
-      extractedFiles = extractZipFile(fileBlob, tempFolder, (percent) => {
-        reportProgress("Extracting ZIP file", 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
-      });
+      try {
+        extractedFiles = extractZipFile(fileBlob, tempFolder, (percent) => {
+          reportProgress("Extracting ZIP file", 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
+        });
+      } catch (zipError) {
+        console.warn("ZIP extraction failed, attempting JSON fallback", zipError);
+        try {
+          extractedFiles = extractJsonArchive(fileBlob, tempFolder);
+          reportProgress("Processed JSON archive", 40);
+        } catch (jsonError) {
+          console.error("JSON fallback also failed", jsonError);
+          tempFolder.setTrashed(true);
+          return {
+            success: false,
+            message:
+              "Failed to extract configuration: " +
+              (jsonError instanceof Error ? jsonError.message : String(jsonError)),
+          };
+        }
+      }
     } else if (fileExtension === "mapeosettings" || fileExtension === "tar") {
       reportProgress("Extracting TAR file", 15);
       // Extract tar file
-      extractedFiles = extractTarFile(fileBlob, tempFolder, (percent) => {
+      extractedFiles = extractTarArchiveInternal(fileBlob, tempFolder, (percent) => {
         reportProgress("Extracting TAR file", 15 + Math.round(percent * 0.5)); // Map 0-100 to 15-65
       });
     } else {
@@ -161,11 +270,36 @@ function extractAndValidateFile(
       };
     }
 
+    // Validate extracted structure before returning
+    reportProgress("Validating extracted structure", 80);
+    const validation = validateExtractedFiles(extractedFiles, (percent) => {
+      reportProgress("Validating extracted structure", 80 + Math.round(percent * 0.1));
+    });
+
+    if (!validation.success) {
+      const errorMessage =
+        validation.errors && validation.errors.length > 0
+          ? validation.errors.join("; ")
+          : "Unknown validation error";
+      console.error("Validation failed:", errorMessage);
+      try {
+        tempFolder.setTrashed(true);
+      } catch (cleanupError) {
+        console.warn("Failed to clean up temp folder after validation failure", cleanupError);
+      }
+      return {
+        success: false,
+        message: `Validation failed: ${errorMessage}`,
+        validationErrors: validation.errors,
+      };
+    }
+
     return {
       success: true,
       message: "File extracted successfully",
       files: extractedFiles,
       tempFolder: tempFolder,
+      validationWarnings: validation.warnings,
     };
   } catch (error) {
     console.error("Error extracting file:", error);
@@ -212,37 +346,11 @@ function extractZipFile(
 
     // Use built-in unzip utility
     let unzippedFiles: GoogleAppsScript.Base.Blob[];
-    try {
-      reportProgress(15);
-      console.log("Starting unzip operation...");
-      unzippedFiles = Utilities.unzip(zipBlob);
-      reportProgress(40);
-      console.log("Unzip operation completed successfully");
-    } catch (unzipError) {
-      console.error("Error using Utilities.unzip:", unzipError);
-      reportProgress(20);
-
-      // Try an alternative approach - save to Drive and then extract
-      console.log("Trying alternative extraction method...");
-      const tempFile = tempFolder.createFile(zipBlob);
-      console.log(
-        "Saved zip file to Drive:",
-        tempFile.getName(),
-        tempFile.getSize(),
-      );
-      reportProgress(30);
-
-      // Try to use the Drive API to extract the zip
-      try {
-        // Create a simulated set of files based on the expected structure
-        console.log("Creating simulated file structure for .comapeocat file");
-        unzippedFiles = createSimulatedFileStructure(tempFolder);
-        reportProgress(40);
-      } catch (driveError) {
-        console.error("Error extracting via Drive:", driveError);
-        throw unzipError; // Throw the original error
-      }
-    }
+    reportProgress(15);
+    console.log("Starting unzip operation...");
+    unzippedFiles = Utilities.unzip(zipBlob);
+    reportProgress(40);
+    console.log("Unzip operation completed successfully");
 
     // Log the extracted files
     console.log(
@@ -304,94 +412,6 @@ function extractZipFile(
 }
 
 /**
- * Creates a simulated file structure for a .comapeocat file
- * This is used as a fallback when extraction fails
- * @param tempFolder - The folder to create files in
- * @returns Array of simulated file blobs
- */
-function createSimulatedFileStructure(
-  tempFolder: GoogleAppsScript.Drive.Folder,
-): GoogleAppsScript.Base.Blob[] {
-  const simulatedFiles: GoogleAppsScript.Base.Blob[] = [];
-
-  // Create required files
-  const metadataJson = {
-    name: "Imported Configuration",
-    version: "1.0.0",
-  };
-  const metadataBlob = Utilities.newBlob(
-    JSON.stringify(metadataJson, null, 2),
-    "application/json",
-    "metadata.json",
-  );
-  tempFolder.createFile(metadataBlob);
-  simulatedFiles.push(metadataBlob);
-
-  const presetsJson = {
-    presets: {},
-  };
-  const presetsBlob = Utilities.newBlob(
-    JSON.stringify(presetsJson, null, 2),
-    "application/json",
-    "presets.json",
-  );
-  tempFolder.createFile(presetsBlob);
-  simulatedFiles.push(presetsBlob);
-
-  const translationsJson = {
-    en: {},
-  };
-  const translationsBlob = Utilities.newBlob(
-    JSON.stringify(translationsJson, null, 2),
-    "application/json",
-    "translations.json",
-  );
-  tempFolder.createFile(translationsBlob);
-  simulatedFiles.push(translationsBlob);
-
-  // Create icons directory
-  tempFolder.createFolder("icons");
-  const iconsDirBlob = Utilities.newBlob(
-    "",
-    "application/x-directory",
-    "icons/",
-  );
-  simulatedFiles.push(iconsDirBlob);
-
-  // Create optional files
-  const iconsJson = {};
-  const iconsBlob = Utilities.newBlob(
-    JSON.stringify(iconsJson, null, 2),
-    "application/json",
-    "icons.json",
-  );
-  tempFolder.createFile(iconsBlob);
-  simulatedFiles.push(iconsBlob);
-
-  const svgBlob = Utilities.newBlob(
-    "<svg></svg>",
-    "image/svg+xml",
-    "icons.svg",
-  );
-  tempFolder.createFile(svgBlob);
-  simulatedFiles.push(svgBlob);
-
-  const pngBlob = Utilities.newBlob("", "image/png", "icons.png");
-  tempFolder.createFile(pngBlob);
-  simulatedFiles.push(pngBlob);
-
-  const styleBlob = Utilities.newBlob("", "text/css", "style.css");
-  tempFolder.createFile(styleBlob);
-  simulatedFiles.push(styleBlob);
-
-  const versionBlob = Utilities.newBlob("1.0.0", "text/plain", "VERSION");
-  tempFolder.createFile(versionBlob);
-  simulatedFiles.push(versionBlob);
-
-  return simulatedFiles;
-}
-
-/**
  * Extracts a tar file
  * @param fileBlob - The tar file blob
  * @param tempFolder - Folder to save extracted files
@@ -399,7 +419,7 @@ function createSimulatedFileStructure(
  * @param debugMode - Optional debug mode for additional logging
  * @returns Array of extracted file blobs
  */
-function extractTarFile(
+function extractTarArchiveInternal(
   fileBlob: GoogleAppsScript.Base.Blob,
   tempFolder: GoogleAppsScript.Drive.Folder,
   progressCallback?: (percent: number) => void,
@@ -472,6 +492,40 @@ function extractTarFile(
         );
         tempFolder.createFile(translationsBlob);
         extractedFiles.push(translationsBlob);
+      }
+
+      // Handle embedded icons structures when present
+      if (jsonData.icons) {
+        console.log("Processing embedded icons data...");
+        try {
+          let iconsSvgContent = "";
+
+          if (typeof jsonData.icons === "string") {
+            iconsSvgContent = jsonData.icons;
+          } else if (jsonData.icons.svg) {
+            iconsSvgContent = jsonData.icons.svg;
+          } else if (Array.isArray(jsonData.icons)) {
+            console.log(
+              `Found ${jsonData.icons.length} icon objects, building sprite...`,
+            );
+            iconsSvgContent = createIconSpriteFromArray(jsonData.icons);
+          }
+
+          if (iconsSvgContent) {
+            const iconsSvgBlob = Utilities.newBlob(
+              iconsSvgContent,
+              "image/svg+xml",
+              "icons.svg",
+            );
+            tempFolder.createFile(iconsSvgBlob);
+            extractedFiles.push(iconsSvgBlob);
+            console.log("Embedded icons converted to icons.svg");
+          } else {
+            console.warn("Icons data present but no SVG content could be derived");
+          }
+        } catch (iconError) {
+          console.error("Failed to process embedded icons:", iconError);
+        }
       }
 
       reportProgress(90);
@@ -706,6 +760,18 @@ function createNestedFolders(
   }
 
   return currentFolder;
+}
+
+/**
+ * Backwards-compatible wrapper for tests and legacy code paths.
+ */
+function extractTarFile(
+  fileBlob: GoogleAppsScript.Base.Blob,
+  tempFolder: GoogleAppsScript.Drive.Folder,
+  progressCallback?: (percent: number) => void,
+  debugMode?: boolean,
+): GoogleAppsScript.Base.Blob[] {
+  return extractTarArchiveInternal(fileBlob, tempFolder, progressCallback, debugMode);
 }
 
 /**

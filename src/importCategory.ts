@@ -15,43 +15,18 @@ function extractConfigurationData(
   tempFolder?: GoogleAppsScript.Drive.Folder,
   options?: any,
 ): any {
-  // Just call parseExtractedFiles for compatibility
-  // Unused parameters are kept for API compatibility with existing code
-  try {
-    console.log(
-      `Extracting configuration data from ${files ? files.length : "undefined"} files`,
-    );
-    if (tempFolder) {
-      console.log(`Using temp folder: ${tempFolder.getName()}`);
-    }
-    if (options) {
-      console.log(`Using options: ${JSON.stringify(options)}`);
-    }
-
-    // If files is undefined or empty, create a minimal default configuration
-    if (!files || files.length === 0) {
-      console.log("No files provided, creating default minimal configuration");
-      return {
-        metadata: { name: "Default Configuration" },
-        presets: [],
-        fields: [],
-        messages: {},
-        icons: [],
-      };
-    }
-
-    return parseExtractedFiles(files, tempFolder);
-  } catch (error) {
-    console.error("Error in extractConfigurationData:", error);
-    // Return a minimal valid configuration to prevent crashes
-    return {
-      metadata: { name: "Error Configuration" },
-      presets: [],
-      fields: [],
-      messages: {},
-      icons: [],
-    };
+  console.log(
+    `Extracting configuration data from ${files ? files.length : "undefined"} files`,
+  );
+  if (options) {
+    console.log(`Using options: ${JSON.stringify(options)}`);
   }
+
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    throw new Error("No extracted files available to parse");
+  }
+
+  return parseExtractedFiles(files, tempFolder);
 }
 
 /**
@@ -94,9 +69,9 @@ function processImportedCategoryFile(
     );
     console.log(`Decoded file size: ${blob.getBytes().length} bytes`);
 
-    // Extract the tar file using the function from importCategory/extractTarFile.ts
-    const extractionResult = extractTarFile(blob);
-    if (!extractionResult.success) {
+    // Extract the archive using the shared extractor
+    const extractionResult = extractAndValidateFile(fileName, blob);
+    if (!extractionResult.success || !extractionResult.files) {
       return {
         success: false,
         message: extractionResult.message || "Failed to extract file",
@@ -130,6 +105,7 @@ function processImportedCategoryFile(
         icons: configData.icons.length,
         languages: Object.keys(configData.messages).length,
       },
+      warnings: extractionResult.validationWarnings || [],
     };
   } catch (error) {
     console.error("Error processing imported file:", error);
@@ -140,4 +116,23 @@ function processImportedCategoryFile(
         (error instanceof Error ? error.message : String(error)),
     };
   }
+}
+
+/**
+ * Compatibility helper for progress-based Mapeo imports.
+ * Reuses the standard parser to keep behavior in sync.
+ */
+function extractMapeoConfigurationData(
+  files: GoogleAppsScript.Base.Blob[] | undefined,
+  tempFolder: GoogleAppsScript.Drive.Folder,
+  options?: any,
+): any {
+  return extractConfigurationData(files, tempFolder, options);
+}
+
+/**
+ * Applies parsed configuration for classic Mapeo flows.
+ */
+function applyMapeoConfigurationToSpreadsheet(configData: any) {
+  applyConfigurationToSpreadsheet(configData);
 }
