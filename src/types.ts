@@ -210,6 +210,7 @@ interface MainMenuText {
   generateIcons: string;
   generateCoMapeoCategory: string;
   generateCoMapeoCategoryDebug: string;
+  debugMenuTitle: string;
   importCategoryFile: string;
   importCoMapeoCategory: string;
   lintAllSheets: string;

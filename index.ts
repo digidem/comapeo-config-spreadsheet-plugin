@@ -18,7 +18,7 @@ function onOpen() {
     }
   }
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu(menuTexts[locale].menu)
+  const mainMenu = ui.createMenu(menuTexts[locale].menu)
     .addItem(
       menuTexts[locale].translateCoMapeoCategory,
       "translateCoMapeoCategory",
@@ -30,15 +30,20 @@ function onOpen() {
     .addSeparator()
     .addItem(menuTexts[locale].lintAllSheets, "lintAllSheets")
     .addItem(menuTexts[locale].cleanAllSheets, "cleanAllSheets")
-    .addSeparator()
+    .addSeparator();
+
+  const debugMenu = ui.createMenu(menuTexts[locale].debugMenuTitle)
     .addItem("Create Test Spreadsheet for Regression", "createTestSpreadsheetForRegression")
     .addItem("Test Runner", "runAllTests")
     .addItem("Capture Baseline Performance Metrics", "captureAndDocumentBaselineMetrics")
-    .addSeparator()
     .addItem(
       menuTexts[locale].generateCoMapeoCategoryDebug,
       "generateCoMapeoCategoryDebug",
-    )
+    );
+
+  mainMenu
+    .addSubMenu(debugMenu)
+    .addSeparator()
     .addItem(menuTexts[locale].openHelpPage, "openHelpPage")
     .addItem("About / Version", "showVersionInfo")
     .addToUi();
