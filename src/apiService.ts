@@ -1446,70 +1446,40 @@ function isSvgUrl(url: string): boolean {
  * 3. Raw ISO 639-1/639-2 codes: "es", "fr", "pt" → uses as-is
  */
 function extractLanguagesFromHeaders(headers: any[]): string[] {
-  // Map of common language names (English and native) to ISO 639-1 codes
-  const languageNameToCode: Record<string, string> = {
-    // English names
-    'English': 'en',
-    'Spanish': 'es',
-    'French': 'fr',
-    'German': 'de',
-    'Italian': 'it',
-    'Portuguese': 'pt',
-    'Russian': 'ru',
-    'Chinese': 'zh',
-    'Japanese': 'ja',
-    'Korean': 'ko',
-    'Arabic': 'ar',
-    'Hindi': 'hi',
-    'Bengali': 'bn',
-    'Dutch': 'nl',
-    'Swedish': 'sv',
-    'Norwegian': 'no',
-    'Danish': 'da',
-    'Finnish': 'fi',
-    'Polish': 'pl',
-    'Turkish': 'tr',
-    'Greek': 'el',
-    'Hebrew': 'he',
-    'Thai': 'th',
-    'Vietnamese': 'vi',
-    'Indonesian': 'id',
-    'Malay': 'ms',
-    'Swahili': 'sw',
-    'Tagalog': 'tl',
-
-    // Native language names (with diacritics)
-    'Español': 'es',
-    'Espanol': 'es',
-    'Français': 'fr',
-    'Francais': 'fr',
-    'Deutsch': 'de',
-    'Italiano': 'it',
-    'Português': 'pt',
-    'Portugues': 'pt',
-    'Русский': 'ru',
-    '中文': 'zh',
-    '日本語': 'ja',
-    '한국어': 'ko',
-    'العربية': 'ar',
-    'हिन्दी': 'hi',
-    'বাংলা': 'bn',
-    'Nederlands': 'nl',
-    'Svenska': 'sv',
-    'Norsk': 'no',
-    'Dansk': 'da',
-    'Suomi': 'fi',
-    'Polski': 'pl',
-    'Türkçe': 'tr',
-    'Turkce': 'tr',
-    'Ελληνικά': 'el',
-    'עברית': 'he',
-    'ไทย': 'th',
-    'Tiếng Việt': 'vi',
-    'Bahasa Indonesia': 'id',
-    'Bahasa Melayu': 'ms',
-    'Kiswahili': 'sw'
-  };
+  // Prefer centralized alias map when available (declared globally in languageAliases.ts)
+  const languageNameToCode: Record<string, string> = typeof LANGUAGE_NAME_ALIASES !== 'undefined'
+    ? LANGUAGE_NAME_ALIASES
+    : {
+        // Minimal fallback list (should rarely be used)
+        English: 'en',
+        Spanish: 'es',
+        French: 'fr',
+        German: 'de',
+        Italian: 'it',
+        Portuguese: 'pt',
+        Russian: 'ru',
+        Chinese: 'zh',
+        Japanese: 'ja',
+        Korean: 'ko',
+        Arabic: 'ar',
+        Hindi: 'hi',
+        Bengali: 'bn',
+        Dutch: 'nl',
+        Swedish: 'sv',
+        Norwegian: 'no',
+        Danish: 'da',
+        Finnish: 'fi',
+        Polish: 'pl',
+        Turkish: 'tr',
+        Greek: 'el',
+        Hebrew: 'he',
+        Thai: 'th',
+        Vietnamese: 'vi',
+        Indonesian: 'id',
+        Malay: 'ms',
+        Swahili: 'sw',
+        Tagalog: 'tl'
+      };
 
   const langs: string[] = [];
 
