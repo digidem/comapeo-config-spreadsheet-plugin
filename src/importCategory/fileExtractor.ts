@@ -113,26 +113,54 @@ function extractJsonArchive(
  */
 function createIconSpriteFromArray(icons: Array<{ name?: string; svg?: string }>): string {
   const safeIcons = Array.isArray(icons) ? icons : [];
-  let sprite = '<svg xmlns="http://www.w3.org/2000/svg">\n';
+  const root = XmlService.createElement("svg").setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+  const parseSvgChildren = (rawSvg: string) => {
+    const trimmed = (rawSvg || "").trim();
+    const hasSvgRoot = /^<\s*svg[\s>]/i.test(trimmed);
+    const wrapped = hasSvgRoot ? trimmed : `<svg>${trimmed}</svg>`;
+
+    try {
+      const doc = XmlService.parse(wrapped);
+      const rootEl = doc.getRootElement();
+      const sourceEl = rootEl.getName().toLowerCase() === "symbol" ? rootEl : rootEl;
+      const viewBox = sourceEl.getAttribute("viewBox")?.getValue();
+      const children = sourceEl.getChildren();
+
+      return {
+        viewBox,
+        contents: children.length > 0 ? children.map((child) => child.clone()) : [XmlService.createText(sourceEl.getText() || "")]
+      };
+    } catch (error) {
+      console.warn("Failed to parse icon SVG with XmlService, falling back to raw string:", error);
+      return { viewBox: undefined, contents: [XmlService.createText(trimmed)] };
+    }
+  };
 
   safeIcons.forEach((icon) => {
     if (!icon || !icon.name || !icon.svg) {
       return;
     }
 
-    let svgContent = icon.svg;
-    const svgMatch = svgContent.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-    if (svgMatch) {
-      svgContent = svgMatch[1];
+    const symbolEl = XmlService.createElement("symbol").setAttribute("id", icon.name);
+    const { viewBox, contents } = parseSvgChildren(icon.svg);
+
+    if (viewBox) {
+      symbolEl.setAttribute("viewBox", viewBox);
     }
 
-    sprite += `  <symbol id="${icon.name}">\n`;
-    sprite += `    ${svgContent.trim()}\n`;
-    sprite += "  </symbol>\n";
+    contents.forEach((content) => {
+      if (content.getType() === XmlService.ContentType.TEXT && !(content as GoogleAppsScript.XML_Service.Text).getText()) {
+        return;
+      }
+      symbolEl.addContent(content);
+    });
+
+    root.addContent(symbolEl);
   });
 
-  sprite += "</svg>";
-  return sprite;
+  const doc = XmlService.createDocument(root);
+  return XmlService.getPrettyFormat().setOmitDeclaration(true).setIndent("  ").format(doc);
 }
 
 /**

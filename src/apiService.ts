@@ -10,30 +10,7 @@ let AUTO_CREATED_CATEGORY_ID_COLUMN = false;
 // Constants
 // =============================================================================
 
-/** Column indices for Categories sheet (0-based) */
-const CATEGORY_COL = {
-  NAME: 0,
-  ICON: 1,
-  FIELDS: 2,
-  APPLIES: 3, // Tracks (t) / Observations (o)
-  COLOR_BACKGROUND: 0 // Fallback: Color from background of column A
-};
-
-/** Column indices for Details sheet (0-based) */
-const DETAILS_COL = {
-  NAME: 0,
-  HELPER_TEXT: 1,
-  TYPE: 2,
-  OPTIONS: 3,
-  ID: 4,  // Field ID (optional, for preserving original IDs on import)
-  UNIVERSAL: 5
-};
-
-/** Column indices for translation sheets (0-based) */
-const TRANSLATION_COL = {
-  SOURCE_TEXT: 0,       // Column A - original text
-  FIRST_LANGUAGE: 1     // Column B - first translation language
-};
+// Column indices are declared globally in src/constants/columns.ts
 
 /** Expected sheet headers for validation */
 const EXPECTED_HEADERS = {
