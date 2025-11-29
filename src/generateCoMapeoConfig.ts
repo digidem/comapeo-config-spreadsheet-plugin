@@ -3,9 +3,23 @@
  * v2.0.0 - Uses JSON-only API, no ZIP workflow
  */
 function generateCoMapeoConfig() {
+  let processingDialogOpen = false;
+  const closeProcessingDialogIfOpen = () => {
+    if (!processingDialogOpen) return;
+    processingDialogOpen = false;
+    if (typeof closeProcessingModalDialog === 'function') {
+      try {
+        closeProcessingModalDialog();
+      } catch (closeError) {
+        console.warn('Unable to close processing dialog:', closeError);
+      }
+    }
+  };
+
   try {
     // Step 1: Initialize
     showProcessingModalDialog(processingDialogTexts[0][locale]);
+    processingDialogOpen = true;
     console.log('Generating CoMapeo config v2.0.0...');
 
     // Step 1.5: Migrate old spreadsheet format if needed
@@ -14,14 +28,17 @@ function generateCoMapeoConfig() {
     // Step 2: Lint (passing false to prevent UI alerts)
     console.log('Linting CoMapeo config...');
     showProcessingModalDialog(processingDialogTexts[2][locale]);
+    processingDialogOpen = true;
     lintAllSheets(false);
 
     // Step 3: Get data
     const data = getSpreadsheetData();
     showProcessingModalDialog(processingDialogTexts[3][locale]);
+    processingDialogOpen = true;
 
     // Step 4: Create build payload (JSON)
     showProcessingModalDialog(processingDialogTexts[4][locale]);
+    processingDialogOpen = true;
     console.log('Creating build payload...');
     const buildRequest = createBuildPayload(data);
 
@@ -30,14 +47,18 @@ function generateCoMapeoConfig() {
 
     // Step 5: Send to API (JSON mode)
     showProcessingModalDialog(processingDialogTexts[5][locale]);
+    processingDialogOpen = true;
     console.log('Sending JSON request to API...');
     const configUrl = sendBuildRequest(buildRequest);
 
     // Step 6: Show success dialog
     showProcessingModalDialog(processingDialogTexts[7][locale]);
+    processingDialogOpen = true;
+    closeProcessingDialogIfOpen();
     showConfigurationGeneratedDialog(configUrl);
   } catch (error) {
     console.error('Error generating CoMapeo config:', error);
+    closeProcessingDialogIfOpen();
 
     const ui = SpreadsheetApp.getUi();
     ui.alert(

@@ -340,6 +340,22 @@ function showProcessingModalDialog(dialogText: DialogText) {
   showModalDialogSafe(html, dialogText.title, 800, 600, "Processing");
 }
 
+function closeProcessingModalDialog(): void {
+  try {
+    const autoCloseHtml = HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><body><script>' +
+      'google.script.host.close();' +
+      '</script></body></html>'
+    )
+      .setWidth(10)
+      .setHeight(10);
+    SpreadsheetApp.getUi().showModalDialog(autoCloseHtml, '');
+    Utilities.sleep(50); // Allow dialog to render and close
+  } catch (error) {
+    console.warn('Unable to close processing dialog:', error);
+  }
+}
+
 /**
  * Updates the processing dialog with a new progress message without closing it.
  * Uses Google Apps Script's sidebar update mechanism.
