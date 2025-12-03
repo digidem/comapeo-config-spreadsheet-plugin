@@ -1276,7 +1276,7 @@ function validateSheetConsistency(
           translationRowCount,
           translationSheet.getLastColumn(),
         ),
-        ["#FFC7CE", "#FFF2CC"],
+        ["#FFC7CE", "#FFF2CC", "#FF0000"], // Include bright red for primary column mismatches
       );
     }
 
@@ -1293,6 +1293,58 @@ function validateSheetConsistency(
         translationSheet
           .getRange(1, 1, Math.min(translationRowCount, 1), 1)
           .setBackground("#FFF2CC"); // Light yellow warning
+      }
+    }
+
+    // CRITICAL: Validate primary language column values match between source and translation sheets
+    // This prevents translation lookup failures during config generation (e.g., "Animal" vs "Animal Terrs")
+    const minRowCheck = Math.min(sourceRowCount, translationRowCount) - 1; // Exclude header
+    if (minRowCheck > 0) {
+      // Determine source column based on translation sheet type
+      let sourceColumn = 1; // Default to column A
+      if (translationSheetName === "Detail Helper Text Translations") {
+        sourceColumn = 2; // Column B for helper text
+      } else if (translationSheetName === "Detail Option Translations") {
+        sourceColumn = 4; // Column D for options
+      }
+
+      // Read source and translation primary columns
+      const sourceData = sourceSheet.getRange(2, sourceColumn, minRowCheck, 1).getValues();
+      const translationData = translationSheet.getRange(2, 1, minRowCheck, 1).getValues();
+
+      // Collect mismatched cells
+      const mismatchedCells: Array<{ row: number; sourceValue: string; translationValue: string }> = [];
+
+      for (let i = 0; i < minRowCheck; i++) {
+        const sourceValue = String(sourceData[i][0] || "").trim();
+        const translationValue = String(translationData[i][0] || "").trim();
+
+        // Normalize comparison (case-insensitive, whitespace-normalized)
+        const normalizedSource = sourceValue.toLowerCase().replace(/\s+/g, " ");
+        const normalizedTranslation = translationValue.toLowerCase().replace(/\s+/g, " ");
+
+        if (normalizedSource !== normalizedTranslation) {
+          mismatchedCells.push({
+            row: i + 2, // +2 for header row and 0-index
+            sourceValue,
+            translationValue,
+          });
+
+          console.warn(
+            `Primary column mismatch in ${translationSheetName} row ${i + 2}: ` +
+              `Source="${sourceValue}", Translation="${translationValue}"`,
+          );
+        }
+      }
+
+      // Highlight mismatched cells in bright red to indicate critical error
+      if (mismatchedCells.length > 0) {
+        const rangeStrings = mismatchedCells.map(({ row }) =>
+          translationSheet.getRange(row, 1).getA1Notation(),
+        );
+        const rangeList = translationSheet.getRangeList(rangeStrings);
+        rangeList.setBackground("#FF0000"); // Bright red for critical mismatch
+        rangeList.setFontColor("#FFFFFF"); // White text for visibility
       }
     }
 
@@ -1683,6 +1735,303 @@ function runAllHtmlValidationTests(): void {
 }
 
 /**
+ * Detects translation sheet mismatches without modifying anything.
+ * Returns details about mismatches found.
+ *
+ * @returns Object with mismatch details or null if no mismatches found
+ */
+function detectTranslationMismatches(): {
+  hasMismatches: boolean;
+  details: Array<{
+    sheetName: string;
+    sourceSheet: string;
+    sourceColumn: string;
+    mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+  }>;
+} | null {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const allDetails: Array<{
+    sheetName: string;
+    sourceSheet: string;
+    sourceColumn: string;
+    mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+  }> = [];
+
+  // Check Category Translations
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  const categoryTranslationsSheet = spreadsheet.getSheetByName("Category Translations");
+
+  if (categoriesSheet && categoryTranslationsSheet) {
+    const catMismatches = checkSheetMismatches(
+      categoriesSheet,
+      categoryTranslationsSheet,
+      1, // Column A
+    );
+    if (catMismatches.length > 0) {
+      allDetails.push({
+        sheetName: "Category Translations",
+        sourceSheet: "Categories",
+        sourceColumn: "A",
+        mismatches: catMismatches,
+      });
+    }
+  }
+
+  // Check Detail translations
+  const detailsSheet = spreadsheet.getSheetByName("Details");
+  if (detailsSheet) {
+    const detailLabelTranslations = spreadsheet.getSheetByName("Detail Label Translations");
+    const detailHelperTranslations = spreadsheet.getSheetByName("Detail Helper Text Translations");
+    const detailOptionTranslations = spreadsheet.getSheetByName("Detail Option Translations");
+
+    if (detailLabelTranslations) {
+      const labelMismatches = checkSheetMismatches(detailsSheet, detailLabelTranslations, 1);
+      if (labelMismatches.length > 0) {
+        allDetails.push({
+          sheetName: "Detail Label Translations",
+          sourceSheet: "Details",
+          sourceColumn: "A",
+          mismatches: labelMismatches,
+        });
+      }
+    }
+
+    if (detailHelperTranslations) {
+      const helperMismatches = checkSheetMismatches(detailsSheet, detailHelperTranslations, 2);
+      if (helperMismatches.length > 0) {
+        allDetails.push({
+          sheetName: "Detail Helper Text Translations",
+          sourceSheet: "Details",
+          sourceColumn: "B",
+          mismatches: helperMismatches,
+        });
+      }
+    }
+
+    if (detailOptionTranslations) {
+      const optionMismatches = checkSheetMismatches(detailsSheet, detailOptionTranslations, 4);
+      if (optionMismatches.length > 0) {
+        allDetails.push({
+          sheetName: "Detail Option Translations",
+          sourceSheet: "Details",
+          sourceColumn: "D",
+          mismatches: optionMismatches,
+        });
+      }
+    }
+  }
+
+  if (allDetails.length === 0) {
+    return null;
+  }
+
+  return {
+    hasMismatches: true,
+    details: allDetails,
+  };
+}
+
+/**
+ * Helper function to check mismatches between source and translation sheet
+ */
+function checkSheetMismatches(
+  sourceSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  translationSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  sourceColumn: number,
+): Array<{ row: number; sourceValue: string; translationValue: string }> {
+  const sourceRowCount = sourceSheet.getLastRow();
+  const translationRowCount = translationSheet.getLastRow();
+  const minRowCheck = Math.min(sourceRowCount, translationRowCount) - 1;
+
+  if (minRowCheck <= 0) {
+    return [];
+  }
+
+  const sourceData = sourceSheet.getRange(2, sourceColumn, minRowCheck, 1).getValues();
+  const translationData = translationSheet.getRange(2, 1, minRowCheck, 1).getValues();
+
+  const mismatches: Array<{ row: number; sourceValue: string; translationValue: string }> = [];
+
+  for (let i = 0; i < minRowCheck; i++) {
+    const sourceValue = String(sourceData[i][0] || "").trim();
+    const translationValue = String(translationData[i][0] || "").trim();
+
+    const normalizedSource = sourceValue.toLowerCase().replace(/\s+/g, " ");
+    const normalizedTranslation = translationValue.toLowerCase().replace(/\s+/g, " ");
+
+    if (normalizedSource !== normalizedTranslation) {
+      mismatches.push({
+        row: i + 2,
+        sourceValue,
+        translationValue,
+      });
+    }
+  }
+
+  return mismatches;
+}
+
+/**
+ * Fixes translation sheet mismatches by re-syncing formulas from source sheets
+ * and optionally re-running translation for configured languages.
+ *
+ * @param reTranslate - Whether to re-run translation after fixing formulas
+ * @param mismatchData - Optional pre-detected mismatch data (avoids re-detection after formula sync)
+ */
+function fixTranslationMismatches(
+  reTranslate: boolean = true,
+  mismatchData?: {
+    hasMismatches: boolean;
+    details: Array<{
+      sheetName: string;
+      sourceSheet: string;
+      sourceColumn: string;
+      mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+    }>;
+  } | null
+): void {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Re-sync Category Translations formulas
+  const categoriesSheet = spreadsheet.getSheetByName("Categories");
+  const categoryTranslationsSheet = spreadsheet.getSheetByName("Category Translations");
+
+  if (categoriesSheet && categoryTranslationsSheet) {
+    const lastRow = categoriesSheet.getLastRow();
+    if (lastRow > 1) {
+      const formula = `=Categories!A2:A${lastRow}`;
+      categoryTranslationsSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+      console.log(`Re-synced Category Translations formulas (rows 2-${lastRow})`);
+    }
+  }
+
+  // Re-sync Detail translations formulas
+  const detailsSheet = spreadsheet.getSheetByName("Details");
+  if (detailsSheet) {
+    const lastRow = detailsSheet.getLastRow();
+
+    if (lastRow > 1) {
+      // Detail Label Translations (column A)
+      const detailLabelSheet = spreadsheet.getSheetByName("Detail Label Translations");
+      if (detailLabelSheet) {
+        const formula = `=Details!A2:A${lastRow}`;
+        detailLabelSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+        console.log(`Re-synced Detail Label Translations formulas (rows 2-${lastRow})`);
+      }
+
+      // Detail Helper Text Translations (column B)
+      const detailHelperSheet = spreadsheet.getSheetByName("Detail Helper Text Translations");
+      if (detailHelperSheet) {
+        const formula = `=Details!B2:B${lastRow}`;
+        detailHelperSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+        console.log(`Re-synced Detail Helper Text Translations formulas (rows 2-${lastRow})`);
+      }
+
+      // Detail Option Translations (column D)
+      const detailOptionSheet = spreadsheet.getSheetByName("Detail Option Translations");
+      if (detailOptionSheet) {
+        const formula = `=Details!D2:D${lastRow}`;
+        detailOptionSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+        console.log(`Re-synced Detail Option Translations formulas (rows 2-${lastRow})`);
+      }
+    }
+  }
+
+  // Re-translate if requested
+  if (reTranslate) {
+    console.log("Re-running translation for configured languages...");
+
+    // Get configured target languages from Category Translations headers
+    if (categoryTranslationsSheet) {
+      const lastColumn = categoryTranslationsSheet.getLastColumn();
+      if (lastColumn > 1) {
+        const headers = categoryTranslationsSheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+        const targetLanguages: TranslationLanguage[] = [];
+        const allLanguages = getAllLanguages();
+
+        // Extract language codes from headers (skip first column which is primary language)
+        for (let i = 1; i < headers.length; i++) {
+          const header = String(headers[i] || "").trim();
+          if (!header) continue;
+
+          // Check if it's a standard language name
+          const langCode = Object.entries(allLanguages).find(
+            ([code, name]) => name === header,
+          )?.[0];
+
+          if (langCode) {
+            targetLanguages.push(langCode as TranslationLanguage);
+          } else {
+            // Check for custom language format: "Language Name - ISO"
+            const match = header.match(/.*\s*-\s*(\w+)/);
+            if (match) {
+              targetLanguages.push(match[1].trim() as TranslationLanguage);
+            }
+          }
+        }
+
+        if (targetLanguages.length > 0) {
+          console.log(`Re-translating to languages: ${targetLanguages.join(", ")}`);
+
+          // OPTIMIZATION: Only clear and re-translate rows that have mismatches
+          // Use pre-detected mismatch data if provided, otherwise detect now
+          const mismatchResult = mismatchData || detectTranslationMismatches();
+
+          if (mismatchResult && mismatchResult.hasMismatches) {
+            console.log(`Found ${mismatchResult.details.length} translation sheet(s) with mismatches`);
+
+            // Clear only the mismatched rows in each sheet
+            mismatchResult.details.forEach(detail => {
+              const sheet = spreadsheet.getSheetByName(detail.sheetName);
+              if (!sheet || sheet.getLastColumn() <= 1) return;
+
+              const colCount = sheet.getLastColumn() - 1; // Exclude primary language column
+              const mismatchedRows = detail.mismatches.map(m => m.row);
+
+              // Clear translation columns for only the mismatched rows
+              mismatchedRows.forEach(row => {
+                sheet.getRange(row, 2, 1, colCount).clearContent();
+              });
+
+              console.log(
+                `Cleared translations for ${mismatchedRows.length} mismatched row(s) in ${detail.sheetName}: ` +
+                `rows ${mismatchedRows.join(", ")}`
+              );
+            });
+          } else {
+            console.log("No mismatches detected, skipping clearing step");
+          }
+
+          autoTranslateSheetsBidirectional(targetLanguages);
+        } else {
+          console.log("No target languages found in headers, skipping re-translation");
+        }
+      }
+    }
+  }
+
+  // Clear any bright red highlighting and white font from the primary column after fixing
+  // This removes the visual indicators since the issues have been resolved
+  const translationSheetNames = [
+    "Category Translations",
+    "Detail Label Translations",
+    "Detail Helper Text Translations",
+    "Detail Option Translations",
+  ];
+
+  translationSheetNames.forEach(sheetName => {
+    const sheet = spreadsheet.getSheetByName(sheetName);
+    if (sheet && sheet.getLastRow() > 1) {
+      const range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1);
+      clearRangeBackgroundIfMatches(range, ["#FF0000"]);
+      clearRangeFontColorIfMatches(range, ["#FFFFFF"]);
+    }
+  });
+
+  console.log("Translation sheet fix complete");
+}
+
+/**
  * Main linting function that validates all sheets in the spreadsheet.
  *
  * @param showAlerts - Whether to show UI alerts (default: true). Set to false when called from other functions.
@@ -1708,12 +2057,14 @@ function lintAllSheets(showAlerts: boolean = true): void {
       ui.alert(
         "Linting Complete",
         "All sheets have been linted. Please check for:\n" +
+          "- BRIGHT RED cells with white text: CRITICAL translation mismatch - primary language values don't match source sheet\n" +
           "- Yellow highlighted cells: Required fields missing, unreferenced details, or translation row mismatches\n" +
           "- Red highlighted cells: Invalid values, missing options, invalid Universal flags, or invalid translation headers\n" +
           "- Red text in Categories icon column: Missing or invalid icons (hover for details)\n" +
           "- Red text in Categories fields column: Invalid field references (hover for details)\n" +
           "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches\n" +
-          "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes",
+          "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes\n\n" +
+          "⚠️  IMPORTANT: Bright red cells will cause translation failures. Re-sync translation sheets before generating config.",
         ui.ButtonSet.OK,
       );
     }

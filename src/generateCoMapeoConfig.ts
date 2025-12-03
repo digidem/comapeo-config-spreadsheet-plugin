@@ -25,6 +25,65 @@ function generateCoMapeoConfig() {
     // Step 1.5: Migrate old spreadsheet format if needed
     migrateSpreadsheetFormat();
 
+    // Step 1.6: Check for translation sheet mismatches BEFORE linting
+    console.log('Checking translation sheet consistency...');
+    const mismatchResult = detectTranslationMismatches();
+
+    if (mismatchResult && mismatchResult.hasMismatches) {
+      closeProcessingDialogIfOpen();
+
+      // Build detailed error message
+      let errorDetails = "Translation sheet mismatches detected:\n\n";
+      mismatchResult.details.forEach(detail => {
+        errorDetails += `${detail.sheetName}:\n`;
+        detail.mismatches.forEach(m => {
+          errorDetails += `  Row ${m.row}: "${m.sourceValue}" → "${m.translationValue}"\n`;
+        });
+        errorDetails += "\n";
+      });
+
+      // Show dialog with fix/abort options
+      const ui = SpreadsheetApp.getUi();
+      const response = ui.alert(
+        "Translation Sheet Mismatch Detected",
+        errorDetails +
+        "Primary language values in translation sheets don't match their source sheets.\n" +
+        "This will cause translation lookup failures during config generation.\n\n" +
+        "Do you want to automatically fix these issues?\n" +
+        "• YES: Re-sync formulas and re-translate to configured languages\n" +
+        "• NO: Highlight issues in red and abort generation",
+        ui.ButtonSet.YES_NO
+      );
+
+      if (response === ui.Button.YES) {
+        // Fix and continue
+        const fixingDialogText = {
+          en: {
+            title: "Fixing Translation Mismatches",
+            message: ["Re-syncing formulas and re-translating...", "This may take a moment"],
+          },
+          es: {
+            title: "Corrigiendo Desajustes de Traducción",
+            message: ["Re-sincronizando fórmulas y volviendo a traducir...", "Esto puede tardar un momento"],
+          },
+        };
+        showProcessingModalDialog(fixingDialogText[locale]);
+        processingDialogOpen = true;
+        console.log('Fixing translation mismatches...');
+        fixTranslationMismatches(true, mismatchResult); // Pass pre-detected mismatch data
+        console.log('Translation fixes applied, continuing with generation...');
+      } else {
+        // Abort - run linting to highlight issues in red
+        console.log('User chose to abort. Running linting to highlight issues...');
+        lintAllSheets(false); // This will highlight mismatches in bright red
+        throw new Error(
+          "Config generation aborted due to translation sheet mismatches. " +
+          "Mismatched cells have been highlighted in bright red. " +
+          "Please review and fix manually, or run generation again to auto-fix."
+        );
+      }
+    }
+
     // Step 2: Lint (passing false to prevent UI alerts)
     console.log('Linting CoMapeo config...');
     showProcessingModalDialog(processingDialogTexts[2][locale]);
