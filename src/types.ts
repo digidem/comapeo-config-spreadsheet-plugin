@@ -25,6 +25,7 @@ interface Metadata {
   description?: string;
   builderName?: string;
   builderVersion?: string;
+  legacyCompat?: boolean;
 }
 
 interface Category {

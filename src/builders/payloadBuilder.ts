@@ -156,16 +156,30 @@ function buildMetadata(data: SheetData): Metadata {
     return defaultVal;
   };
 
+  const getBooleanValue = (key: string, defaultVal: boolean): boolean => {
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === key) {
+        const val = String(sheetData[i][1]).trim().toUpperCase();
+        return val === 'TRUE';
+      }
+    }
+    // Key not found - append new row with default value
+    metadataSheet.appendRow([key, defaultVal ? 'TRUE' : 'FALSE']);
+    return defaultVal;
+  };
+
   const name = getValue('name', `config-${slugify(documentName)}`);
   const version = getValue('version', Utilities.formatDate(new Date(), 'UTC', 'yy.MM.dd'));
   const description = getValue('description', '');
+  const legacyCompat = getBooleanValue('legacyCompat', false);
 
   return {
     name,
     version,
     description: description || undefined,
     builderName: PLUGIN_INFO.NAME,
-    builderVersion: PLUGIN_INFO.VERSION
+    builderVersion: PLUGIN_INFO.VERSION,
+    legacyCompat: legacyCompat || undefined
   };
 }
 

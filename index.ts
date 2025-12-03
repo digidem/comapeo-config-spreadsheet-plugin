@@ -36,6 +36,7 @@ function onOpen() {
     .addItem("Create Test Spreadsheet for Regression", "createTestSpreadsheetForRegression")
     .addItem("Test Runner", "runAllTests")
     .addItem("Capture Baseline Performance Metrics", "captureAndDocumentBaselineMetrics")
+    .addItem("Turn on legacy compatibility", "toggleLegacyCompatibility")
     .addItem(
       menuTexts[locale].generateCoMapeoCategoryDebug,
       "generateCoMapeoCategoryDebug",
@@ -304,4 +305,51 @@ function clearLanguagesCacheMenuItem() {
       );
     }
   }
+}
+
+/**
+ * Toggle legacy compatibility flag in metadata sheet
+ * Adds or updates legacyCompat key with TRUE/FALSE value
+ */
+function toggleLegacyCompatibility() {
+  const ui = SpreadsheetApp.getUi();
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let metadataSheet = spreadsheet.getSheetByName('Metadata');
+
+  if (!metadataSheet) {
+    // Create Metadata sheet if it doesn't exist
+    metadataSheet = spreadsheet.insertSheet('Metadata');
+    metadataSheet.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]).setFontWeight('bold');
+  }
+
+  const data = metadataSheet.getDataRange().getValues();
+  let currentValue = 'FALSE';
+  let rowIndex = -1;
+
+  // Find existing legacyCompat key
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'legacyCompat') {
+      currentValue = String(data[i][1]).trim().toUpperCase();
+      rowIndex = i;
+      break;
+    }
+  }
+
+  // Toggle value
+  const newValue = currentValue === 'TRUE' ? 'FALSE' : 'TRUE';
+
+  if (rowIndex === -1) {
+    // Append new row
+    metadataSheet.appendRow(['legacyCompat', newValue]);
+  } else {
+    // Update existing row
+    metadataSheet.getRange(rowIndex + 1, 2).setValue(newValue);
+  }
+
+  // Show confirmation
+  ui.alert(
+    'Legacy Compatibility',
+    `Legacy compatibility has been turned ${newValue === 'TRUE' ? 'ON' : 'OFF'}.`,
+    ui.ButtonSet.OK
+  );
 }
