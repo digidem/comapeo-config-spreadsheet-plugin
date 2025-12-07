@@ -663,7 +663,10 @@ function validateCategoryIcons(): void {
         return;
       }
 
-      if (iconValue.startsWith("data:")) {
+      if (iconValue.startsWith("<svg")) {
+        // Inline SVG markup is allowed; no extra validation here
+        iconSlug = presetSlug;
+      } else if (iconValue.startsWith("data:")) {
         if (!iconValue.startsWith("data:image/svg+xml")) {
           addIssue(rowNumber, "Icon data URI must be image/svg+xml.");
         }
@@ -839,6 +842,7 @@ function lintCategoriesSheet(): void {
           return;
         }
 
+        const isInlineSvg = trimmedValue.startsWith("<svg");
         const isDriveUrl =
           trimmedValue.startsWith("https://drive.google.com/") &&
           extractDriveFileId(trimmedValue) !== null;
@@ -859,6 +863,7 @@ function lintCategoriesSheet(): void {
         }
 
         const isValidReference =
+          isInlineSvg ||
           isDriveUrl ||
           isDataUri ||
           isHttpSvg ||
