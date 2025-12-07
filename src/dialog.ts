@@ -1,3 +1,22 @@
+/**
+ * Closes any currently open modal dialog.
+ *
+ * Google Apps Script cannot directly close dialogs from server-side code.
+ * This workaround shows a new modal dialog containing a script that immediately
+ * closes itself using google.script.host.close(). Since only one modal can be
+ * open at a time, this effectively replaces and closes any existing modal.
+ *
+ * Call this function before showing error alerts to prevent stale processing
+ * dialogs from remaining visible after an error occurs.
+ */
+function closeAllDialogs(): void {
+  const html = HtmlService.createHtmlOutput(`
+    <script>google.script.host.close();</script>
+  `).setWidth(1).setHeight(1);
+
+  SpreadsheetApp.getUi().showModalDialog(html, ' ');
+}
+
 function generateDialog(title: string, message: string, buttonText?: string, buttonUrl?: string, buttonFunction?: string): string {
   return `
     <!DOCTYPE html>
