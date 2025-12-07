@@ -44,6 +44,9 @@ function generateCoMapeoConfig() {
   } catch (error) {
     console.error('Error generating CoMapeo config:', error);
 
+    // Close any open modal dialogs before showing the error alert
+    closeAllDialogs();
+
     const ui = SpreadsheetApp.getUi();
     ui.alert(
       "Error Generating CoMapeo Category",
