@@ -82,6 +82,9 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
     // Check total timeout before attempting
     const elapsedTime = Date.now() - startTime;
     if (elapsedTime >= RETRY_CONFIG.MAX_TOTAL_TIMEOUT_MS) {
+      // Close any open modal dialogs before showing the error alert
+      closeProcessingModalDialog();
+
       const ui = SpreadsheetApp.getUi();
       const errorMessage = `API request timed out after ${Math.round(elapsedTime / 1000)} seconds.\n\n` +
         `Last error: ${lastError?.message || "Maximum timeout exceeded"}\n\n` +
@@ -94,6 +97,9 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
 
     try {
       if (attemptNumber > 1) {
+        // Close any open modal dialogs before showing the retry alert
+        closeProcessingModalDialog();
+
         const ui = SpreadsheetApp.getUi();
         ui.alert(
           "Retrying API Request",
@@ -164,6 +170,9 @@ function sendBuildRequest(buildRequest: BuildRequest, maxRetries: number = RETRY
   }
 
   // Exhausted all retries
+  // Close any open modal dialogs before showing the error alert
+  closeProcessingModalDialog();
+
   const ui = SpreadsheetApp.getUi();
   const errorMessage = `Failed to generate the CoMapeo category file after ${maxRetries} attempts.\n\n` +
     `Last error: ${lastError?.message || "Unknown error"}\n\n` +
