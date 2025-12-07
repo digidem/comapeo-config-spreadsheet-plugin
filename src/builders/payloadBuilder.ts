@@ -189,6 +189,14 @@ function buildMetadata(data: SheetData): Metadata {
 function buildFields(data: SheetData): Field[] {
   const details = data.Details?.slice(1) || [];
 
+  // Keep a handle to the sheet so we can write back auto-generated IDs for missing values
+  let detailsSheet: GoogleAppsScript.Spreadsheet.Sheet | null = null;
+  try {
+    detailsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Details');
+  } catch (error) {
+    console.warn('Unable to fetch Details sheet for ID backfill:', error);
+  }
+
   // Use headers from data directly instead of fetching from sheet again
   const headerRow = data.Details?.[0] || [];
   const headerMap: Record<string, number> = {};
@@ -211,6 +219,9 @@ function buildFields(data: SheetData): Field[] {
   const optionsCol = getCol('options') ?? DETAILS_COL.OPTIONS;
   const idCol = getCol('id') ?? DETAILS_COL.ID;
 
+  // Track rows where we auto-generate IDs so we can write them back to the sheet
+  const pendingIdWrites: { row: number; value: string }[] = [];
+
   return details
     .map((row, index) => {
       const name = String(row[nameCol] || '').trim();
@@ -227,28 +238,22 @@ function buildFields(data: SheetData): Field[] {
       let type: FieldType;
       let options: SelectOption[] | undefined;
 
-      switch (typeRaw) {
+      const typeKey = typeRaw.charAt(0); // first letter covers translations (t=texto/text, s=select/single, m=multi, n=numero/number)
+
+      switch (typeKey) {
         case 'm':
-        case 'multi':
-        case 'multiselect':
           type = 'selectMultiple';
           options = parseOptions(optionsStr);
           break;
         case 'n':
-        case 'number':
           type = 'number';
           break;
         case 't':
-        case 'text':
           type = 'text';
           break;
-        case 'single':
-        case 'select':
+        // default + 's' + blank → single choice
         case 's':
         case '':
-          type = 'selectOne';
-          options = parseOptions(optionsStr);
-          break;
         default:
           type = 'selectOne';
           options = parseOptions(optionsStr);
@@ -260,9 +265,14 @@ function buildFields(data: SheetData): Field[] {
         return null;
       }
 
+      const autoId = idStr || slugify(name);
+      if (!idStr && detailsSheet && idCol !== undefined) {
+        pendingIdWrites.push({ row: index + 2, value: autoId }); // sheet rows are 1-based, +1 for header, +1 to reach first data row
+      }
+
       return {
-        id: idStr || slugify(name),  // Use explicit ID if provided, otherwise slugify name
-        tagKey: idStr || slugify(name), // API v2 requires tagKey
+        id: autoId,  // Use explicit ID if provided, otherwise slugify name
+        tagKey: autoId, // API v2 requires tagKey
         name,
         type,
         description: helperText || undefined,
@@ -272,7 +282,20 @@ function buildFields(data: SheetData): Field[] {
         // Note: required property is not set from spreadsheet - universal flag is separate from required
       } as Field;
     })
-    .filter((field): field is Field => field !== null);
+    .filter((field): field is Field => field !== null)
+    .map((field, arrayIndex) => {
+      // After we know the sheet exists, write back pending IDs in a single pass to avoid surprises
+      if (arrayIndex === 0 && pendingIdWrites.length > 0 && detailsSheet && idCol !== undefined) {
+        try {
+          pendingIdWrites.forEach(write => {
+            detailsSheet!.getRange(write.row, idCol + 1).setValue(write.value);
+          });
+        } catch (err) {
+          console.warn('Failed to write auto-generated field IDs to Details sheet:', err);
+        }
+      }
+      return field;
+    });
 }
 
 /**
@@ -511,21 +534,64 @@ function buildCategories(data: SheetData, fields: Field[]): Category[] {
     .filter((cat): cat is Category => cat !== null);
 
   if (!hasTrackCategory) {
-    const message = 'At least one category must include "track" in the Applies column. Please update the Categories sheet and try again.';
-    try {
-      if (typeof SpreadsheetApp !== 'undefined') {
-        SpreadsheetApp.getUi().alert(
-          'Track Applies Required',
-          `${message}
+    const appliesColumnMissing = appliesCol === undefined;
+    const wasAutoCreated = AUTO_CREATED_APPLIES_COLUMN === true;
+
+    // UX improvement: if the Applies column is missing, auto-create + seed it instead of failing hard
+    if (appliesColumnMissing || wasAutoCreated) {
+      console.warn('Applies column missing or newly created; seeding first category with track + observation.');
+
+      try {
+        if (categoriesSheet && typeof ensureAppliesColumn === 'function') {
+          ensureAppliesColumn(categoriesSheet);
+          AUTO_CREATED_APPLIES_COLUMN = true;
+        }
+
+        // Seed first visible row with track + observation so downstream validation passes
+        if (categoriesSheet) {
+          try {
+            const seedCell = categoriesSheet.getRange(2, 4);
+            if (!String(seedCell.getValue() || '').trim()) {
+              seedCell.setValue('track, observation');
+            }
+          } catch (seedError) {
+            console.warn('Unable to seed Applies column default value:', seedError);
+          }
+        }
+
+        if (mappedCategories.length > 0) {
+          mappedCategories[0].appliesTo = ['track', 'observation'];
+          hasTrackCategory = true;
+        }
+
+        try {
+          SpreadsheetApp.getActiveSpreadsheet()
+            .toast('Added Applies column and set first category to track + observation. Please review column D.', 'Applies column added', 8);
+        } catch (toastError) {
+          console.warn('Unable to display Applies column toast:', toastError);
+        }
+      } catch (repairError) {
+        console.warn('Auto-create Applies column failed; falling back to validation error.', repairError);
+      }
+    }
+
+    if (!hasTrackCategory) {
+      const message = 'At least one category must include "track" in the Applies column. Please update the Categories sheet and try again.';
+      try {
+        if (typeof SpreadsheetApp !== 'undefined') {
+          SpreadsheetApp.getUi().alert(
+            'Track Applies Required',
+            `${message}
 
 Tip: mark the categories that should appear in the track viewer with "track" (you can combine it with "observation").`,
-          SpreadsheetApp.getUi().ButtonSet.OK
-        );
+            SpreadsheetApp.getUi().ButtonSet.OK
+          );
+        }
+      } catch (error) {
+        console.warn('Unable to show missing track alert:', error);
       }
-    } catch (error) {
-      console.warn('Unable to show missing track alert:', error);
+      throw new Error(message);
     }
-    throw new Error(message);
   }
 
   return mappedCategories;
