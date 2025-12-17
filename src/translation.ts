@@ -1,27 +1,141 @@
+/// <reference path="./types.ts" />
+/// <reference path="./loggingHelpers.ts" />
+
+function getTranslationServiceLogger() {
+  return typeof getScopedLogger === "function"
+    ? getScopedLogger("TranslationService")
+    : console;
+}
+
 const MAIN_LANGUAGE_COLUMN = "A";
 const CATEGORIES_SHEET = "Categories";
 const DETAILS_SHEET = "Details";
 const CATEGORY_TRANSLATIONS_SHEET = "Category Translations";
+const DETAIL_LABEL_TRANSLATIONS_SHEET = "Detail Label Translations";
 const DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET = "Detail Helper Text Translations";
 const DETAIL_OPTION_TRANSLATIONS_SHEET = "Detail Option Translations";
 const DETAILS_HELPER_TEXT_COLUMN = "B";
 const DETAILS_OPTIONS_COLUMN = "D";
 
+function normalizeLanguageSelection(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): LanguageSelectionPayload {
+  if (Array.isArray(selection)) {
+    const autoLanguages = selection
+      .map((lang) => (typeof lang === "string" ? lang.trim() : ""))
+      .filter((lang): lang is TranslationLanguage => Boolean(lang));
+    return { autoTranslateLanguages: autoLanguages, customLanguages: [] };
+  }
+
+  if (!selection) {
+    return { autoTranslateLanguages: [], customLanguages: [] };
+  }
+
+  const autoTranslateLanguages = Array.isArray(selection.autoTranslateLanguages)
+    ? selection.autoTranslateLanguages
+        .map((lang) => (typeof lang === "string" ? lang.trim() : ""))
+        .filter((lang): lang is TranslationLanguage => Boolean(lang))
+    : [];
+
+  const customLanguages = Array.isArray(selection.customLanguages)
+    ? selection.customLanguages.map((lang) => ({
+        name: typeof lang?.name === "string" ? lang.name : "",
+        iso: typeof lang?.iso === "string" ? lang.iso : "",
+      }))
+    : [];
+
+  return { autoTranslateLanguages, customLanguages };
+}
+
+function manageLanguagesAndTranslate(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): void {
+  const log = getTranslationServiceLogger();
+  const { autoTranslateLanguages, customLanguages } = normalizeLanguageSelection(selection);
+
+  log.info("[LANGUAGE MANAGEMENT] Received selection", {
+    autoTranslateLanguages,
+    customLanguages,
+  });
+
+  if (customLanguages.length > 0) {
+    log.info("[LANGUAGE MANAGEMENT] Adding custom language columns", customLanguages);
+    addCustomLanguagesToTranslationSheets(customLanguages);
+  } else {
+    log.info("[LANGUAGE MANAGEMENT] No custom languages requested");
+  }
+
+  if (autoTranslateLanguages.length > 0) {
+    log.info("[LANGUAGE MANAGEMENT] Running bidirectional translation", autoTranslateLanguages);
+    autoTranslateSheetsBidirectional(autoTranslateLanguages);
+  } else {
+    log.info("[LANGUAGE MANAGEMENT] No auto-translate languages selected; skipping translation");
+  }
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (spreadsheet) {
+    const appliedUpdates = customLanguages.length > 0 || autoTranslateLanguages.length > 0;
+    const toastTitle = "Language Manager";
+    const toastMessage = appliedUpdates
+      ? "Language updates applied successfully."
+      : "No language changes detected.";
+    spreadsheet.toast(toastMessage, toastTitle, 5);
+  }
+}
+
+function handleLanguageSelection(
+  selection: TranslationLanguage[] | LanguageSelectionPayload | null | undefined,
+): void {
+  try {
+    manageLanguagesAndTranslate(selection);
+  } catch (error) {
+    const ui = SpreadsheetApp.getUi();
+    const message = error instanceof Error ? error.message : String(error);
+    ui.alert(
+      translateMenuTexts[locale].error,
+      `${translateMenuTexts[locale].errorText}${message}`,
+      ui.ButtonSet.OK,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Translates a sheet from source language to a single target language
+ *
+ * Reads text from column A (source language) and translates to target language column.
+ * Only translates cells that are empty in the target column. Uses Google Translate API.
+ *
+ * @param sheetName - Name of the sheet to translate
+ * @param targetLanguage - ISO language code for target language (e.g., "es", "fr")
+ * @param sourceLanguage - Optional source language code (defaults to primary language from cell A1)
+ *
+ * @example
+ * translateSheet("Category Translations", "es");
+ * // Translates from primary language to Spanish
+ */
 function translateSheet(
   sheetName: string,
   targetLanguage: TranslationLanguage,
+  sourceLanguage?: TranslationLanguage,
 ): void {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if (!sheet) {
     throw new Error(`Sheet "${sheetName}" not found`);
   }
   const lastRow = sheet.getLastRow();
-  const languagesList = languages();
-  const mainLanguage = Object.keys(languages(true))[0];
-  console.log('Main language', mainLanguage);
+  const languagesList: LanguageMap = languages();
+  const primaryLanguage = getPrimaryLanguage();
+  const mainLanguage = sourceLanguage || primaryLanguage.code;
+
+  getTranslationServiceLogger().info("Source language", mainLanguage);
+  getTranslationServiceLogger().info("Target language", targetLanguage);
+  getTranslationServiceLogger().info("Primary language from A1", primaryLanguage);
+
   for (const [code, name] of Object.entries(languagesList)) {
-    console.log(`Language code: ${code}, name: ${name}`);
+    getTranslationServiceLogger().info(`Language code: ${code}, name: ${name}`);
   }
+
   const targetColumn = Object.keys(languagesList).indexOf(targetLanguage) + 2;
 
   for (let i = 2; i <= lastRow; i++) {
@@ -29,59 +143,378 @@ function translateSheet(
     if (originalText) {
       const targetCell = sheet.getRange(i, targetColumn);
       if (!targetCell.getValue()) {
-        const translation = LanguageApp.translate(
-          originalText,
-          mainLanguage,
-          targetLanguage,
-        );
-        targetCell.setValue(translation);
+        try {
+          const translation = LanguageApp.translate(
+            originalText,
+            mainLanguage,
+            targetLanguage,
+          );
+          targetCell.setValue(translation);
+        } catch (error) {
+          getTranslationServiceLogger().warn(`Translation failed for "${originalText}" from ${mainLanguage} to ${targetLanguage}: ${error.message}`);
+          // Skip this translation but don't fail the entire process
+        }
       }
     }
   }
 }
 
-function createCategoryTranslationsSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+/**
+ * Translates a sheet from source language to multiple target languages bidirectionally
+ *
+ * Supports custom language columns (format: "Language Name - ISO") in addition to
+ * standard languages. Validates all target languages before translation. Skips cells
+ * that already have translations.
+ *
+ * @param sheetName - Name of the sheet to translate
+ * @param targetLanguages - Array of ISO language codes for target languages
+ * @param sourceLanguage - Optional source language code (defaults to primary language)
+ * @throws Error if source and target languages are the same, or if target languages are invalid
+ *
+ * @example
+ * translateSheetBidirectional("Category Translations", ["es", "fr", "pt"]);
+ * // Translates from primary language to Spanish, French, and Portuguese
+ */
+function translateSheetBidirectional(
+  sheetName: string,
+  targetLanguages: TranslationLanguage[],
+  sourceLanguage?: TranslationLanguage,
+): void {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`Sheet "${sheetName}" not found`);
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    getTranslationServiceLogger().warn(`Sheet "${sheetName}" has no data to translate`);
+    return;
+  }
+
+  const primaryLanguage = getPrimaryLanguage();
+  const actualSourceLanguage = sourceLanguage || primaryLanguage.code;
+  const availableTargetLanguages: LanguageMap = getAvailableTargetLanguages();
+
+
+  // Validate that source language is different from target languages
+  const conflictingLanguages = targetLanguages.filter(lang => lang === actualSourceLanguage);
+  if (conflictingLanguages.length > 0) {
+    throw new Error(`Cannot translate from ${actualSourceLanguage} to itself`);
+  }
+
+  // Validate that target languages are available
+  const invalidLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  if (invalidLanguages.length > 0) {
+    throw new Error(`Invalid target languages: ${invalidLanguages.join(', ')}`);
+  }
+
+  getTranslationServiceLogger().info("Bidirectional translation:");
+  getTranslationServiceLogger().info("Source language:", actualSourceLanguage);
+  getTranslationServiceLogger().info("Target languages:", targetLanguages);
+  getTranslationServiceLogger().info("Available target languages:", availableTargetLanguages);
+
+  // Get headers to find column positions
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+
+  let translationErrors: string[] = [];
+  let successfulTranslations = 0;
+
+  const translationCache = new Map<string, string>();
+  const allLanguages: LanguageMap = getAllLanguages();
+  const targetColumnIndexes = new Map<TranslationLanguage, number>();
+
+  for (const targetLang of targetLanguages) {
+    // Find the target column for this language
+    let targetColumn = -1;
+
+    // First check all available languages
+    if (allLanguages[targetLang]) {
+      const targetLanguageName = allLanguages[targetLang];
+      targetColumn = headers.findIndex(header => header === targetLanguageName);
+    } else {
+      // Check for custom languages (format: "Language Name - ISO")
+      targetColumn = headers.findIndex(header =>
+        header && typeof header === "string" && header.includes(` - ${targetLang}`)
+      );
+    }
+
+    if (targetColumn === -1) {
+      translationErrors.push(`Target column not found for language: ${targetLang}`);
+      continue;
+    }
+
+    targetColumnIndexes.set(targetLang, targetColumn);
+  }
+
+  const rowCount = lastRow - 1;
+  if (rowCount <= 0 || targetColumnIndexes.size === 0) {
+    getTranslationServiceLogger().info(`No translation updates required for ${sheetName}`);
+  } else {
+    const sheetValues = sheet.getRange(2, 1, rowCount, lastColumn).getValues();
+    const updatedColumns = new Map<number, string[]>();
+    const updatedColumnIndexes = new Set<number>();
+
+    targetColumnIndexes.forEach((columnIndex) => {
+      const columnValues = sheetValues.map((row) => row[columnIndex]);
+      updatedColumns.set(columnIndex, columnValues.slice());
+    });
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      const rawValue = sheetValues[rowIndex][0];
+      const originalText = typeof rawValue === "string" ? rawValue.trim() : String(rawValue || "").trim();
+      if (!originalText) {
+        continue;
+      }
+
+      targetColumnIndexes.forEach((columnIndex, targetLang) => {
+        const columnValues = updatedColumns.get(columnIndex);
+        if (!columnValues) {
+          return;
+        }
+
+        const existingValue = columnValues[rowIndex];
+        if (existingValue && String(existingValue).trim() !== "") {
+          return;
+        }
+
+        const cacheKey = `${targetLang}::${originalText}`;
+        let translation = translationCache.get(cacheKey);
+
+        if (!translation) {
+          try {
+            const translatedText = LanguageApp.translate(
+              originalText,
+              actualSourceLanguage,
+              targetLang,
+            );
+            translation = translatedText ? translatedText.trim() : "";
+            if (translation) {
+              translationCache.set(cacheKey, translation);
+            }
+          } catch (error) {
+            const errorMessage = `Translation error for ${targetLang} (row ${rowIndex + 2}): ${error.message}`;
+            getTranslationServiceLogger().error(errorMessage);
+            translationErrors.push(errorMessage);
+            translation = "";
+          }
+        }
+
+        if (translation) {
+          columnValues[rowIndex] = translation;
+          updatedColumnIndexes.add(columnIndex);
+          successfulTranslations++;
+        }
+      });
+    }
+
+    updatedColumnIndexes.forEach((columnIndex) => {
+      const columnValues = updatedColumns.get(columnIndex);
+      if (!columnValues) {
+        return;
+      }
+
+      const valuesToWrite = columnValues.map((value) => [value]);
+      sheet.getRange(2, columnIndex + 1, rowCount, 1).setValues(valuesToWrite);
+    });
+  }
+
+  getTranslationServiceLogger().info(`Translation summary for ${sheetName}:`, {
+    successfulTranslations,
+    errors: translationErrors.length,
+  });
+
+  if (translationErrors.length > 0) {
+    getTranslationServiceLogger().warn("Translation errors:", translationErrors);
+  }
+}
+
+/**
+ * Creates or retrieves the Category Translations sheet
+ *
+ * Creates a new sheet with language headers (primary language + target languages).
+ * Links column A to Categories sheet with formulas for automatic sync.
+ * If target languages not specified, includes all available languages.
+ *
+ * @param targetLanguages - Optional array of ISO language codes to include as columns
+ * @returns The Category Translations sheet
+ *
+ * @example
+ * const sheet = createCategoryTranslationsSheet(["es", "fr"]);
+ * // Creates sheet with columns: Primary Language, Spanish, French
+ */
+function createCategoryTranslationsSheet(targetLanguages?: TranslationLanguage[]): GoogleAppsScript.Spreadsheet.Sheet {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET);
 
   if (!sheet) {
     sheet = spreadsheet.insertSheet(CATEGORY_TRANSLATIONS_SHEET);
-    const mainLanguage = Object.entries(languages(true))[0];
-    const otherLanguages = Object.entries(languages());
-    const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    const primaryLanguage = getPrimaryLanguage();
+    const allLanguages = getAllLanguages();
+
+    // Create headers: primary language + selected target languages only
+    const headers = [primaryLanguage.name];
+
+    if (targetLanguages && targetLanguages.length > 0) {
+      // Add only selected target languages
+      for (const langCode of targetLanguages) {
+        if (allLanguages[langCode]) {
+          headers.push(allLanguages[langCode]);
+        }
+      }
+    } else {
+      // Fallback to old behavior if no target languages specified
+      const otherLanguages = Object.entries(languages());
+      headers.push(...otherLanguages.map(([_, name]) => name));
+    }
+
+    sheet
+      .getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight("bold");
 
     const categoriesSheet = spreadsheet.getSheetByName(CATEGORIES_SHEET);
     if (categoriesSheet) {
       const lastRow = categoriesSheet.getLastRow();
-
-      // Create individual formulas for each row to avoid spill conflicts
-      // Each cell references its corresponding row in the Categories sheet
-      const formulas: string[][] = [];
-      for (let i = 2; i <= lastRow; i++) {
-        formulas.push([`=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}${i}`]);
-      }
-
-      if (formulas.length > 0) {
-        sheet.getRange(2, 1, formulas.length, 1).setFormulas(formulas);
-      }
+      const formula = `=${CATEGORIES_SHEET}!${MAIN_LANGUAGE_COLUMN}2:${MAIN_LANGUAGE_COLUMN}${lastRow}`;
+      sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
     }
   }
   return sheet;
 }
 
+/**
+ * Creates a translation sheet for field labels, helper text, or options
+ *
+ * Creates sheet with language headers and links column A to source sheet/column.
+ * Used for Detail Label Translations, Detail Helper Text Translations, and
+ * Detail Option Translations sheets.
+ *
+ * @param sheetName - Name for the new translation sheet
+ * @param targetLanguages - Array of ISO language codes for translation columns
+ * @param sourceSheet - Source sheet name (e.g., "Details")
+ * @param sourceColumn - Source column letter (e.g., "A", "B", "D")
+ * @returns The created translation sheet
+ * @throws Error if source sheet not found
+ *
+ * @example
+ * const sheet = createTranslationSheet("Detail Label Translations", ["es", "fr"], "Details", "A");
+ * // Creates sheet linked to Details column A with Spanish and French columns
+ */
+function createTranslationSheet(sheetName: string, targetLanguages: TranslationLanguage[], sourceSheet: string, sourceColumn: string): GoogleAppsScript.Spreadsheet.Sheet {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+    const primaryLanguage = getPrimaryLanguage();
+    const allLanguages = getAllLanguages();
+
+    // Create headers: primary language + selected target languages only
+    const headers = [primaryLanguage.name];
+
+    // Add only selected target languages
+    for (const langCode of targetLanguages) {
+      if (allLanguages[langCode]) {
+        headers.push(allLanguages[langCode]);
+      }
+    }
+
+    sheet
+      .getRange(1, 1, 1, headers.length)
+      .setValues([headers])
+      .setFontWeight("bold");
+
+    const sourceSheetObj = spreadsheet.getSheetByName(sourceSheet);
+    if (!sourceSheetObj) {
+      throw new Error(`Source sheet ${sourceSheet} not found`);
+    }
+    const lastRow = sourceSheetObj.getLastRow();
+    const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+    sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
+  }
+
+  return sheet;
+}
+
+/**
+ * Ensures translation sheet has columns for all target languages
+ *
+ * Checks existing sheet headers and adds missing language columns.
+ * Maintains bold formatting for headers. Used when adding new languages
+ * to existing translation sheets.
+ *
+ * @param sheet - Translation sheet to update
+ * @param targetLanguages - Array of ISO language codes that should exist
+ *
+ * @example
+ * const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Category Translations");
+ * ensureLanguageColumnsExist(sheet, ["es", "fr", "pt"]);
+ * // Adds any missing language columns to the sheet
+ */
+function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, targetLanguages: TranslationLanguage[]): void {
+  const allLanguages = getAllLanguages();
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // Check which target languages are missing from the sheet
+  const missingLanguages: string[] = [];
+  for (const langCode of targetLanguages) {
+    const languageName = allLanguages[langCode];
+    if (languageName && !headers.includes(languageName)) {
+      missingLanguages.push(languageName);
+    }
+  }
+
+  // Add missing language columns
+  if (missingLanguages.length > 0) {
+    const startColumn = headers.length + 1;
+    const newHeaders = [...headers, ...missingLanguages];
+
+    // Update the header row
+    sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
+
+    // Set header formatting
+    sheet.getRange(1, startColumn, 1, missingLanguages.length).setFontWeight("bold");
+
+    getTranslationServiceLogger().info(`Added ${missingLanguages.length} new language columns: ${missingLanguages.join(', ')}`);
+  }
+}
+
+/**
+ * Automatically translates all translation sheets to all available languages
+ *
+ * Creates translation sheets if they don't exist and translates Categories,
+ * Detail Helper Text, and Detail Options to all languages defined in
+ * the languages() function. Uses unidirectional translation.
+ *
+ * @deprecated Use autoTranslateSheetsBidirectional() instead for better language support
+ *
+ * @example
+ * autoTranslateSheets();
+ * // Translates all sheets to all available languages
+ */
 function autoTranslateSheets(): void {
   const allSheets = sheets();
   const translationSheets = sheets(true);
-  const categoriesAndDetailsSheets = allSheets.filter(sheet => !translationSheets.includes(sheet));
+  const categoriesAndDetailsSheets = allSheets.filter(
+    (sheet) => !translationSheets.includes(sheet),
+  );
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const categoriesSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[0]);
-  const detailsSheet = spreadsheet.getSheetByName(categoriesAndDetailsSheets[1]);
+  const categoriesSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[0],
+  );
+  const detailsSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[1],
+  );
 
   if (!categoriesSheet || !detailsSheet) {
     throw new Error("Categories or Details sheet not found");
   }
+
+  const primaryLanguage = getPrimaryLanguage();
+  let totalErrors = 0;
+  let totalSuccessful = 0;
 
   for (const sheetName of translationSheets) {
     let sheet = spreadsheet.getSheetByName(sheetName);
@@ -92,8 +525,14 @@ function autoTranslateSheets(): void {
         sheet = spreadsheet.insertSheet(sheetName);
         const mainLanguage = Object.entries(languages(true))[0];
         const otherLanguages = Object.entries(languages());
-        const headers = [mainLanguage[1], ...otherLanguages.map(([_, name]) => name)];
-        sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+        const headers = [
+          mainLanguage[1],
+          ...otherLanguages.map(([_, name]) => name),
+        ];
+        sheet
+          .getRange(1, 1, 1, headers.length)
+          .setValues([headers])
+          .setFontWeight("bold");
 
         let sourceSheet: string;
         let sourceColumn: string;
@@ -113,49 +552,288 @@ function autoTranslateSheets(): void {
           throw new Error(`Source sheet ${sourceSheet} not found`);
         }
         const lastRow = sourceSheetObj.getLastRow();
-
-        // Create individual formulas for each row to avoid spill conflicts
-        // Each cell references its corresponding row in the source sheet
-        const formulas: string[][] = [];
-        for (let i = 2; i <= lastRow; i++) {
-          formulas.push([`=${sourceSheet}!${sourceColumn}${i}`]);
-        }
-
-        if (formulas.length > 0) {
-          sheet.getRange(2, 1, formulas.length, 1).setFormulas(formulas);
-        }
+        const formula = `=${sourceSheet}!${sourceColumn}2:${sourceColumn}${lastRow}`;
+        sheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
       }
     }
+
     for (const lang of Object.keys(languages())) {
-      translateSheet(sheetName, lang as TranslationLanguage);
+      try {
+        translateSheet(sheetName, lang as TranslationLanguage);
+        totalSuccessful++;
+      } catch (error) {
+        getTranslationServiceLogger().warn(`Translation failed for ${sheetName} to ${lang}: ${error.message}`);
+        totalErrors++;
+        // Continue with other languages instead of stopping completely
+      }
     }
+  }
+
+  getTranslationServiceLogger().info(`Translation completed. Successful: ${totalSuccessful}, Errors: ${totalErrors}`);
+
+  if (totalErrors > 0) {
+    getTranslationServiceLogger().warn(`Some translations failed. The CoMapeo config will be generated with available translations.`);
   }
 }
 
-function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
-  console.log("Adding new languages...", newLanguages);
-  const sheet = createCategoryTranslationsSheet();
+/**
+ * Automatically translates all translation sheets to selected target languages
+ *
+ * Creates or updates all translation sheets (Category Translations, Detail Label
+ * Translations, Detail Helper Text Translations, Detail Option Translations).
+ * Validates target languages and skips translation if no languages specified.
+ * Uses bidirectional translation supporting custom language columns.
+ *
+ * @param targetLanguages - Array of ISO language codes to translate to
+ * @throws Error if target languages are invalid or conflict with source language
+ *
+ * @example
+ * autoTranslateSheetsBidirectional(["es", "fr", "pt"]);
+ * // Creates/updates all translation sheets with Spanish, French, and Portuguese
+ *
+ * @example
+ * autoTranslateSheetsBidirectional([]);
+ * // Skips translation entirely (useful for single-language configs)
+ */
+function autoTranslateSheetsBidirectional(targetLanguages: TranslationLanguage[]): void {
+  // Validation - return early if no languages specified (skip translation)
+  if (!targetLanguages || targetLanguages.length === 0) {
+    getTranslationServiceLogger().info("[TRANSLATION] ✓ SKIPPING TRANSLATION - No target languages specified");
+    getTranslationServiceLogger().info("[TRANSLATION] targetLanguages parameter:", targetLanguages);
+    getTranslationServiceLogger().info("[TRANSLATION] Returning early without translation");
+    return;
+  }
 
-  // Get current headers
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  getTranslationServiceLogger().info("[TRANSLATION] Starting bidirectional translation");
+  getTranslationServiceLogger().info("[TRANSLATION] Target languages count:", targetLanguages.length);
+  getTranslationServiceLogger().info("[TRANSLATION] Target languages:", targetLanguages);
 
-  // Find first empty column after the last non-empty column
-  // This prevents gaps in the column sequence that would break buildTranslationsPayload
-  let startCol = 1;  // Start from column A
-  for (let i = 0; i < headers.length; i++) {
-    if (headers[i] && String(headers[i]).trim() !== "") {
-      startCol = i + 2;  // Next column after last non-empty (1-indexed)
+  const allSheets = sheets();
+  const translationSheets = sheets(true);
+  const categoriesAndDetailsSheets = allSheets.filter(
+    (sheet) => !translationSheets.includes(sheet),
+  );
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categoriesSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[0],
+  );
+  const detailsSheet = spreadsheet.getSheetByName(
+    categoriesAndDetailsSheets[1],
+  );
+
+  if (!categoriesSheet || !detailsSheet) {
+    throw new Error("Categories or Details sheet not found");
+  }
+
+  const primaryLanguage = getPrimaryLanguage();
+  const availableTargetLanguages = getAvailableTargetLanguages();
+  const allLanguages = getAllLanguages();
+
+  // Validate target languages exist in the comprehensive language list
+  const invalidTargetLanguages = targetLanguages.filter(lang => !allLanguages[lang]);
+  if (invalidTargetLanguages.length > 0) {
+    throw new Error(`Invalid target languages: ${invalidTargetLanguages.join(', ')}. Please check the language codes.`);
+  }
+
+  // Validate target languages are available (not the primary language)
+  const unavailableTargetLanguages = targetLanguages.filter(lang => !availableTargetLanguages[lang]);
+  if (unavailableTargetLanguages.length > 0) {
+    const unavailableLanguageNames = unavailableTargetLanguages.map(lang => allLanguages[lang]).join(', ');
+    throw new Error(`Target languages not available: ${unavailableLanguageNames}. These languages might be the same as your source language (${primaryLanguage.name}).`);
+  }
+
+  // Validate source language is different from target languages
+  const conflictingLanguages = targetLanguages.filter(lang => lang === primaryLanguage.code);
+  if (conflictingLanguages.length > 0) {
+    throw new Error(`Cannot translate from ${primaryLanguage.name} to itself. Please change the language in cell A1 of the Categories sheet or select different target languages.`);
+  }
+
+  getTranslationServiceLogger().info("Auto-translating from primary language:", primaryLanguage);
+  getTranslationServiceLogger().info("Target languages:", targetLanguages);
+  getTranslationServiceLogger().info("Available target languages:", availableTargetLanguages);
+
+  let totalErrors = 0;
+  let totalSuccessful = 0;
+
+  for (const sheetName of translationSheets) {
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      if (sheetName === CATEGORY_TRANSLATIONS_SHEET) {
+        sheet = createCategoryTranslationsSheet(targetLanguages);
+      } else {
+        let sourceSheet: string;
+        let sourceColumn: string;
+        if (sheetName === DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_HELPER_TEXT_COLUMN;
+        } else if (sheetName === DETAIL_OPTION_TRANSLATIONS_SHEET) {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = DETAILS_OPTIONS_COLUMN;
+        } else {
+          sourceSheet = DETAILS_SHEET;
+          sourceColumn = MAIN_LANGUAGE_COLUMN;
+        }
+
+        sheet = createTranslationSheet(sheetName, targetLanguages, sourceSheet, sourceColumn);
+      }
+    } else {
+      // Sheet exists, ensure it has columns for the target languages
+      ensureLanguageColumnsExist(sheet, targetLanguages);
+    }
+
+    try {
+      // Use bidirectional translation for selected target languages
+      translateSheetBidirectional(sheetName, targetLanguages, primaryLanguage.code as TranslationLanguage);
+    } catch (error) {
+      getTranslationServiceLogger().error(`Error translating sheet ${sheetName}:`, error);
+      totalErrors++;
     }
   }
 
-  // Add new language columns
-  for (const lang of newLanguages) {
-    const headerText = `${lang.name} - ${lang.iso}`;
-    // Skip if language already exists
-    if (headers.includes(headerText)) continue;
+  getTranslationServiceLogger().info("[TRANSLATION] Translation summary:");
+  getTranslationServiceLogger().info("[TRANSLATION] - Total errors:", totalErrors);
+  getTranslationServiceLogger().info("[TRANSLATION] - Sheets processed:", translationSheets.length);
+  getTranslationServiceLogger().info("[TRANSLATION] ✅ Translation completed");
 
-    // Add new header
-    sheet.getRange(1, startCol).setValue(headerText).setFontWeight("bold");
-    startCol++;
+  if (totalErrors > 0) {
+    getTranslationServiceLogger().warn("[TRANSLATION] ⚠️  Some translations failed. Check the logs for details.");
   }
+}
+
+function normalizeCustomLanguages(newLanguages: CustomLanguageInput[] | null | undefined): CustomLanguageInput[] {
+  if (!newLanguages || newLanguages.length === 0) {
+    return [];
+  }
+
+  const log = getTranslationServiceLogger();
+  const seenIso = new Set<string>();
+  const isoPattern = /^[a-z]{2,8}(?:-[a-z]{2,8})?$/;
+  const normalized: CustomLanguageInput[] = [];
+
+  for (const lang of newLanguages) {
+    if (!lang) {
+      continue;
+    }
+
+    const name = (lang.name || "").trim();
+    const iso = (lang.iso || "").trim().toLowerCase();
+
+    if (!name || !iso) {
+      log.warn("Skipping custom language with missing name or ISO", lang);
+      continue;
+    }
+
+    if (!isoPattern.test(iso)) {
+      log.warn(`Skipping custom language with invalid ISO code: ${iso}`);
+      continue;
+    }
+
+    if (seenIso.has(iso)) {
+      log.info(`Skipping duplicate custom language ISO: ${iso}`);
+      continue;
+    }
+
+    seenIso.add(iso);
+    normalized.push({ name, iso });
+  }
+
+  return normalized;
+}
+
+function addCustomLanguagesToSheet(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  languagesToAdd: CustomLanguageInput[],
+): void {
+  if (!sheet) {
+    return;
+  }
+
+  const log = getTranslationServiceLogger();
+  const currentLastColumn = sheet.getLastColumn();
+  const headerWidth = Math.max(currentLastColumn, 1);
+  const headers = sheet.getRange(1, 1, 1, headerWidth).getValues()[0];
+  const headerSet = new Set(headers);
+  const updatedHeaders = headers.slice();
+
+  for (const lang of languagesToAdd) {
+    const headerText = `${lang.name} - ${lang.iso}`;
+    if (headerSet.has(headerText)) {
+      continue;
+    }
+    headerSet.add(headerText);
+    updatedHeaders.push(headerText);
+  }
+
+  if (updatedHeaders.length === headers.length) {
+    log.info(`No new custom language columns required for ${sheet.getName()}`);
+    return;
+  }
+
+  const additionalColumns = updatedHeaders.length - currentLastColumn;
+  if (additionalColumns > 0) {
+    if (currentLastColumn === 0) {
+      sheet.insertColumns(1, additionalColumns);
+    } else {
+      sheet.insertColumnsAfter(currentLastColumn, additionalColumns);
+    }
+  }
+
+  sheet.getRange(1, 1, 1, updatedHeaders.length).setValues([updatedHeaders]);
+
+  if (additionalColumns > 0) {
+    const boldStart = Math.max(currentLastColumn, 1) + 1;
+    sheet.getRange(1, boldStart, 1, additionalColumns).setFontWeight("bold");
+  }
+
+  log.info(`Added ${additionalColumns} custom language columns to ${sheet.getName()}`);
+}
+
+function addCustomLanguagesToTranslationSheets(newLanguages: CustomLanguageInput[]): void {
+  const normalized = normalizeCustomLanguages(newLanguages);
+  if (normalized.length === 0) {
+    return;
+  }
+
+  const log = getTranslationServiceLogger();
+  log.info(`Preparing to add ${normalized.length} custom languages`, normalized);
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const categorySheet = spreadsheet.getSheetByName(CATEGORY_TRANSLATIONS_SHEET) || createCategoryTranslationsSheet();
+  addCustomLanguagesToSheet(categorySheet, normalized);
+
+  const translationSheetConfigs = [
+    {
+      name: DETAIL_LABEL_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: MAIN_LANGUAGE_COLUMN,
+    },
+    {
+      name: DETAIL_HELPER_TEXT_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: DETAILS_HELPER_TEXT_COLUMN,
+    },
+    {
+      name: DETAIL_OPTION_TRANSLATIONS_SHEET,
+      sourceSheet: DETAILS_SHEET,
+      sourceColumn: DETAILS_OPTIONS_COLUMN,
+    },
+  ];
+
+  for (const config of translationSheetConfigs) {
+    let sheet = spreadsheet.getSheetByName(config.name);
+    if (!sheet) {
+      sheet = createTranslationSheet(config.name, [], config.sourceSheet, config.sourceColumn);
+    }
+    addCustomLanguagesToSheet(sheet, normalized);
+  }
+}
+
+/**
+ * Adds custom language columns across all translation sheets.
+ *
+ * Deprecated alias maintained for backward compatibility with older dialogs.
+ */
+function addNewLanguages(newLanguages: { name: string; iso: string }[]): void {
+  addCustomLanguagesToTranslationSheets(newLanguages);
 }

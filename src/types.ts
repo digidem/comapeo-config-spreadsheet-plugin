@@ -12,6 +12,7 @@ interface SheetData {
 
 interface BuildRequest {
   metadata: Metadata;
+  locales: string[];  // At least one locale is required by API v2
   categories: Category[];
   fields: Field[];
   icons?: Icon[];
@@ -24,25 +25,30 @@ interface Metadata {
   description?: string;
   builderName?: string;
   builderVersion?: string;
+  legacyCompat?: boolean;
 }
 
 interface Category {
   id: string;
   name: string;
   description?: string;
+  appliesTo?: string[];
   color?: string;
   iconId?: string;
   parentCategoryId?: string;
   defaultFieldIds?: string[];
+  fields?: string[];
   tags?: string[];
   visible?: boolean;
 }
 
 interface Field {
   id: string;
+  tagKey: string;
   name: string;
   type: FieldType;
   description?: string;
+  helperText?: string;
   options?: SelectOption[];
   iconId?: string;
   required?: boolean;
@@ -51,21 +57,11 @@ interface Field {
   min?: number;
   max?: number;
   step?: number;
+  appliesTo?: string[];
   tags?: string[];
 }
 
-type FieldType =
-  | "text"
-  | "textarea"
-  | "number"
-  | "integer"
-  | "boolean"
-  | "select"
-  | "multiselect"
-  | "date"
-  | "datetime"
-  | "photo"
-  | "location";
+type FieldType = "text" | "number" | "selectOne" | "selectMultiple";
 
 interface SelectOption {
   value: string;
@@ -106,7 +102,6 @@ interface TranslationsByLocale {
   };
 }
 
-// API Error Response
 interface ApiErrorResponse {
   error: string;
   message: string;
@@ -118,6 +113,31 @@ interface ApiErrorResponse {
 // ============================================
 // Legacy Types (for internal use during migration)
 // ============================================
+
+type LanguageCode = string;
+
+/**
+ * Enhanced language data with both English and native names
+ * @example { englishName: "Portuguese", nativeName: "Português" }
+ */
+interface LanguageData {
+  englishName: string;
+  nativeName: string;
+}
+
+/**
+ * Enhanced language map with dual-name support
+ * Maps language code to both English and native names
+ * @example { "pt": { englishName: "Portuguese", nativeName: "Português" } }
+ */
+type LanguageMapEnhanced = Record<LanguageCode, LanguageData>;
+
+/**
+ * Legacy language map for backward compatibility
+ * Maps language code to a single name (either English or native)
+ * @deprecated Use LanguageMapEnhanced for new code
+ */
+type LanguageMap = Record<LanguageCode, string>;
 
 interface CoMapeoField {
   tagKey: string;
@@ -181,24 +201,32 @@ interface CoMapeoConfig {
   presets: CoMapeoPreset[];
   icons: CoMapeoIcon[];
   messages: CoMapeoTranslations;
+  translations?: CoMapeoTranslations;
 }
-
 type TranslationLanguage = string;
-
-// ============================================
-// UI/Menu Types
-// ============================================
 
 interface MainMenuText {
   menu: string;
   translateCoMapeoCategory: string;
-  addCustomLanguages: string;
   generateIcons: string;
   generateCoMapeoCategory: string;
+  generateCoMapeoCategoryDebug: string;
+  debugMenuTitle: string;
+  importCategoryFile: string;
   importCoMapeoCategory: string;
   lintAllSheets: string;
   cleanAllSheets: string;
   openHelpPage: string;
+}
+
+interface CustomLanguageInput {
+  name: string;
+  iso: string;
+}
+
+interface LanguageSelectionPayload {
+  autoTranslateLanguages: TranslationLanguage[];
+  customLanguages: CustomLanguageInput[];
 }
 
 interface MenuText {
@@ -216,21 +244,68 @@ interface DialogText {
   buttonText?: string;
 }
 
+interface SelectTranslationDialogText extends DialogText {
+  skipButtonText: string;
+  manualSectionTitle: string;
+  manualSectionDescription: string[];
+  manualDropdownPlaceholder: string;
+  manualAddButton: string;
+  manualNamePlaceholder: string;
+  manualIsoPlaceholder: string;
+  validationMessages: {
+    noAutoSelection: string;
+    missingCustomFields: string;
+    duplicateCustomIso: string;
+    invalidCustomIso: string;
+  };
+}
+
 interface DialogInstructions {
   instructions: string[];
   footer: string;
 }
 
-// ============================================
-// Category Selection State
-// ============================================
-
-let _categorySelection: string[] = [];
-
-function setCategorySelection(categories: string[]): void {
-  _categorySelection = [...categories];
+interface IconErrorDialogText {
+  title: string;
+  downloadButtonText: string;
+  continueButtonText: string;
+  okButtonText: string;
 }
 
-function getCategorySelection(): string[] {
-  return [..._categorySelection];
+/**
+ * Field row data structure from Details sheet
+ * Represents a single row (excluding header) from the spreadsheet
+ *
+ * Column mapping:
+ * [0] = Field Name (A)
+ * [1] = Helper Text (B)
+ * [2] = Type (C) - e.g., "Text", "Number", "Select One", "Multiple Choice"
+ * [3] = Options (D) - comma-separated for select fields
+ * [4+] = Additional columns (translations, etc.)
+ */
+interface FieldRow extends Array<string | number | boolean> {
+  0: string;  // Field Name (required)
+  1?: string; // Helper Text (optional)
+  2: string;  // Type (required)
+  3?: string; // Options (required for select fields)
+}
+
+/**
+ * Category row data structure from Categories sheet
+ * Represents a single row (excluding header) from the spreadsheet
+ *
+ * Column mapping:
+ * [0] = Category Name (A)
+ * [1] = Icon (B)
+ * [2] = Fields (C) - comma-separated field names
+ * [3] = Color (D)
+ * [4] = Geometry (E) - e.g., "point", "line", "area"
+ * [5+] = Additional columns (translations, etc.)
+ */
+interface CategoryRow extends Array<string | number | boolean> {
+  0: string;  // Category Name (required)
+  1?: string; // Icon (optional)
+  2?: string; // Fields (optional)
+  3?: string; // Color (optional)
+  4?: string; // Geometry (optional)
 }

@@ -1,0 +1,397 @@
+[
+  {
+    "id": "abelha",
+    "name": "Abelha Zangão",
+    "tags": {
+      "abelha": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "abelha",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "especie-abelha",
+      "quantidade-coletada",
+      "cor"
+    ]
+  },
+  {
+    "id": "aldeia",
+    "name": "Aldeia",
+    "tags": {
+      "aldeia": "yes"
+    },
+    "color": "#cc4125",
+    "icon": "aldeia",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-aldeia"
+    ]
+  },
+  {
+    "id": "caa",
+    "name": "Caça ",
+    "tags": {
+      "caa": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "caa",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "especie-caa",
+      "quantidade-coletada",
+      "tcnica-de-caa",
+      "habitate-animal"
+    ]
+  },
+  {
+    "id": "estrutura",
+    "name": "Estrutura",
+    "tags": {
+      "estrutura": "yes"
+    },
+    "color": "#cc4125",
+    "icon": "estrutura",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "condies",
+      "tipo-estrutura"
+    ]
+  },
+  {
+    "id": "invaso",
+    "name": "Invasão",
+    "tags": {
+      "invaso": "yes"
+    },
+    "color": "#e06666",
+    "icon": "invaso",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-invaso"
+    ]
+  },
+  {
+    "id": "local-de-desova",
+    "name": "Local de desova",
+    "tags": {
+      "local-de-desova": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "local-de-desova",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "especie-reptis",
+      "quantidade-coletada"
+    ]
+  },
+  {
+    "id": "local-de-argila",
+    "name": "Local de argila",
+    "tags": {
+      "local-de-argila": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "local-de-argila",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "cor",
+      "quantidade-coletada"
+    ]
+  },
+  {
+    "id": "local-perigoso",
+    "name": "Local Perigoso",
+    "tags": {
+      "local-perigoso": "yes"
+    },
+    "color": "#e06666",
+    "icon": "local-perigoso",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-de-perigo"
+    ]
+  },
+  {
+    "id": "lugar-historico",
+    "name": "Lugar historico",
+    "tags": {
+      "lugar-historico": "yes"
+    },
+    "color": "#f6b26b",
+    "icon": "lugar-historico",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "yana"
+    ]
+  },
+  {
+    "id": "paisagem",
+    "name": "Paisagem",
+    "tags": {
+      "paisagem": "yes"
+    },
+    "color": "#f6b26b",
+    "icon": "paisagem",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-de-paisagem"
+    ]
+  },
+  {
+    "id": "planta-para-comer",
+    "name": "Planta para comer",
+    "tags": {
+      "planta-para-comer": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "planta-para-comer",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "planta-de-comer",
+      "quantidade-coletada"
+    ]
+  },
+  {
+    "id": "planta-para-artesanato",
+    "name": "Planta para artesanato",
+    "tags": {
+      "planta-para-artesanato": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "planta-para-artesanato",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "planta-pra-artesanato",
+      "quantidade-coletada"
+    ]
+  },
+  {
+    "id": "ponto-de-lixo",
+    "name": "Ponto de lixo",
+    "tags": {
+      "ponto-de-lixo": "yes"
+    },
+    "color": "#cc4125",
+    "icon": "ponto-de-lixo",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome"
+    ]
+  },
+  {
+    "id": "planta-para-talhar",
+    "name": "Planta para talhar",
+    "tags": {
+      "planta-para-talhar": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "planta-para-talhar",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "planta-para-talhar",
+      "quantidade-coletada"
+    ]
+  },
+  {
+    "id": "pesca",
+    "name": "Pesca ",
+    "tags": {
+      "pesca": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "pesca",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "especie-pesca",
+      "quantidade-coletada",
+      "tcnica-de-pesca"
+    ]
+  },
+  {
+    "id": "planta-para-construo",
+    "name": "Planta para construção",
+    "tags": {
+      "planta-para-construo": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "planta-para-construo",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "quantidade-coletada",
+      "tipo-coleta",
+      "planta-de-construo"
+    ]
+  },
+  {
+    "id": "remdio-tradicional",
+    "name": "Remédio tradicional",
+    "tags": {
+      "remdio-tradicional": "yes"
+    },
+    "color": "#b6d7a8",
+    "icon": "remdio-tradicional",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "quantidade-coletada",
+      "tipo-coleta",
+      "planta-medicinal"
+    ]
+  },
+  {
+    "id": "recursos-hdricos",
+    "name": "Recursos hídricos",
+    "tags": {
+      "recursos-hdricos": "yes"
+    },
+    "color": "#a4c2f4",
+    "icon": "recursos-hdricos",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-hidricos",
+      "qualidade-gua"
+    ]
+  },
+  {
+    "id": "porto",
+    "name": "Porto",
+    "tags": {
+      "porto": "yes"
+    },
+    "color": "#cc4125",
+    "icon": "porto",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "condies"
+    ]
+  },
+  {
+    "id": "vestgios-de-isolado",
+    "name": "Vestígios de isolado",
+    "tags": {
+      "vestgios-de-isolado": "yes"
+    },
+    "color": "#f6b26b",
+    "icon": "vestgios-de-isolado",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome"
+    ]
+  },
+  {
+    "id": "roa",
+    "name": "Roça",
+    "tags": {
+      "roa": "yes"
+    },
+    "color": "#cc4125",
+    "icon": "roa",
+    "geometry": [
+      "point",
+      "line",
+      "area"
+    ],
+    "fieldRefs": [
+      "nome",
+      "tipo-roa",
+      "agrobiodiversidade",
+      "quantidade-coletada"
+    ]
+  }
+]

@@ -218,4 +218,8 @@ Tests cover:
 
 See LICENSE file for details.
 
-For more information on clasp, refer to the [@google/clasp documentation](https://github.com/google/clasp).
+For more information on using clasp, refer to the [@google/clasp documentation](https://github.com/google/clasp).
+
+## Project Documentation
+
+All architectural references, process guides, and sprint notes live under [`docs/`](docs/README.md). Start with the documentation index to find the right reference quickly.

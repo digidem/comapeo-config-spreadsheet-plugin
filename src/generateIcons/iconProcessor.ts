@@ -1,96 +1,400 @@
+/// <reference path="../utils.ts" />
+/// <reference path="./iconErrors.ts" />
+/// <reference path="./svgValidator.ts" />
+
+/**
+ * Fallback icon SVG to use when icon generation fails
+ * Simple marker icon with 100% fill to use background color
+ */
+const FALLBACK_ICON_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E';
+
+/**
+ * Result of icon processing with error tracking
+ */
+interface IconProcessingResult {
+  /** Successfully processed icons */
+  icons: CoMapeoIcon[];
+
+  /** Error summary from processing */
+  errorSummary: IconErrorSummary;
+}
+
 /**
  * Processes icons for each category and returns an array of CoMapeoIcon objects.
  * @param folder - Optional Google Drive folder to save icons
- * @returns Array of CoMapeoIcon objects
+ * @param errorCollector - Optional error collector (will create one if not provided)
+ * @returns Object with icons array and error summary
  */
-function processIcons(folder?: GoogleAppsScript.Drive.Folder, suffixes: string[] = []): CoMapeoIcon[] {
+function processIcons(
+  folder?: GoogleAppsScript.Drive.Folder,
+  suffixes: string[] = [],
+  errorCollector?: IconErrorCollector,
+): IconProcessingResult {
+  // Create error collector if not provided
+  const collector = errorCollector || createIconErrorCollector();
   console.log("Starting icon processing");
-  const { categories, backgroundColors, iconUrls, categoriesSheet } = getCategoryData();
-  return categories.reduce((icons: CoMapeoIcon[], category, index) => {
+  const { categories, backgroundColors, iconUrls, categoriesSheet } =
+    getCategoryData();
+
+  const icons = categories.reduce((icons: CoMapeoIcon[], category, index) => {
     const [name, , , icon] = category;
     const backgroundColor = backgroundColors[index][0];
     const iconImage = iconUrls[index][0];
+    const presetSlug = createPresetSlug(name, index);
 
-    console.log(`Processing icon for category: ${name}`);
-    const iconSvg = processIconImage(name, iconImage, backgroundColor);
+    console.log(`Processing icon for category: ${name} (slug: ${presetSlug})`);
+
+    // Pre-validate the icon before processing
+    const validation = validateCellIcon(iconImage);
+    if (!validation.valid) {
+      collector.addFormatError(
+        name,
+        validation.error || "Unknown validation error",
+        true,  // Will use fallback
+        validation.context
+      );
+      const iconUrl = FALLBACK_ICON_SVG;
+      updateIconUrlInSheet(categoriesSheet, index + 2, 2, iconUrl);
+      icons.push({ name: presetSlug, svg: iconUrl });
+      return icons;
+    }
+
+    const iconSvg = processIconImage(name, iconImage, backgroundColor, presetSlug, collector, folder);
     let iconUrl = iconSvg;
 
-    if (folder) {
-      iconUrl = saveIconToFolder(folder, name, iconSvg, suffixes);
+    // Validate icon result before proceeding
+    if (!iconSvg || iconSvg.trim() === '') {
+      console.warn(`Empty icon generated for ${name}, using fallback icon`);
+      collector.addFormatError(name, "Empty icon generated", true);
+      iconUrl = FALLBACK_ICON_SVG;
+    } else if (folder) {
+      iconUrl = saveIconToFolder(
+        folder,
+        name,
+        presetSlug,
+        iconSvg,
+        suffixes,
+        backgroundColor,
+        undefined,
+        collector,
+      );
     }
 
     console.log(`Updating icon URL in sheet for: ${name}`);
     updateIconUrlInSheet(categoriesSheet, index + 2, 2, iconUrl);
 
-    icons.push({
-      name: slugify(name),
-      svg: iconSvg
-    });
+    // Only push valid icons to array
+    if (iconUrl && iconUrl.trim() !== '') {
+      collector.recordSuccess(name);
+      icons.push({
+        name: presetSlug,
+        svg: iconUrl,
+      });
+    } else {
+      console.error(`Failed to generate valid icon for ${name}, skipping`);
+      collector.addUnknownError(name, "Failed to generate valid icon URL", false);
+    }
 
     console.log(`Finished processing icon for: ${name}`);
     return icons;
   }, []);
+
+  return {
+    icons,
+    errorSummary: collector.getSummary(),
+  };
 }
 
 function getCategoryData() {
-  const categoriesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Categories');
-  const categories = categoriesSheet.getRange(2, 1, categoriesSheet.getLastRow() - 1, 4).getValues();
-  const backgroundColors = categoriesSheet.getRange(2, 2, categories.length, 1).getBackgrounds();
-  const iconUrls = categoriesSheet.getRange(2, 2, categories.length, 1).getValues();
+  const categoriesSheet =
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Categories");
+  const categories = categoriesSheet
+    .getRange(2, 1, categoriesSheet.getLastRow() - 1, 4)
+    .getValues();
+  const backgroundColors = categoriesSheet
+    .getRange(2, 2, categories.length, 1)
+    .getBackgrounds();
+  const iconUrls = categoriesSheet
+    .getRange(2, 2, categories.length, 1)
+    .getValues();
 
   return { categories, backgroundColors, iconUrls, categoriesSheet };
 }
 
-function processIconImage(name: string, iconImage: any, backgroundColor: string): string {
-  if (isGoogleDriveIcon(iconImage)) {
-    console.log(`Using existing Google Drive icon for ${name}: ${iconImage}`);
-    return iconImage;
-  } else if (isCellImage(iconImage)) {
-    return processCellImage(name, iconImage, backgroundColor);
-  } else {
-    console.log(`Generating new icon for ${name}`);
-    return generateNewIcon(name, backgroundColor);
+/**
+ * Validates and fixes Drive icon filename to match preset slug.
+ * Combines access validation and filename validation to avoid duplicate Drive API calls.
+ *
+ * @param iconUrl - Google Drive URL
+ * @param name - Category display name
+ * @param presetSlug - Expected slug for the icon file
+ * @param targetFolder - Optional folder where corrected icon should be placed
+ * @param collector - Error collector
+ * @returns Updated Drive URL (either original or corrected file)
+ */
+function validateAndFixIconFilename(
+  iconUrl: string,
+  name: string,
+  presetSlug: string,
+  targetFolder: GoogleAppsScript.Drive.Folder | undefined,
+  collector: IconErrorCollector,
+): string {
+  try {
+    const fileId = iconUrl.split("/d/")[1].split("/")[0];
+
+    // Single Drive API call - validate access AND get file info
+    let file: GoogleAppsScript.Drive.File;
+    try {
+      file = DriveApp.getFileById(fileId);
+    } catch (error) {
+      // Access validation failed
+      collector.addPermissionError(
+        name,
+        `Drive file not accessible: ${error.message}`,
+        false,
+        { fileId, url: iconUrl }
+      );
+      return iconUrl; // Return original URL, caller will handle fallback
+    }
+
+    const fileName = file.getName();
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+    const currentSlug = normalizeIconSlug(slugify(nameWithoutExt));
+
+    // If filename already matches expected slug, return as-is
+    if (currentSlug === presetSlug) {
+      console.log(`Icon filename "${fileName}" matches preset slug "${presetSlug}" ✓`);
+      return iconUrl;
+    }
+
+    console.log(`Icon filename mismatch for ${name}: expected "${presetSlug}", found "${currentSlug}"`);
+
+    // Get file extension and construct correct filename
+    const extension = fileName.match(/\.[^/.]+$/)?.[0] || ".svg";
+    const correctFileName = `${presetSlug}${extension}`;
+
+    // Determine target folder for the corrected file
+    let folder: GoogleAppsScript.Drive.Folder;
+    if (targetFolder) {
+      // Use the provided config folder
+      folder = targetFolder;
+    } else {
+      // Fallback: Use file's first parent, or create in root
+      const parents = file.getParents();
+      if (parents.hasNext()) {
+        folder = parents.next();
+      } else {
+        // File has no parent - shouldn't happen in normal use
+        console.warn(`Icon file "${fileName}" has no parent folder, using Drive root`);
+        folder = DriveApp.getRootFolder();
+      }
+    }
+
+    // Check if correctly-named file already exists in target folder
+    const existingFiles = folder.getFilesByName(correctFileName);
+    if (existingFiles.hasNext()) {
+      const existingFile = existingFiles.next();
+      console.log(`Using existing correctly-named icon: ${correctFileName}`);
+      return existingFile.getUrl();
+    }
+
+    // Create a copy with the correct name
+    console.log(`Creating corrected icon copy: ${correctFileName}`);
+    const newFile = file.makeCopy(correctFileName, folder);
+
+    // Apply sharing settings if available
+    if (typeof applyDefaultSharing === "function") {
+      try {
+        applyDefaultSharing(newFile);
+      } catch (error) {
+        console.warn(`Failed to apply sharing for ${correctFileName}: ${error.message}`);
+      }
+    }
+
+    const newUrl = newFile.getUrl();
+    console.log(`Created corrected icon: ${correctFileName} ✓`);
+
+    return newUrl;
+  } catch (error) {
+    console.error(`Error validating icon filename for ${name}: ${error.message}`);
+    collector.addUnknownError(
+      name,
+      `Failed to validate/fix icon filename: ${error.message}`,
+      false,
+      { originalUrl: iconUrl }
+    );
+    // Return original URL, caller will handle fallback
+    return iconUrl;
+  }
+}
+
+function processIconImage(
+  name: string,
+  iconImage: any,
+  backgroundColor: string,
+  presetSlug: string,
+  collector: IconErrorCollector,
+  targetFolder?: GoogleAppsScript.Drive.Folder,
+): string {
+  try {
+    if (isGoogleDriveIcon(iconImage)) {
+      // Only process Drive URLs (not data URIs)
+      if (iconImage.startsWith("https://drive.google.com/file/d/")) {
+        console.log(`Processing existing Drive icon for ${name}: ${iconImage}`);
+
+        // Validate access AND filename in single operation
+        const validatedUrl = validateAndFixIconFilename(
+          iconImage,
+          name,
+          presetSlug,
+          targetFolder,
+          collector
+        );
+
+        // If validation returned different URL, it means we created/found corrected file
+        if (validatedUrl !== iconImage) {
+          console.log(`Using corrected icon URL for ${name}`);
+          return validatedUrl;
+        }
+
+        // Same URL returned - validation passed or failed gracefully
+        return iconImage;
+      }
+      // Non-standard Drive URL format - return as-is
+      return iconImage;
+    } else if (isCellImage(iconImage)) {
+      return processCellImage(name, iconImage, backgroundColor, presetSlug, collector);
+    } else {
+      console.log(`Generating new icon for ${name}`);
+      return generateNewIcon(name, backgroundColor, presetSlug, collector);
+    }
+  } catch (error) {
+    console.error(`Error processing icon for ${name}: ${error.message}`);
+    collector.addUnknownError(
+      name,
+      `Unexpected error during processing: ${error.message}`,
+      true,  // Will generate fallback
+      { errorStack: error.stack }
+    );
+    console.log(`Falling back to generating new icon for ${name}`);
+    return generateNewIcon(name, backgroundColor, presetSlug, collector);
   }
 }
 
 function isGoogleDriveIcon(iconImage: any): boolean {
-  return typeof iconImage === 'string' && iconImage.startsWith('https://drive.google.com');
+  return (
+    typeof iconImage === "string" &&
+    iconImage.startsWith("https://drive.google.com")
+  );
 }
 
 function isCellImage(iconImage: any): boolean {
-  return typeof iconImage === 'object' && iconImage.toString() === 'CellImage';
+  return typeof iconImage === "object" && iconImage.toString() === "CellImage";
 }
 
-function processCellImage(name: string, iconImage: any, backgroundColor: string): string {
+function processCellImage(
+  name: string,
+  iconImage: any,
+  backgroundColor: string,
+  presetSlug: string,
+  collector: IconErrorCollector,
+): string {
   const iconUrl = iconImage.getUrl();
   console.log(`Processing cell image icon for ${name}: ${iconUrl}`);
   let generateData = getGenerateData(iconUrl, backgroundColor);
   if (generateData) {
     return generateData[0].svg;
   } else {
-    console.log(`Failed to process cell image. Generating new icon for ${name}`);
-    return generateNewIcon(name, backgroundColor);
+    console.log(
+      `Failed to process cell image. Generating new icon for ${name}`,
+    );
+    collector.addApiError(
+      name,
+      "Failed to process cell image through icon API",
+      true,  // Will generate fallback
+      { iconUrl }
+    );
+    return generateNewIcon(name, backgroundColor, presetSlug, collector);
   }
 }
 
-function saveIconToFolder(folder: GoogleAppsScript.Drive.Folder, name: string, iconSvg: string, suffixes: string[]): string {
-  console.log(`Saving icon to folder for ${name}:`, iconSvg);
+function saveIconToFolder(
+  folder: GoogleAppsScript.Drive.Folder,
+  displayName: string,
+  presetSlug: string,
+  iconSvg: string,
+  suffixes: string[],
+  backgroundColor: string,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
+  collector?: IconErrorCollector,
+): string {
+  console.log(`Saving icon to folder for ${displayName} (slug: ${presetSlug}):`, iconSvg);
 
-  const { iconContent, mimeType } = getIconContent({ svg: iconSvg, name: slugify(name) });
+  const { iconContent, mimeType, error } = getIconContent(
+    {
+      svg: iconSvg,
+      name: presetSlug,
+    },
+    collector,
+    displayName
+  );
 
   if (!iconContent) {
-    console.error('Failed to get icon content');
-    return '';
+    console.warn(`Failed to get icon content for ${displayName}, using fallback approach`);
+    if (collector && error) {
+      // Error already recorded by getIconContent
+    }
+
+    // Fall back to generating a new icon instead of failing completely
+    const defaultBackground = "#6d44d9"; // Default color
+    const fallbackSvg = generateNewIcon(
+      displayName,
+      backgroundColor || defaultBackground,
+      presetSlug,
+      collector,
+    );
+    if (fallbackSvg) {
+      return saveIconToFolder(
+        folder,
+        displayName,
+        presetSlug,
+        fallbackSvg,
+        suffixes,
+        backgroundColor || defaultBackground,
+        zipBlobs,
+        collector,
+      );
+    } else {
+      console.error(`Complete failure to generate icon for ${displayName}, using fallback icon`);
+      if (collector) {
+        collector.addUnknownError(displayName, "Complete failure to generate or save icon", true);
+      }
+      return FALLBACK_ICON_SVG;
+    }
   }
 
   let files: GoogleAppsScript.Drive.File[] = [];
   if (suffixes.length > 0) {
-    suffixes.forEach(suffix => {
-      const file = createIconFile(folder, slugify(name), suffix.replace('-', ''), iconContent, mimeType);
+    suffixes.forEach((suffix) => {
+      const file = createIconFile(
+        folder,
+        presetSlug,
+        suffix.replace("-", ""),
+        iconContent,
+        mimeType,
+        zipBlobs,
+      );
       files.push(file);
     });
   } else {
-    const file = createIconFile(folder, slugify(name), '', iconContent, mimeType);
+    const file = createIconFile(
+      folder,
+      presetSlug,
+      "",
+      iconContent,
+      mimeType,
+      zipBlobs,
+    );
     files.push(file);
   }
   const file = files[0]; // Use the first file for compatibility with existing code
@@ -98,67 +402,173 @@ function saveIconToFolder(folder: GoogleAppsScript.Drive.Folder, name: string, i
   return file.getUrl();
 }
 
-function getIconContent(icon: CoMapeoIcon): { iconContent: string | null, mimeType: string } {
-  if (icon.svg.startsWith('data:image/svg+xml')) {
-    // Handle both plain and base64 encoded data URIs
-    let iconContent: string;
-    if (icon.svg.includes(';base64,')) {
-      // Base64 encoded data URI
-      const base64Data = icon.svg.replace(/^data:image\/svg\+xml;base64,/, '');
-      iconContent = Utilities.newBlob(Utilities.base64Decode(base64Data)).getDataAsString();
-    } else {
-      // Plain data URI (URL-encoded)
-      iconContent = decodeURIComponent(icon.svg.replace(/^data:image\/svg\+xml,/, ''));
+function getIconContent(
+  icon: CoMapeoIcon,
+  collector?: IconErrorCollector,
+  iconName?: string
+): {
+  iconContent: string | null;
+  mimeType: string;
+  error?: string;
+} {
+  if (icon.svg.startsWith("data:image/svg+xml,")) {
+    try {
+      const content = decodeURIComponent(
+        icon.svg.replace(/data:image\/svg\+xml,/, ""),
+      );
+      return {
+        iconContent: content,
+        mimeType: MimeType.SVG,
+      };
+    } catch (error) {
+      const errorMsg = `Failed to decode SVG data URI: ${error.message}`;
+      console.error(errorMsg);
+      if (collector && iconName) {
+        collector.addFormatError(iconName, errorMsg, false, { iconSvgPreview: icon.svg.substring(0, 100) });
+      }
+      return { iconContent: null, mimeType: "", error: errorMsg };
     }
-    return {
-      iconContent,
-      mimeType: MimeType.SVG
-    };
-  } else if (icon.svg.startsWith('https://drive.google.com/file/d/')) {
-    const fileId = icon.svg.split('/d/')[1].split('/')[0];
-    const file = DriveApp.getFileById(fileId);
-    return {
-      iconContent: file.getBlob().getDataAsString(),
-      mimeType: file.getMimeType()
-    };
+  } else if (icon.svg.startsWith("https://drive.google.com/file/d/")) {
+    const fileId = icon.svg.split("/d/")[1].split("/")[0];
+    console.log(`Attempting to access Drive file with ID: ${fileId}`);
+
+    try {
+      const file = DriveApp.getFileById(fileId);
+      return {
+        iconContent: file.getBlob().getDataAsString(),
+        mimeType: file.getMimeType(),
+      };
+    } catch (error) {
+      const errorMsg = `Failed to access Drive file with ID "${fileId}": ${error.message}`;
+      console.error(errorMsg);
+      console.warn(`Skipping inaccessible Drive file, returning null content`);
+      if (collector && iconName) {
+        collector.addDriveError(iconName, errorMsg, false, { fileId, url: icon.svg });
+      }
+      return { iconContent: null, mimeType: "", error: errorMsg };
+    }
   } else {
-    console.error('Unsupported icon format');
-    return { iconContent: null, mimeType: '' };
+    const errorMsg = "Unsupported icon format";
+    console.error(errorMsg);
+    if (collector && iconName) {
+      collector.addFormatError(iconName, errorMsg, false, { iconSvgPreview: icon.svg.substring(0, 100) });
+    }
+    return { iconContent: null, mimeType: "", error: errorMsg };
   }
 }
 
-function createIconFile(folder: GoogleAppsScript.Drive.Folder, name: string, size: string, content: string, mimeType: string) {
-  const extension = mimeType === MimeType.SVG ? 'svg' : 'png';
-  return folder.createFile(`${name}-${size}.${extension}`, content, mimeType);
+function createIconFile(
+  folder: GoogleAppsScript.Drive.Folder,
+  slug: string,
+  size: string,
+  content: string,
+  mimeType: string,
+  zipBlobs?: GoogleAppsScript.Base.Blob[],
+): GoogleAppsScript.Drive.File {
+  const extension = mimeType === MimeType.SVG ? "svg" : "png";
+  const sanitizedSize = size ? `-${size}` : "";
+  const baseSlug = sanitizeIconSlug(slug) || slug;
+  const fileName = `${baseSlug}${sanitizedSize}.${extension}`;
+  removeExistingFilesByName(folder, fileName);
+  const blob = Utilities.newBlob(content, mimeType, fileName);
+  const file = folder.createFile(blob);
+  if (typeof applyDefaultSharing === "function") {
+    try {
+      applyDefaultSharing(file);
+    } catch (error) {
+      console.warn(`Failed to apply sharing for icon file ${fileName}: ${error.message}`);
+    }
+  }
+  if (zipBlobs) {
+    zipBlobs.push(blob.copyBlob().setName(`icons/${fileName}`));
+  }
+  return file;
 }
 
-function updateIconUrlInSheet(sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number, col: number, iconUrl: string) {
+function removeExistingFilesByName(
+  folder: GoogleAppsScript.Drive.Folder,
+  fileName: string,
+): void {
+  const matches = folder.getFilesByName(fileName);
+  while (matches.hasNext()) {
+    const existing = matches.next();
+    console.log(`Removing existing icon file to avoid duplicates: ${existing.getName()} (${existing.getId()})`);
+    folder.removeFile(existing);
+    existing.setTrashed(true);
+  }
+}
+
+function updateIconUrlInSheet(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  row: number,
+  col: number,
+  iconUrl: string,
+) {
   if (iconUrl) {
     sheet.getRange(row, col).setValue(iconUrl);
-    console.log(`Updated icon URL in sheet: ${sheet.getRange(row, col).getValue()}`);
+    console.log(
+      `Updated icon URL in sheet: ${sheet.getRange(row, col).getValue()}`,
+    );
   } else {
-    console.warn(`Failed to save icon URL for ${sheet.getRange(row, col).getValue()}`);
+    console.warn(
+      `Failed to save icon URL for ${sheet.getRange(row, col).getValue()}`,
+    );
   }
 }
 
 // Import necessary functions from iconGenerator.ts
-function generateNewIcon(name: string, backgroundColor: string): string {
+function generateNewIcon(
+  name: string,
+  backgroundColor: string,
+  presetSlug?: string,
+  collector?: IconErrorCollector,
+): string {
+  const iconSlug = presetSlug || createPresetSlug(name);
   const preset = {
-    icon: slugify(name),
+    icon: iconSlug,
     color: backgroundColor,
-    name: name
+    name: name,
   };
-  const generatedIcon = getIconForPreset(preset);
-  return generatedIcon ? generatedIcon.svg : '';
+  const generatedIcon = getIconForPreset(preset, collector);
+  if (generatedIcon && generatedIcon.svg) {
+    return generatedIcon.svg;
+  } else {
+    console.warn(`Failed to generate icon for ${name}, using fallback icon`);
+    if (collector) {
+      collector.addApiError(name, "Icon API failed to generate icon", true);
+    }
+    return FALLBACK_ICON_SVG;
+  }
 }
 
-function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
+function getIconForPreset(
+  preset: Partial<CoMapeoPreset>,
+  collector?: IconErrorCollector
+): CoMapeoIcon | null {
   const searchParams = getSearchParams(preset.name);
   let searchData = findValidSearchData(searchParams);
 
-  while (!searchData) {
-    console.log(`Retrying search for ${preset.name}`);
+  // Add retry limit to prevent infinite loop
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (!searchData && retryCount < maxRetries) {
+    console.log(`Retrying search for ${preset.name} (attempt ${retryCount + 1}/${maxRetries})`);
     searchData = findValidSearchData(searchParams);
+    retryCount++;
+  }
+
+  if (!searchData) {
+    console.error(`Failed to find icon data for ${preset.name} after ${maxRetries} attempts`);
+    if (collector) {
+      collector.addApiError(
+        preset.name || "unknown",
+        `Icon search failed after ${maxRetries} attempts`,
+        false,
+        { searchParams }
+      );
+    }
+    return null;
   }
 
   if (searchData) {
@@ -166,17 +576,26 @@ function getIconForPreset(preset: Partial<CoMapeoPreset>): CoMapeoIcon | null {
     if (generateData) {
       return {
         name: preset.icon,
-        svg: generateData[0].svg
+        svg: generateData[0].svg,
       };
+    } else {
+      if (collector) {
+        collector.addApiError(
+          preset.name || "unknown",
+          "Icon generation API returned no data",
+          false,
+          { searchUrl: searchData[0], color: preset.color }
+        );
+      }
     }
   }
   return null;
 }
 
 function getSearchParams(name: string): string[] {
-  const nameOptions = name.split(' ');
-  const extraNameOptions = name.split('-');
-  return [name, ...nameOptions, ...extraNameOptions, 'marker'];
+  const nameOptions = name.split(" ");
+  const extraNameOptions = name.split("-");
+  return [name, ...nameOptions, ...extraNameOptions, "marker"];
 }
 
 function findValidSearchData(searchParams: string[]): any[] | null {

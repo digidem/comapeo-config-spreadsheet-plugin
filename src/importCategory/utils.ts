@@ -1,0 +1,37 @@
+/**
+ * Utility functions for the import category functionality.
+ * This file contains general utility functions used across the import process.
+ */
+
+/**
+ * Creates or clears a sheet in the spreadsheet.
+ * @param spreadsheet - The active spreadsheet
+ * @param sheetName - Name of the sheet to create or clear
+ * @returns The sheet object
+ */
+function createOrClearSheet(
+  spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+  sheetName: string,
+): GoogleAppsScript.Spreadsheet.Sheet {
+  let sheet = spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet) {
+    // Create the sheet if it doesn't exist
+    sheet = spreadsheet.insertSheet(sheetName);
+  } else {
+    // Clear the sheet if it exists
+    try {
+      // First clear all data validations to prevent validation errors
+      if (sheet.getLastRow() > 0) {
+        sheet.getDataRange().clearDataValidations();
+      }
+      // Then clear all content, formatting, etc.
+      sheet.clear();
+    } catch (error) {
+      console.error(`Error clearing sheet ${sheetName}:`, error);
+      // Continue even if there's an error
+    }
+  }
+
+  return sheet;
+}
