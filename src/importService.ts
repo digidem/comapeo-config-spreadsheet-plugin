@@ -21,75 +21,366 @@ const ZIP_SIGNATURE = [0x50, 0x4B, 0x03, 0x04];
 // =============================================================================
 
 /**
- * Prompts user to select a .comapeocat file and imports it
+ * Prompts user to select a category file and imports it.
+ * Supports local file upload and Google Drive import.
+ * Accepts .comapeocat, .mapeosettings, and .zip files.
  */
 function importCoMapeoCatFile(): void {
   const ui = SpreadsheetApp.getUi();
 
-  // Show file picker dialog with sanitized HTML
   const html = HtmlService.createHtmlOutput(`
-    <style>
-      body { font-family: Arial, sans-serif; padding: 20px; }
-      input { margin: 10px 0; }
-      button { padding: 10px 20px; background: #4285f4; color: white; border: none; cursor: pointer; border-radius: 4px; }
-      button:hover { background: #3367d6; }
-      button:disabled { background: #ccc; cursor: not-allowed; }
-      .info { color: #666; font-size: 12px; margin-top: 10px; }
-      .error { color: #d93025; font-size: 12px; margin-top: 5px; display: none; }
-    </style>
-    <p>Enter the Google Drive file ID or URL of the .comapeocat file:</p>
-    <input type="text" id="fileInput" style="width: 100%; padding: 8px;" placeholder="File ID or Drive URL">
-    <p class="error" id="errorMsg"></p>
-    <br>
-    <button id="submitBtn" onclick="submitFile()">Import</button>
-    <p class="info">You can find the file ID in the Drive URL: drive.google.com/file/d/<b>FILE_ID</b>/view</p>
-    <script>
-      function submitFile() {
-        var input = document.getElementById('fileInput').value.trim();
-        var errorMsg = document.getElementById('errorMsg');
-        var submitBtn = document.getElementById('submitBtn');
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <base target="_top">
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          font-family: 'Roboto', Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+          color: #e0e0e0;
+        }
+        h2 {
+          color: #6d44d9;
+          font-size: 18px;
+          margin: 0 0 16px 0;
+          text-align: center;
+        }
+        .section {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+        .section-title {
+          font-weight: 500;
+          color: #9c88ff;
+          margin-bottom: 10px;
+          font-size: 13px;
+        }
+        .upload-area {
+          border: 2px dashed #6d44d9;
+          border-radius: 8px;
+          padding: 24px 16px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          background: rgba(109, 68, 217, 0.1);
+        }
+        .upload-area:hover, .upload-area.dragover {
+          background: rgba(109, 68, 217, 0.2);
+          border-color: #8a67e8;
+        }
+        .upload-area.has-file {
+          border-color: #4CAF50;
+          background: rgba(76, 175, 80, 0.1);
+        }
+        .upload-icon { font-size: 32px; margin-bottom: 8px; }
+        .upload-text { font-size: 13px; color: #aaa; }
+        .upload-text strong { color: #6d44d9; }
+        .file-input { display: none; }
+        .file-info {
+          margin-top: 12px;
+          padding: 10px;
+          background: rgba(0,0,0,0.3);
+          border-radius: 6px;
+          display: none;
+        }
+        .file-info.show { display: block; }
+        .file-name { font-weight: 500; color: #fff; word-break: break-all; font-size: 13px; }
+        .file-details { font-size: 11px; color: #888; margin-top: 4px; }
+        .format-badge {
+          display: inline-block;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 10px;
+          font-weight: 500;
+          margin-left: 6px;
+        }
+        .format-comapeocat { background: #6d44d9; color: white; }
+        .format-mapeosettings { background: #ff9800; color: white; }
+        .format-zip { background: #2196f3; color: white; }
+        .format-unknown { background: #f44336; color: white; }
+        .divider {
+          text-align: center;
+          color: #666;
+          margin: 16px 0;
+          position: relative;
+          font-size: 12px;
+        }
+        .divider::before, .divider::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          width: 40%;
+          height: 1px;
+          background: #444;
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .drive-input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #444;
+          border-radius: 6px;
+          background: rgba(0,0,0,0.3);
+          color: #e0e0e0;
+          font-size: 13px;
+        }
+        .drive-input:focus {
+          outline: none;
+          border-color: #6d44d9;
+        }
+        .info-text { font-size: 10px; color: #888; margin-top: 6px; }
+        .btn {
+          display: block;
+          width: 100%;
+          padding: 12px 20px;
+          background: linear-gradient(45deg, #330B9E, #6d44d9);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 16px;
+        }
+        .btn:hover:not(:disabled) {
+          background: linear-gradient(45deg, #4A0ED6, #8a67e8);
+        }
+        .btn:disabled {
+          background: #444;
+          cursor: not-allowed;
+        }
+        .error-msg {
+          color: #ff6b6b;
+          font-size: 12px;
+          margin-top: 8px;
+          padding: 8px;
+          background: rgba(255, 107, 107, 0.1);
+          border-radius: 6px;
+          display: none;
+        }
+        .error-msg.show { display: block; }
+        .spinner {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border: 2px solid #ffffff40;
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin-right: 8px;
+          vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .supported-formats {
+          font-size: 10px;
+          color: #666;
+          text-align: center;
+          margin-top: 10px;
+        }
+        .supported-formats code {
+          background: rgba(109, 68, 217, 0.2);
+          padding: 1px 4px;
+          border-radius: 3px;
+          color: #9c88ff;
+        }
+      </style>
+    </head>
+    <body>
+      <h2>Import Category File</h2>
 
-        // Basic client-side validation
-        if (!input) {
-          errorMsg.textContent = 'Please enter a file ID or URL';
-          errorMsg.style.display = 'block';
-          return;
+      <div class="section">
+        <div class="section-title">📁 Upload from Computer</div>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📤</div>
+          <div class="upload-text">
+            <strong>Click to select</strong> or drag and drop
+          </div>
+        </div>
+        <input type="file" id="fileInput" class="file-input"
+               accept=".comapeocat,.mapeosettings,.zip,.tar"
+               onchange="handleFileSelect(event)">
+        <div id="fileInfo" class="file-info">
+          <span class="file-name" id="fileName"></span>
+          <span class="format-badge" id="formatBadge"></span>
+          <div class="file-details" id="fileDetails"></div>
+        </div>
+      </div>
+
+      <div class="divider">or</div>
+
+      <div class="section">
+        <div class="section-title">☁️ Import from Google Drive</div>
+        <input type="text" id="driveInput" class="drive-input"
+               placeholder="Paste file ID or Drive URL"
+               onkeypress="if(event.key==='Enter')handleImport()">
+        <div class="info-text">
+          File ID from URL: drive.google.com/file/d/<strong>FILE_ID</strong>/view
+        </div>
+      </div>
+
+      <div id="errorMsg" class="error-msg"></div>
+
+      <button id="importBtn" class="btn" onclick="handleImport()" disabled>
+        Select a file to import
+      </button>
+
+      <div class="supported-formats">
+        Supported: <code>.comapeocat</code> <code>.mapeosettings</code> <code>.zip</code>
+      </div>
+
+      <script>
+        var selectedFile = null;
+        var importSource = null;
+        var uploadArea = document.getElementById('uploadArea');
+
+        uploadArea.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', function() {
+          uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', function(e) {
+          e.preventDefault();
+          uploadArea.classList.remove('dragover');
+          if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+
+        document.getElementById('driveInput').addEventListener('input', function() {
+          if (this.value.trim()) {
+            importSource = 'drive';
+            selectedFile = null;
+            updateUI();
+          } else if (!selectedFile) {
+            importSource = null;
+            updateUI();
+          }
+        });
+
+        function handleFileSelect(event) {
+          if (event.target.files[0]) handleFile(event.target.files[0]);
         }
 
-        errorMsg.style.display = 'none';
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Importing...';
+        function handleFile(file) {
+          selectedFile = file;
+          importSource = 'local';
+          document.getElementById('driveInput').value = '';
+          document.getElementById('fileName').textContent = file.name;
+          document.getElementById('fileDetails').textContent = 'Size: ' + formatFileSize(file.size);
 
-        google.script.run
-          .withSuccessHandler(function() {
-            google.script.host.close();
-          })
-          .withFailureHandler(function(error) {
-            errorMsg.textContent = 'Error: ' + (error.message || error);
-            errorMsg.style.display = 'block';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Import';
-          })
-          .processImportFile(input);
-      }
+          var format = detectFormat(file.name);
+          var badge = document.getElementById('formatBadge');
+          badge.textContent = formatToLabel(format);
+          badge.className = 'format-badge format-' + format;
 
-      // Allow Enter key to submit
-      document.getElementById('fileInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') submitFile();
-      });
-    </script>
+          document.getElementById('fileInfo').classList.add('show');
+          uploadArea.classList.add('has-file');
+          updateUI();
+        }
+
+        function detectFormat(filename) {
+          var lower = filename.toLowerCase();
+          if (lower.endsWith('.comapeocat')) return 'comapeocat';
+          if (lower.endsWith('.mapeosettings') || lower.endsWith('.tar')) return 'mapeosettings';
+          if (lower.endsWith('.zip')) return 'zip';
+          return 'unknown';
+        }
+
+        function formatToLabel(format) {
+          switch(format) {
+            case 'comapeocat': return 'CoMapeo';
+            case 'mapeosettings': return 'Legacy Mapeo';
+            case 'zip': return 'ZIP';
+            default: return 'Unknown';
+          }
+        }
+
+        function formatFileSize(bytes) {
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+          return (bytes/1024/1024).toFixed(1) + ' MB';
+        }
+
+        function updateUI() {
+          var btn = document.getElementById('importBtn');
+          var driveInput = document.getElementById('driveInput').value.trim();
+          if (importSource === 'local' && selectedFile) {
+            btn.disabled = false;
+            btn.innerHTML = 'Import File';
+          } else if (importSource === 'drive' && driveInput) {
+            btn.disabled = false;
+            btn.innerHTML = 'Import from Drive';
+          } else {
+            btn.disabled = true;
+            btn.innerHTML = 'Select a file to import';
+          }
+        }
+
+        function handleImport() {
+          var btn = document.getElementById('importBtn');
+          var errorMsg = document.getElementById('errorMsg');
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span>Importing...';
+          errorMsg.classList.remove('show');
+
+          if (importSource === 'local' && selectedFile) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              var base64data = e.target.result.split(',')[1];
+              google.script.run
+                .withSuccessHandler(handleSuccess)
+                .withFailureHandler(handleError)
+                .processImportedCategoryFile(selectedFile.name, base64data);
+            };
+            reader.onerror = function() { handleError({message: 'Failed to read file'}); };
+            reader.readAsDataURL(selectedFile);
+          } else if (importSource === 'drive') {
+            var driveInput = document.getElementById('driveInput').value.trim();
+            google.script.run
+              .withSuccessHandler(handleSuccess)
+              .withFailureHandler(handleError)
+              .processImportFile(driveInput);
+          }
+        }
+
+        function handleSuccess(result) {
+          if (result && result.success === false) {
+            handleError({message: result.message || 'Import failed'});
+            return;
+          }
+          google.script.host.close();
+        }
+
+        function handleError(error) {
+          var btn = document.getElementById('importBtn');
+          var errorMsg = document.getElementById('errorMsg');
+          btn.disabled = false;
+          updateUI();
+          errorMsg.textContent = error.message || String(error);
+          errorMsg.classList.add('show');
+        }
+      </script>
+    </body>
+    </html>
   `)
-    .setWidth(450)
-    .setHeight(220);
+    .setWidth(480)
+    .setHeight(520);
 
-  ui.showModalDialog(html, 'Import CoMapeo Category');
+  ui.showModalDialog(html, 'Import Category File');
 }
 
 /**
- * Processes the import file from user input
+ * Processes the import file from Google Drive.
+ * Supports .comapeocat, .mapeosettings, and .zip files.
  * @param fileIdOrUrl - Google Drive file ID or URL
  */
-function processImportFile(fileIdOrUrl: string): void {
+function processImportFile(fileIdOrUrl: string): { success: boolean; message: string } {
   // Validate input
   if (!fileIdOrUrl || typeof fileIdOrUrl !== 'string') {
     throw new Error('Please provide a valid file ID or URL.');
@@ -121,7 +412,7 @@ function processImportFile(fileIdOrUrl: string): void {
   // Validate file size
   const fileSize = file.getSize();
   if (fileSize < MIN_COMAPEOCAT_SIZE) {
-    throw new Error('File is too small to be a valid .comapeocat file.');
+    throw new Error('File is too small to be a valid category file.');
   }
   if (fileSize > MAX_COMAPEOCAT_SIZE) {
     throw new Error('File is too large (max 10MB).');
@@ -134,18 +425,24 @@ function processImportFile(fileIdOrUrl: string): void {
     throw new Error('Could not read file contents. The file may be corrupted or inaccessible.');
   }
 
-  const content = extractConfigFromComapeocat(blob);
+  // Convert blob to base64 and use the unified import pipeline
+  const base64Data = Utilities.base64Encode(blob.getBytes());
+  const fileName = file.getName();
 
-  // Validate extracted content (legacy rules to preserve compatibility)
-  validateBuildRequest(content);
+  // Delegate to processImportedCategoryFile which handles all formats
+  const result = processImportedCategoryFile(fileName, base64Data);
 
-  populateSpreadsheetFromConfig(content);
+  if (!result.success) {
+    throw new Error(result.message);
+  }
 
   SpreadsheetApp.getUi().alert(
     'Import Successful',
     'The configuration has been imported. Please review the Categories and Details sheets.',
     SpreadsheetApp.getUi().ButtonSet.OK
   );
+
+  return result;
 }
 
 interface BuildValidationOptions {
