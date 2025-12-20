@@ -235,9 +235,9 @@ function importCoMapeoCatFile(): void {
       </div>
 
       <script>
-        var selectedFile = null;
-        var importSource = null;
-        var uploadArea = document.getElementById('uploadArea');
+        let selectedFile = null;
+        let importSource = null;
+        const uploadArea = document.getElementById('uploadArea');
 
         uploadArea.addEventListener('dragover', function(e) {
           e.preventDefault();
@@ -274,8 +274,8 @@ function importCoMapeoCatFile(): void {
           document.getElementById('fileName').textContent = file.name;
           document.getElementById('fileDetails').textContent = 'Size: ' + formatFileSize(file.size);
 
-          var format = detectFormat(file.name);
-          var badge = document.getElementById('formatBadge');
+          const format = detectFormat(file.name);
+          const badge = document.getElementById('formatBadge');
           badge.textContent = formatToLabel(format);
           badge.className = 'format-badge format-' + format;
 
@@ -285,7 +285,7 @@ function importCoMapeoCatFile(): void {
         }
 
         function detectFormat(filename) {
-          var lower = filename.toLowerCase();
+          const lower = filename.toLowerCase();
           if (lower.endsWith('.comapeocat')) return 'comapeocat';
           if (lower.endsWith('.mapeosettings') || lower.endsWith('.tar')) return 'mapeosettings';
           if (lower.endsWith('.zip')) return 'zip';
@@ -308,8 +308,8 @@ function importCoMapeoCatFile(): void {
         }
 
         function updateUI() {
-          var btn = document.getElementById('importBtn');
-          var driveInput = document.getElementById('driveInput').value.trim();
+          const btn = document.getElementById('importBtn');
+          const driveInput = document.getElementById('driveInput').value.trim();
           if (importSource === 'local' && selectedFile) {
             btn.disabled = false;
             btn.innerHTML = 'Import File';
@@ -323,16 +323,16 @@ function importCoMapeoCatFile(): void {
         }
 
         function handleImport() {
-          var btn = document.getElementById('importBtn');
-          var errorMsg = document.getElementById('errorMsg');
+          const btn = document.getElementById('importBtn');
+          const errorMsg = document.getElementById('errorMsg');
           btn.disabled = true;
           btn.innerHTML = '<span class="spinner"></span>Importing...';
           errorMsg.classList.remove('show');
 
           if (importSource === 'local' && selectedFile) {
-            var reader = new FileReader();
+            const reader = new FileReader();
             reader.onload = function(e) {
-              var base64data = e.target.result.split(',')[1];
+              const base64data = e.target.result.split(',')[1];
               google.script.run
                 .withSuccessHandler(handleSuccess)
                 .withFailureHandler(handleError)
@@ -341,7 +341,7 @@ function importCoMapeoCatFile(): void {
             reader.onerror = function() { handleError({message: 'Failed to read file'}); };
             reader.readAsDataURL(selectedFile);
           } else if (importSource === 'drive') {
-            var driveInput = document.getElementById('driveInput').value.trim();
+            const driveInput = document.getElementById('driveInput').value.trim();
             google.script.run
               .withSuccessHandler(handleSuccess)
               .withFailureHandler(handleError)
@@ -358,8 +358,8 @@ function importCoMapeoCatFile(): void {
         }
 
         function handleError(error) {
-          var btn = document.getElementById('importBtn');
-          var errorMsg = document.getElementById('errorMsg');
+          const btn = document.getElementById('importBtn');
+          const errorMsg = document.getElementById('errorMsg');
           btn.disabled = false;
           updateUI();
           errorMsg.textContent = error.message || String(error);
@@ -429,19 +429,16 @@ function processImportFile(fileIdOrUrl: string): { success: boolean; message: st
   const base64Data = Utilities.base64Encode(blob.getBytes());
   const fileName = file.getName();
 
-  // Delegate to processImportedCategoryFile which handles all formats
+  // Delegate to processImportedCategoryFile (defined in src/importCategory.ts)
+  // which handles all formats: .comapeocat, .mapeosettings, .zip
   const result = processImportedCategoryFile(fileName, base64Data);
 
   if (!result.success) {
     throw new Error(result.message);
   }
 
-  SpreadsheetApp.getUi().alert(
-    'Import Successful',
-    'The configuration has been imported. Please review the Categories and Details sheets.',
-    SpreadsheetApp.getUi().ButtonSet.OK
-  );
-
+  // Note: No UI alert here - the HTML dialog handles success/failure display
+  // to maintain consistent behavior between local and Drive imports
   return result;
 }
 
