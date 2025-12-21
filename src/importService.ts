@@ -17,6 +17,494 @@ const MAX_COMAPEOCAT_SIZE = 10 * 1024 * 1024;
 const ZIP_SIGNATURE = [0x50, 0x4B, 0x03, 0x04];
 
 // =============================================================================
+// Import Dialog HTML Builder
+// =============================================================================
+
+/**
+ * Builds the CSS styles for the import dialog.
+ * Extracted for maintainability and readability.
+ */
+function buildImportDialogStyles(): string {
+  return `
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
+      color: #e0e0e0;
+    }
+    h2 {
+      color: #6d44d9;
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      text-align: center;
+    }
+    .section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-weight: 500;
+      color: #9c88ff;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .upload-area {
+      border: 2px dashed #6d44d9;
+      border-radius: 8px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(109, 68, 217, 0.1);
+    }
+    .upload-area:hover, .upload-area.dragover {
+      background: rgba(109, 68, 217, 0.2);
+      border-color: #8a67e8;
+    }
+    .upload-area.has-file {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+    .upload-area.importing {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-text { font-size: 13px; color: #aaa; }
+    .upload-text strong { color: #6d44d9; }
+    .file-input { display: none; }
+    .file-info {
+      margin-top: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      display: none;
+    }
+    .file-info.show { display: block; }
+    .file-name { font-weight: 500; color: #fff; word-break: break-all; font-size: 13px; }
+    .file-details { font-size: 11px; color: #888; margin-top: 4px; }
+    .format-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      margin-left: 6px;
+    }
+    .format-comapeocat { background: #6d44d9; color: white; }
+    .format-mapeosettings { background: #ff9800; color: white; }
+    .format-zip { background: #2196f3; color: white; }
+    .format-unknown { background: #f44336; color: white; }
+    .divider {
+      text-align: center;
+      color: #666;
+      margin: 16px 0;
+      position: relative;
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: #444;
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+    .drive-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.3);
+      color: #e0e0e0;
+      font-size: 13px;
+    }
+    .drive-input:focus {
+      outline: none;
+      border-color: #6d44d9;
+    }
+    .drive-input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .info-text { font-size: 10px; color: #888; margin-top: 6px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 20px;
+      background: linear-gradient(45deg, #330B9E, #6d44d9);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 16px;
+    }
+    .btn:hover:not(:disabled) {
+      background: linear-gradient(45deg, #4A0ED6, #8a67e8);
+    }
+    .btn:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(255, 107, 107, 0.1);
+      border-radius: 6px;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+    .progress-container {
+      margin-top: 16px;
+      display: none;
+    }
+    .progress-container.show { display: block; }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #330B9E, #6d44d9, #8a67e8);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-detail {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      min-height: 16px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff40;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .supported-formats {
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .supported-formats code {
+      background: rgba(109, 68, 217, 0.2);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: #9c88ff;
+    }
+  `;
+}
+
+/**
+ * Builds the HTML body for the import dialog.
+ */
+function buildImportDialogBody(): string {
+  return `
+    <h2>Import Category File</h2>
+
+    <div class="section">
+      <div class="section-title">📁 Upload from Computer</div>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📤</div>
+        <div class="upload-text">
+          <strong>Click to select</strong> or drag and drop
+        </div>
+      </div>
+      <input type="file" id="fileInput" class="file-input"
+             accept=".comapeocat,.mapeosettings,.zip,.tar"
+             onchange="handleFileSelect(event)">
+      <div id="fileInfo" class="file-info">
+        <span class="file-name" id="fileName"></span>
+        <span class="format-badge" id="formatBadge"></span>
+        <div class="file-details" id="fileDetails"></div>
+      </div>
+    </div>
+
+    <div class="divider">or</div>
+
+    <div class="section">
+      <div class="section-title">☁️ Import from Google Drive</div>
+      <input type="text" id="driveInput" class="drive-input"
+             placeholder="Paste file ID or Drive URL"
+             onkeypress="if(event.key==='Enter')handleImport()">
+      <div class="info-text">
+        File ID from URL: drive.google.com/file/d/<strong>FILE_ID</strong>/view
+      </div>
+    </div>
+
+    <div id="progressContainer" class="progress-container">
+      <div class="progress-header">
+        <span id="progressStage">Processing...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="progressDetail" class="progress-detail"></div>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <button id="importBtn" class="btn" onclick="handleImport()" disabled>
+      Select a file to import
+    </button>
+
+    <div class="supported-formats">
+      Supported: <code>.comapeocat</code> <code>.mapeosettings</code> <code>.zip</code>
+    </div>
+  `;
+}
+
+/**
+ * Builds the JavaScript for the import dialog.
+ * Uses processImportedCategoryFileWithProgress for progress tracking on local uploads.
+ */
+function buildImportDialogScript(): string {
+  return `
+    let selectedFile = null;
+    let importSource = null;
+    let isImporting = false;
+    const uploadArea = document.getElementById('uploadArea');
+
+    // Drag and drop handlers
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (!isImporting) uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', function() {
+      uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      if (!isImporting && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Drive input handler
+    document.getElementById('driveInput').addEventListener('input', function() {
+      if (isImporting) return;
+      if (this.value.trim()) {
+        importSource = 'drive';
+        selectedFile = null;
+        updateUI();
+      } else if (!selectedFile) {
+        importSource = null;
+        updateUI();
+      }
+    });
+
+    function handleFileSelect(event) {
+      if (!isImporting && event.target.files[0]) {
+        handleFile(event.target.files[0]);
+      }
+    }
+
+    function handleFile(file) {
+      selectedFile = file;
+      importSource = 'local';
+      document.getElementById('driveInput').value = '';
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileDetails').textContent = 'Size: ' + formatFileSize(file.size);
+
+      const format = detectFormat(file.name);
+      const badge = document.getElementById('formatBadge');
+      badge.textContent = formatToLabel(format);
+      badge.className = 'format-badge format-' + format;
+
+      document.getElementById('fileInfo').classList.add('show');
+      uploadArea.classList.add('has-file');
+      updateUI();
+    }
+
+    function detectFormat(filename) {
+      const lower = filename.toLowerCase();
+      if (lower.endsWith('.comapeocat')) return 'comapeocat';
+      if (lower.endsWith('.mapeosettings') || lower.endsWith('.tar')) return 'mapeosettings';
+      if (lower.endsWith('.zip')) return 'zip';
+      return 'unknown';
+    }
+
+    function formatToLabel(format) {
+      switch(format) {
+        case 'comapeocat': return 'CoMapeo';
+        case 'mapeosettings': return 'Legacy Mapeo';
+        case 'zip': return 'ZIP';
+        default: return 'Unknown';
+      }
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/1024/1024).toFixed(1) + ' MB';
+    }
+
+    function updateUI() {
+      const btn = document.getElementById('importBtn');
+      const driveInput = document.getElementById('driveInput');
+
+      if (isImporting) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Importing...';
+        driveInput.disabled = true;
+        uploadArea.classList.add('importing');
+        return;
+      }
+
+      driveInput.disabled = false;
+      uploadArea.classList.remove('importing');
+
+      const driveValue = driveInput.value.trim();
+      if (importSource === 'local' && selectedFile) {
+        btn.disabled = false;
+        btn.innerHTML = 'Import File';
+      } else if (importSource === 'drive' && driveValue) {
+        btn.disabled = false;
+        btn.innerHTML = 'Import from Drive';
+      } else {
+        btn.disabled = true;
+        btn.innerHTML = 'Select a file to import';
+      }
+    }
+
+    function showProgress(show) {
+      const container = document.getElementById('progressContainer');
+      if (show) {
+        container.classList.add('show');
+      } else {
+        container.classList.remove('show');
+      }
+    }
+
+    function updateProgress(data) {
+      document.getElementById('progressBar').style.width = data.percent + '%';
+      document.getElementById('progressStage').textContent = data.stage || 'Processing...';
+      document.getElementById('progressPercent').textContent = data.percent + '%';
+
+      let detail = data.detail || '';
+      if (data.counts) {
+        const counts = Object.entries(data.counts)
+          .map(function(entry) { return entry[0] + ': ' + entry[1]; })
+          .join(', ');
+        detail += (detail ? ' ' : '') + '(' + counts + ')';
+      }
+      document.getElementById('progressDetail').textContent = detail;
+    }
+
+    function handleImport() {
+      if (isImporting) return;
+
+      isImporting = true;
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.remove('show');
+      updateUI();
+
+      if (importSource === 'local' && selectedFile) {
+        showProgress(true);
+        updateProgress({ percent: 0, stage: 'Reading file...', detail: '' });
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          updateProgress({ percent: 5, stage: 'Uploading...', detail: 'Sending to server' });
+          const base64data = e.target.result.split(',')[1];
+
+          // Use progress-enabled function for local uploads
+          google.script.run
+            .withSuccessHandler(handleSuccess)
+            .withFailureHandler(handleError)
+            .withUserObject({ onProgress: updateProgress })
+            .processImportedCategoryFileWithProgress(selectedFile.name, base64data, updateProgress);
+        };
+        reader.onerror = function() {
+          handleError({message: 'Failed to read file'});
+        };
+        reader.readAsDataURL(selectedFile);
+      } else if (importSource === 'drive') {
+        showProgress(true);
+        updateProgress({ percent: 0, stage: 'Fetching from Drive...', detail: '' });
+
+        const driveInput = document.getElementById('driveInput').value.trim();
+        google.script.run
+          .withSuccessHandler(handleSuccess)
+          .withFailureHandler(handleError)
+          .processImportFile(driveInput);
+      }
+    }
+
+    function handleSuccess(result) {
+      isImporting = false;
+      showProgress(false);
+
+      if (result && result.success === false) {
+        handleError({message: result.message || 'Import failed'});
+        return;
+      }
+
+      google.script.host.close();
+    }
+
+    function handleError(error) {
+      isImporting = false;
+      showProgress(false);
+      updateUI();
+
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = error.message || String(error);
+      errorMsg.classList.add('show');
+    }
+  `;
+}
+
+/**
+ * Builds the complete HTML for the import dialog.
+ */
+function buildImportDialogHtml(): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>${buildImportDialogStyles()}</style>
+</head>
+<body>
+  ${buildImportDialogBody()}
+  <script>${buildImportDialogScript()}</script>
+</body>
+</html>`;
+}
+
+// =============================================================================
 // Main Import Functions
 // =============================================================================
 
@@ -27,350 +515,9 @@ const ZIP_SIGNATURE = [0x50, 0x4B, 0x03, 0x04];
  */
 function importCoMapeoCatFile(): void {
   const ui = SpreadsheetApp.getUi();
-
-  const html = HtmlService.createHtmlOutput(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <base target="_top">
-      <style>
-        * { box-sizing: border-box; }
-        body {
-          font-family: 'Roboto', Arial, sans-serif;
-          margin: 0;
-          padding: 20px;
-          background: linear-gradient(135deg, #1a1a1a, #2c2c2c);
-          color: #e0e0e0;
-        }
-        h2 {
-          color: #6d44d9;
-          font-size: 18px;
-          margin: 0 0 16px 0;
-          text-align: center;
-        }
-        .section {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-          padding: 16px;
-          margin-bottom: 16px;
-        }
-        .section-title {
-          font-weight: 500;
-          color: #9c88ff;
-          margin-bottom: 10px;
-          font-size: 13px;
-        }
-        .upload-area {
-          border: 2px dashed #6d44d9;
-          border-radius: 8px;
-          padding: 24px 16px;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          background: rgba(109, 68, 217, 0.1);
-        }
-        .upload-area:hover, .upload-area.dragover {
-          background: rgba(109, 68, 217, 0.2);
-          border-color: #8a67e8;
-        }
-        .upload-area.has-file {
-          border-color: #4CAF50;
-          background: rgba(76, 175, 80, 0.1);
-        }
-        .upload-icon { font-size: 32px; margin-bottom: 8px; }
-        .upload-text { font-size: 13px; color: #aaa; }
-        .upload-text strong { color: #6d44d9; }
-        .file-input { display: none; }
-        .file-info {
-          margin-top: 12px;
-          padding: 10px;
-          background: rgba(0,0,0,0.3);
-          border-radius: 6px;
-          display: none;
-        }
-        .file-info.show { display: block; }
-        .file-name { font-weight: 500; color: #fff; word-break: break-all; font-size: 13px; }
-        .file-details { font-size: 11px; color: #888; margin-top: 4px; }
-        .format-badge {
-          display: inline-block;
-          padding: 2px 6px;
-          border-radius: 3px;
-          font-size: 10px;
-          font-weight: 500;
-          margin-left: 6px;
-        }
-        .format-comapeocat { background: #6d44d9; color: white; }
-        .format-mapeosettings { background: #ff9800; color: white; }
-        .format-zip { background: #2196f3; color: white; }
-        .format-unknown { background: #f44336; color: white; }
-        .divider {
-          text-align: center;
-          color: #666;
-          margin: 16px 0;
-          position: relative;
-          font-size: 12px;
-        }
-        .divider::before, .divider::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          width: 40%;
-          height: 1px;
-          background: #444;
-        }
-        .divider::before { left: 0; }
-        .divider::after { right: 0; }
-        .drive-input {
-          width: 100%;
-          padding: 10px;
-          border: 1px solid #444;
-          border-radius: 6px;
-          background: rgba(0,0,0,0.3);
-          color: #e0e0e0;
-          font-size: 13px;
-        }
-        .drive-input:focus {
-          outline: none;
-          border-color: #6d44d9;
-        }
-        .info-text { font-size: 10px; color: #888; margin-top: 6px; }
-        .btn {
-          display: block;
-          width: 100%;
-          padding: 12px 20px;
-          background: linear-gradient(45deg, #330B9E, #6d44d9);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 16px;
-        }
-        .btn:hover:not(:disabled) {
-          background: linear-gradient(45deg, #4A0ED6, #8a67e8);
-        }
-        .btn:disabled {
-          background: #444;
-          cursor: not-allowed;
-        }
-        .error-msg {
-          color: #ff6b6b;
-          font-size: 12px;
-          margin-top: 8px;
-          padding: 8px;
-          background: rgba(255, 107, 107, 0.1);
-          border-radius: 6px;
-          display: none;
-        }
-        .error-msg.show { display: block; }
-        .spinner {
-          display: inline-block;
-          width: 14px;
-          height: 14px;
-          border: 2px solid #ffffff40;
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin-right: 8px;
-          vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .supported-formats {
-          font-size: 10px;
-          color: #666;
-          text-align: center;
-          margin-top: 10px;
-        }
-        .supported-formats code {
-          background: rgba(109, 68, 217, 0.2);
-          padding: 1px 4px;
-          border-radius: 3px;
-          color: #9c88ff;
-        }
-      </style>
-    </head>
-    <body>
-      <h2>Import Category File</h2>
-
-      <div class="section">
-        <div class="section-title">📁 Upload from Computer</div>
-        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-          <div class="upload-icon">📤</div>
-          <div class="upload-text">
-            <strong>Click to select</strong> or drag and drop
-          </div>
-        </div>
-        <input type="file" id="fileInput" class="file-input"
-               accept=".comapeocat,.mapeosettings,.zip,.tar"
-               onchange="handleFileSelect(event)">
-        <div id="fileInfo" class="file-info">
-          <span class="file-name" id="fileName"></span>
-          <span class="format-badge" id="formatBadge"></span>
-          <div class="file-details" id="fileDetails"></div>
-        </div>
-      </div>
-
-      <div class="divider">or</div>
-
-      <div class="section">
-        <div class="section-title">☁️ Import from Google Drive</div>
-        <input type="text" id="driveInput" class="drive-input"
-               placeholder="Paste file ID or Drive URL"
-               onkeypress="if(event.key==='Enter')handleImport()">
-        <div class="info-text">
-          File ID from URL: drive.google.com/file/d/<strong>FILE_ID</strong>/view
-        </div>
-      </div>
-
-      <div id="errorMsg" class="error-msg"></div>
-
-      <button id="importBtn" class="btn" onclick="handleImport()" disabled>
-        Select a file to import
-      </button>
-
-      <div class="supported-formats">
-        Supported: <code>.comapeocat</code> <code>.mapeosettings</code> <code>.zip</code>
-      </div>
-
-      <script>
-        let selectedFile = null;
-        let importSource = null;
-        const uploadArea = document.getElementById('uploadArea');
-
-        uploadArea.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          uploadArea.classList.add('dragover');
-        });
-        uploadArea.addEventListener('dragleave', function() {
-          uploadArea.classList.remove('dragover');
-        });
-        uploadArea.addEventListener('drop', function(e) {
-          e.preventDefault();
-          uploadArea.classList.remove('dragover');
-          if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-        });
-
-        document.getElementById('driveInput').addEventListener('input', function() {
-          if (this.value.trim()) {
-            importSource = 'drive';
-            selectedFile = null;
-            updateUI();
-          } else if (!selectedFile) {
-            importSource = null;
-            updateUI();
-          }
-        });
-
-        function handleFileSelect(event) {
-          if (event.target.files[0]) handleFile(event.target.files[0]);
-        }
-
-        function handleFile(file) {
-          selectedFile = file;
-          importSource = 'local';
-          document.getElementById('driveInput').value = '';
-          document.getElementById('fileName').textContent = file.name;
-          document.getElementById('fileDetails').textContent = 'Size: ' + formatFileSize(file.size);
-
-          const format = detectFormat(file.name);
-          const badge = document.getElementById('formatBadge');
-          badge.textContent = formatToLabel(format);
-          badge.className = 'format-badge format-' + format;
-
-          document.getElementById('fileInfo').classList.add('show');
-          uploadArea.classList.add('has-file');
-          updateUI();
-        }
-
-        function detectFormat(filename) {
-          const lower = filename.toLowerCase();
-          if (lower.endsWith('.comapeocat')) return 'comapeocat';
-          if (lower.endsWith('.mapeosettings') || lower.endsWith('.tar')) return 'mapeosettings';
-          if (lower.endsWith('.zip')) return 'zip';
-          return 'unknown';
-        }
-
-        function formatToLabel(format) {
-          switch(format) {
-            case 'comapeocat': return 'CoMapeo';
-            case 'mapeosettings': return 'Legacy Mapeo';
-            case 'zip': return 'ZIP';
-            default: return 'Unknown';
-          }
-        }
-
-        function formatFileSize(bytes) {
-          if (bytes < 1024) return bytes + ' B';
-          if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-          return (bytes/1024/1024).toFixed(1) + ' MB';
-        }
-
-        function updateUI() {
-          const btn = document.getElementById('importBtn');
-          const driveInput = document.getElementById('driveInput').value.trim();
-          if (importSource === 'local' && selectedFile) {
-            btn.disabled = false;
-            btn.innerHTML = 'Import File';
-          } else if (importSource === 'drive' && driveInput) {
-            btn.disabled = false;
-            btn.innerHTML = 'Import from Drive';
-          } else {
-            btn.disabled = true;
-            btn.innerHTML = 'Select a file to import';
-          }
-        }
-
-        function handleImport() {
-          const btn = document.getElementById('importBtn');
-          const errorMsg = document.getElementById('errorMsg');
-          btn.disabled = true;
-          btn.innerHTML = '<span class="spinner"></span>Importing...';
-          errorMsg.classList.remove('show');
-
-          if (importSource === 'local' && selectedFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              const base64data = e.target.result.split(',')[1];
-              google.script.run
-                .withSuccessHandler(handleSuccess)
-                .withFailureHandler(handleError)
-                .processImportedCategoryFile(selectedFile.name, base64data);
-            };
-            reader.onerror = function() { handleError({message: 'Failed to read file'}); };
-            reader.readAsDataURL(selectedFile);
-          } else if (importSource === 'drive') {
-            const driveInput = document.getElementById('driveInput').value.trim();
-            google.script.run
-              .withSuccessHandler(handleSuccess)
-              .withFailureHandler(handleError)
-              .processImportFile(driveInput);
-          }
-        }
-
-        function handleSuccess(result) {
-          if (result && result.success === false) {
-            handleError({message: result.message || 'Import failed'});
-            return;
-          }
-          google.script.host.close();
-        }
-
-        function handleError(error) {
-          const btn = document.getElementById('importBtn');
-          const errorMsg = document.getElementById('errorMsg');
-          btn.disabled = false;
-          updateUI();
-          errorMsg.textContent = error.message || String(error);
-          errorMsg.classList.add('show');
-        }
-      </script>
-    </body>
-    </html>
-  `)
+  const html = HtmlService.createHtmlOutput(buildImportDialogHtml())
     .setWidth(480)
-    .setHeight(520);
+    .setHeight(560);
 
   ui.showModalDialog(html, 'Import Category File');
 }
