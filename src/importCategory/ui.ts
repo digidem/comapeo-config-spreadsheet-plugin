@@ -85,45 +85,23 @@ function createImportCategoryHtml(): string {
     '        progressContainer.style.display = "block";' +
     '        uploadStatus.innerHTML = "";' +
     "        " +
+    "        // Show indeterminate progress" +
+    '        document.getElementById("progress-bar").style.width = "50%";' +
+    '        document.getElementById("progress-stage").textContent = "Processing...";' +
+    '        document.getElementById("progress-percent").textContent = "";' +
+    '        document.getElementById("progress-detail").textContent = "Importing configuration";' +
+    "        " +
     "        // Read the file and convert to base64" +
     "        const reader = new FileReader();" +
     "        reader.onload = function(e) {" +
     '          const base64data = e.target.result.split(",")[1];' +
+    "          // Note: Progress callbacks cannot work across Apps Script client/server boundary" +
     "          google.script.run" +
     "            .withSuccessHandler(onSuccess)" +
     "            .withFailureHandler(onFailure)" +
-    "            .withUserObject({" +
-    '              progressBar: document.getElementById("progress-bar"),' +
-    '              progressStage: document.getElementById("progress-stage"),' +
-    '              progressPercent: document.getElementById("progress-percent"),' +
-    '              progressDetail: document.getElementById("progress-detail")' +
-    "            })" +
-    "            .processImportedCategoryFileWithProgress(file.name, base64data, onProgress);" +
+    "            .processImportedCategoryFile(file.name, base64data);" +
     "        };" +
     "        reader.readAsDataURL(file);" +
-    "      }" +
-    "    }" +
-    "    " +
-    "    function onProgress(progressData) {" +
-    "      const { progressBar, progressStage, progressPercent, progressDetail } = this;" +
-    "      " +
-    "      // Update progress bar width" +
-    "      progressBar.style.width = progressData.percent + '%';" +
-    "      " +
-    "      // Update text elements" +
-    "      progressStage.textContent = progressData.stage;" +
-    "      progressPercent.textContent = progressData.percent + '%';" +
-    "      " +
-    "      if (progressData.detail) {" +
-    "        progressDetail.textContent = progressData.detail;" +
-    "      }" +
-    "      " +
-    "      // Add counts if available" +
-    "      if (progressData.counts) {" +
-    "        const counts = Object.entries(progressData.counts)" +
-    "          .map(function(entry) { return entry[0] + ': ' + entry[1]; })" +
-    "          .join(', ');" +
-    "        progressDetail.textContent += ' (' + counts + ')';" +
     "      }" +
     "    }" +
     "    " +

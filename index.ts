@@ -255,28 +255,6 @@ function openHelpPage() {
   showHelpDialog();
 }
 
-function importCategoryFile() {
-  const ui = SpreadsheetApp.getUi();
-  const result = ui.alert(
-    importCategoryMenuTexts[locale].action,
-    importCategoryMenuTexts[locale].actionText,
-    ui.ButtonSet.YES_NO,
-  );
-
-  if (result === ui.Button.YES) {
-    try {
-      // Use the new dropzone UI instead of the old dialog
-      showImportDropzoneDialog();
-    } catch (error) {
-      ui.alert(
-        importCategoryMenuTexts[locale].error,
-        importCategoryMenuTexts[locale].errorText + error.message,
-        ui.ButtonSet.OK,
-      );
-    }
-  }
-}
-
 /**
  * Menu item handler for clearing language cache
  * Useful for debugging or forcing fresh language data fetch

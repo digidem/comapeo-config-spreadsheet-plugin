@@ -433,11 +433,21 @@ function parseExtractedFiles(
 		console.log(`Icons before SVG extraction: ${configData.icons.length}`);
 		try {
 			// Process the SVG sprite and get icon objects with URLs
-			const extractedIcons = processIconSpriteBlob(
+			// processIconSpriteBlob returns { icons: [...], errors: [...] }
+			const spriteResult = processIconSpriteBlob(
 				tempFolder,
 				configData.iconsSvgFile,
 			);
+			const extractedIcons = spriteResult.icons || [];
 			console.log(`✓ Extracted ${extractedIcons.length} icons from SVG sprite`);
+
+			// Log any errors that occurred during extraction
+			if (spriteResult.errors && spriteResult.errors.length > 0) {
+				console.warn(`⚠️ ${spriteResult.errors.length} icon(s) failed to extract:`);
+				spriteResult.errors.forEach((err) => {
+					console.warn(`  - ${err.symbolId}: ${err.error}`);
+				});
+			}
 
 			// Add the extracted icons to the configData.icons array
 			if (extractedIcons.length > 0) {
