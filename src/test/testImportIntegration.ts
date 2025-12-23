@@ -230,3 +230,68 @@ function runQuickImportTest(): void {
 
   SpreadsheetApp.getUi().alert('Quick Import Test', message, SpreadsheetApp.getUi().ButtonSet.OK);
 }
+
+/**
+ * Diagnostic function to test processImportedCategoryFile directly.
+ * Run this from Apps Script editor to verify the import pipeline works.
+ */
+function diagnoseImportPipeline(): void {
+  const ui = SpreadsheetApp.getUi();
+
+  console.log('=== Import Pipeline Diagnostic ===');
+  console.log('Step 1: Fetching test file from GitHub...');
+
+  try {
+    const url = TEST_CONFIG_URLS.coMapeoV6;
+    console.log(`Fetching: ${url}`);
+
+    const response = UrlFetchApp.fetch(url, {
+      followRedirects: true,
+      muteHttpExceptions: false,
+    });
+
+    const blob = response.getBlob().setName('build.zip');
+    const fileSize = blob.getBytes().length;
+    console.log(`Step 2: File fetched. Size: ${fileSize} bytes (${(fileSize / 1024).toFixed(1)} KB)`);
+
+    // Convert to base64
+    console.log('Step 3: Converting to base64...');
+    const base64Data = Utilities.base64Encode(blob.getBytes());
+    console.log(`Base64 length: ${base64Data.length} characters`);
+
+    // Call the import function
+    console.log('Step 4: Calling processImportedCategoryFile...');
+    const startTime = Date.now();
+    const result = processImportedCategoryFile('build.zip', base64Data);
+    const duration = Date.now() - startTime;
+
+    console.log(`Step 5: Import completed in ${duration}ms`);
+    console.log(`Result: ${JSON.stringify(result, null, 2)}`);
+
+    if (result.success) {
+      ui.alert(
+        'Import Diagnostic: SUCCESS',
+        `The import pipeline works correctly!\n\n` +
+        `Duration: ${duration}ms\n` +
+        `Categories: ${result.details?.presets || 0}\n` +
+        `Fields: ${result.details?.fields || 0}\n` +
+        `Icons: ${result.details?.icons || 0}\n` +
+        `Languages: ${result.details?.languages || 0}`,
+        ui.ButtonSet.OK
+      );
+    } else {
+      ui.alert(
+        'Import Diagnostic: FAILED',
+        `The import pipeline failed:\n\n${result.message}`,
+        ui.ButtonSet.OK
+      );
+    }
+  } catch (error) {
+    console.error('Diagnostic error:', error);
+    ui.alert(
+      'Import Diagnostic: ERROR',
+      `An error occurred:\n\n${error instanceof Error ? error.message : String(error)}\n\nCheck the Apps Script logs for details.`,
+      ui.ButtonSet.OK
+    );
+  }
+}
