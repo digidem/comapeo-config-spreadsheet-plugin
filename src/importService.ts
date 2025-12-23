@@ -287,7 +287,8 @@ function buildImportDialogBody(): string {
 
 /**
  * Builds the JavaScript for the import dialog.
- * Uses processImportedCategoryFileWithProgress for progress tracking on local uploads.
+ * Note: Real-time progress updates from server to client are not possible in Apps Script.
+ * We show an indeterminate progress indicator instead.
  */
 function buildImportDialogScript(): string {
   return `
@@ -437,15 +438,16 @@ function buildImportDialogScript(): string {
 
         const reader = new FileReader();
         reader.onload = function(e) {
-          updateProgress({ percent: 5, stage: 'Uploading...', detail: 'Sending to server' });
+          // Show indeterminate progress while server processes
+          updateProgress({ percent: 50, stage: 'Processing...', detail: 'Importing configuration' });
           const base64data = e.target.result.split(',')[1];
 
-          // Use progress-enabled function for local uploads
+          // Use processImportedCategoryFile - progress callbacks cannot work
+          // across Apps Script client/server boundary
           google.script.run
             .withSuccessHandler(handleSuccess)
             .withFailureHandler(handleError)
-            .withUserObject({ onProgress: updateProgress })
-            .processImportedCategoryFileWithProgress(selectedFile.name, base64data, updateProgress);
+            .processImportedCategoryFile(selectedFile.name, base64data);
         };
         reader.onerror = function() {
           handleError({message: 'Failed to read file'});

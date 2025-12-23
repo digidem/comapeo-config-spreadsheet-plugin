@@ -306,8 +306,8 @@ function testScriptContainsHandleImport(): ImportDialogTestResult {
     if (!script.includes("function handleImport(")) {
       return { name, passed: false, message: "Missing handleImport function" };
     }
-    if (!script.includes("processImportedCategoryFileWithProgress")) {
-      return { name, passed: false, message: "Missing progress-enabled import call" };
+    if (!script.includes("processImportedCategoryFile")) {
+      return { name, passed: false, message: "Missing local file import call" };
     }
     if (!script.includes("processImportFile")) {
       return { name, passed: false, message: "Missing Drive import call" };
