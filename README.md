@@ -12,10 +12,11 @@ A Google Sheets plugin for generating and importing `.comapeocat` category files
 ## Features
 
 - **Build**: Generate `.comapeocat` files from spreadsheet data
-- **Import**: Load existing `.comapeocat` files for editing
-- **Auto-translation**: Automatically translate categories and fields
-- **Icon generation**: Generate icons using external API
-- **Validation**: Lint and validate spreadsheet data
+- **Import**: Load existing `.comapeocat` or `.mapeosettings` files for editing
+- **Auto-translation**: Automatically translate categories and fields using Google Translate
+- **Icon generation**: Generate icons using https://icons.earthdefenderstoolkit.com or provide your own SVG/PNG icons
+- **Validation**: Comprehensive linting and validation of spreadsheet data
+- **Dual-name language support**: Set primary language using English OR native names (e.g., "Portuguese" or "Português")
 
 ## API Usage
 
@@ -109,44 +110,42 @@ Categories are processed in the exact order they appear in the spreadsheet. The 
 ### Categories Sheet
 | Column A | Column B | Column C | Column D | Column E | Column F |
 |----------|----------|----------|----------|----------|----------|
-| Name     | Icon URL | Fields   | ID       | Color    | Icon ID  |
-| Trees    | http://... | species, diameter | trees | #4CAF50 | trees |
+| Name     | Icon URL | Fields   | Applies  | Category ID | Icon ID  |
+| Trees    | http://... | species, diameter | observation, track | trees | trees |
 
-- **Column A (Name)**: Category name
-- **Column B (Icon URL)**: SVG data or URL to icon
-- **Column C (Fields)**: Comma-separated list of field names
-- **Column D (ID)**: Category ID (optional, auto-generated from name if blank)
-- **Column E (Color)**: Hex color code (uses background color of Column A if blank)
-- **Column F (Icon ID)**: Icon ID (optional, uses Category ID if blank and icon data is present)
+- **Column A (Name)**: Category name (Required)
+- **Column B (Icon URL)**: SVG/PNG data or URL to icon (Required) - supports Drive URLs, data URIs, inline SVG, or auto-generated from https://icons.earthdefenderstoolkit.com
+- **Column C (Fields)**: Comma-separated list of field names from Details sheet
+- **Column D (Applies)**: What this category applies to: `observation`, `track`, or both (comma-separated). Accepts shorthand: `o`, `t`. Defaults to `observation` if blank. **At least one category must include `track`.**
+- **Column E (Category ID)**: Category ID (auto-generated from name if blank)
+- **Column F (Icon ID)**: Icon ID (auto-generated from Category ID if blank)
 
 ### Details Sheet
 | Column A | Column B | Column C | Column D | Column E | Column F |
 |----------|----------|----------|----------|----------|----------|
-| Name     | Helper Text | Type | Options | ID | Universal |
+| Name     | Helper Text | Type | Options | Field ID | Universal |
 | Species  | Select tree species | s | Oak, Pine | species | FALSE |
 | Diameter | Enter trunk diameter | n | | diameter | FALSE |
 
-- **Column A (Name)**: Field name
+- **Column A (Name)**: Field name (Required)
 - **Column B (Helper Text)**: Help text shown to users
-- **Column C (Type)**: Single-character type code (see below)
-- **Column D (Options)**: For select/multiselect, comma-separated options
-- **Column E (ID)**: Field ID (optional, auto-generated from name if blank)
-- **Column F (Universal)**: TRUE if field appears in all categories
+- **Column C (Type)**: Single-character type code (see below). Defaults to `s` (select) if blank.
+- **Column D (Options)**: For select/multiselect, comma-separated options (Required for type `s` or `m`)
+- **Column E (Field ID)**: Field ID (auto-generated from name if blank)
+- **Column F (Universal)**: TRUE if field appears in all categories automatically
 
 **Type codes:**
 - `t` = text (single line)
 - `T` = textarea (multi-line)
 - `n` = number
 - `i` = integer
-- `s` = select (single choice)
+- `s` or blank = select (single choice dropdown)
 - `m` = multiselect (multiple choice)
 - `b` = boolean
 - `d` = date
 - `D` = datetime
 - `p` = photo
 - `l` = location
-
-**Note**: Old spreadsheets using the 4-column Categories format (Name, Icon, Fields, Color) will be automatically migrated to the new 6-column format when building a config.
 
 ## Installation
 
@@ -205,14 +204,21 @@ Tests cover:
 
 ## Menu Options
 
-1. **Translate CoMapeo Category** - Auto-translate content
-2. **Add Custom Languages** - Add new language support
-3. **Generate Category Icons** - Generate icons from external API
-4. **Generate CoMapeo Category** - Build `.comapeocat` file
-5. **Import CoMapeo Category** - Import existing `.comapeocat` file
-6. **Lint Sheets** - Validate spreadsheet data
-7. **Reset Spreadsheet** - Clear translations and metadata
-8. **Help** - Show documentation
+1. **Manage Languages & Translate** - Auto-translate content to multiple languages or add manual-only languages
+2. **Generate Category Icons** - Generate icons from https://icons.earthdefenderstoolkit.com
+3. **Generate CoMapeo Category** - Build `.comapeocat` file
+4. **Import Category File** - Import existing `.comapeocat` or `.mapeosettings` file
+5. **Lint Sheets** - Validate spreadsheet data with color-coded error highlighting
+6. **Reset Spreadsheet** - Clear translations and metadata
+7. **Help** - Show documentation
+
+## Sharing Configurations
+
+After generating a `.comapeocat` file:
+1. The file is saved to your computer's Downloads folder
+2. Upload it to Google Drive (or any cloud storage)
+3. Share the Drive link with CoMapeo users
+4. Users can download directly on their phone from the Drive link and import into CoMapeo
 
 ## License
 

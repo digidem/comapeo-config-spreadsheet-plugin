@@ -29,7 +29,7 @@ The CoMapeo Configuration Spreadsheet Plugin allows you to create and manage CoM
 
 ### Prerequisites
 - A Google account with access to Google Sheets
-- The CoMapeo Config Spreadsheet template (provided by your administrator)
+- The CoMapeo Config Spreadsheet template: https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
 
 ### First Steps
 1. **Make a copy** of the template spreadsheet
@@ -53,32 +53,49 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 #### 1. Categories Sheet
 **Purpose:** Define the main observation types users will record in the field.
 
-**📸 Screenshot placeholder:** *Categories sheet showing columns: Name, Icon, Details, Color, Geometry*
+**📸 Screenshot placeholder:** *Categories sheet showing columns: Name, Icon, Fields, Applies, Category ID*
 
 **Columns:**
-- **Name** (Required): Category name in your primary language
+- **Name** (Column A, Required): Category name in your primary language
   - Examples: "River", "Building", "Animal Sighting"
+  - The background color of cells in this column sets the category color (not a separate column)
 
-- **Icon** (Required): Google Drive URL to your category icon
-  - Must be an SVG file
-  - Format: `https://drive.google.com/file/d/FILE_ID/view`
+- **Icon** (Column B, Required): Icon reference for your category
+  - Can be:
+    - Google Drive URL: `https://drive.google.com/file/d/FILE_ID/view`
+    - Icon name for auto-generation: `river`, `building`, `tree`
+    - Embedded image in cell (will be converted to SVG)
+    - Inline SVG code: `<svg>...</svg>`
+    - Data URI: `data:image/svg+xml,...`
+  - Supported formats: SVG (preferred), PNG (will be converted)
 
-- **Details**: Comma-separated list of field names this category uses
+- **Fields** (Column C): Comma-separated list of field names this category uses
   - Example: `Name, Width, Depth, Water quality`
   - Fields must exist in the Details sheet
+  - Also called "Details" in some versions
 
-- **Color**: Hex color code for the category
-  - Example: `#FF5733`
-  - Used for visual identification in the app
+- **Applies** (Column D, Auto-created): Where this category can be used
+  - Options: `observation`, `track`, or both (comma-separated)
+  - Examples:
+    - `observation` - regular observations only
+    - `track` - GPS tracks only
+    - `observation, track` - both types
+  - Default: `observation`
+  - If missing, plugin auto-creates this column
 
-- **Geometry**: Type of map feature
-  - Options: `point`, `area`, or `vertex`
-  - Leave blank for default (point)
+- **Category ID** (Column E, Auto-created): Unique identifier for the category
+  - Auto-generated if not present
+  - Used for importing/exporting
+  - Usually you don't need to edit this
 
 **Example row:**
-| Name | Icon | Details | Color | Geometry |
-|------|------|---------|-------|----------|
-| River | https://drive.google.com/.../view | Name, Width, Depth | #0066CC | area |
+| Name | Icon | Fields | Applies | Category ID |
+|------|------|--------|---------|-------------|
+| River | river | Name, Width, Depth | observation | river-001 |
+
+**Note about colors:** Set the background color of the Name cell (Column A) to define the category color. This color appears in the CoMapeo app.
+
+**📸 Screenshot placeholder:** *Categories sheet with colored Name cells showing different category colors*
 
 ---
 
@@ -88,28 +105,32 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 **📸 Screenshot placeholder:** *Details sheet showing columns: Name, Helper Text, Type, Options, (blank), Universal*
 
 **Columns:**
-- **Name** (Required): Field name
+- **Name** (Column A, Required): Field name
   - Examples: "Name", "Width", "Status"
 
-- **Helper Text**: Question or instruction shown to users
+- **Helper Text** (Column B): Question or instruction shown to users
   - Example: "What is the width in meters?"
   - Helps users understand what data to enter
 
-- **Type**: Determines input method
+- **Type** (Column C): Determines input method
   - `t` or `text` - Free-form text input
   - `n` or `number` - Numeric input
   - `m` or `multiple` - Multiple choice (checkboxes)
-  - Blank or `s` - Single choice (dropdown)
+  - Blank or `s` or `select` - Single choice (dropdown)
+  - Case insensitive: `TEXT`, `Text`, `text` all work
 
-- **Options** (Required for dropdown/multiple choice): Comma-separated choices
+- **Options** (Column D, Required for select fields): Comma-separated choices
   - Example: `Small, Medium, Large`
   - Example: `Good, Fair, Poor`
+  - Required if Type is blank, `s`, or `m`
+  - Optional for `t` and `n` types
 
-- **(Column 5)**: Reserved - leave blank
+- **(Column E)**: Reserved - leave blank
 
-- **Universal**: Whether field appears for all categories
+- **Universal** (Column F): Whether field appears for all categories
   - `TRUE` - Available to all categories automatically
-  - `FALSE` or blank - Only for specified categories
+  - `FALSE` or blank - Only for categories that list this field
+  - Must be exactly `TRUE` or `FALSE` (not "Yes", "No", etc.)
 
 **Example rows:**
 | Name | Helper Text | Type | Options | | Universal |
@@ -117,6 +138,7 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 | Width | What is the width in meters? | n | | | FALSE |
 | Status | What is the current status? | | Active, Inactive, Unknown | | FALSE |
 | Equipment | What equipment is being used? | m | Drilling rig, Chainsaw, Pump | | FALSE |
+| Notes | Additional observations | t | | | TRUE |
 
 ---
 
@@ -139,20 +161,28 @@ Translations of the helper text/questions
 Translations of dropdown/multiple choice options
 
 **Translation Sheet Structure:**
-- **Column A**: Auto-synced from source sheet (Categories or Details)
+- **Column A**: Auto-synced from source sheet (Categories or Details) via formula
 - **Column B**: ISO language code (informational)
 - **Column C**: Source language text (informational)
 - **Columns D+**: Target language translations
   - Header can be ISO code (`es`, `pt`) or "Language - ISO" format (`Español - es`)
+
+**Important:** Column A uses formulas like `=Categories!A2:A100` to stay in sync. Don't delete these formulas!
 
 ---
 
 ### Other Tabs
 
 #### 7. Metadata Sheet (auto-generated)
-Contains configuration metadata like dataset ID, name, and version.
+Contains configuration metadata like dataset ID, name, version, and primary language.
 
 **📸 Screenshot placeholder:** *Metadata sheet showing Key-Value pairs*
+
+**Common keys:**
+- `datasetId` - Unique ID for this configuration
+- `name` - Configuration name
+- `version` - Version number
+- `primaryLanguage` - Primary language name
 
 ---
 
@@ -181,7 +211,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 1. In the **Categories** sheet, starting at row 2:
    - Enter category names in column A
-   - Leave columns B-E empty for now (we'll add icons and colors later)
+   - Leave columns B-E empty for now (we'll add icons and other data later)
 
 **Example:**
 | Name |
@@ -202,24 +232,24 @@ Follow these steps to create a CoMapeo configuration from start to finish:
    - Define the type and options for each field
 
 **Example:**
-| Name | Helper Text | Type | Options |
-|------|-------------|------|---------|
-| Name | What is the name? | t | |
-| Width | What is the width in meters? | n | |
-| Condition | What is the current condition? | | Excellent, Good, Fair, Poor |
-| Tree species | Select tree species | m | Oak, Pine, Maple, Birch |
+| Name | Helper Text | Type | Options | | Universal |
+|------|-------------|------|---------|---|-----------|
+| Name | What is the name? | t | | | FALSE |
+| Width | What is the width in meters? | n | | | FALSE |
+| Condition | What is the current condition? | | Excellent, Good, Fair, Poor | | FALSE |
+| Tree species | Select tree species | m | Oak, Pine, Maple, Birch | | FALSE |
 
 ---
 
 ### Step 4: Link Fields to Categories
 
-**📸 Screenshot placeholder:** *Categories sheet with Details column filled showing comma-separated field lists*
+**📸 Screenshot placeholder:** *Categories sheet with Fields column filled showing comma-separated field lists*
 
 1. Return to **Categories** sheet
-2. In the **Details** column (C), list which fields each category uses:
+2. In the **Fields** column (C), list which fields each category uses:
 
 **Example:**
-| Name | Icon | Details |
+| Name | Icon | Fields |
 |------|------|---------|
 | River | | Name, Width, Condition |
 | Building | | Name, Condition |
@@ -227,57 +257,92 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 ---
 
-### Step 5: Search and Add Icons
+### Step 5: Set "Applies To" Values
+
+**📸 Screenshot placeholder:** *Categories sheet with Applies column showing observation, track values*
+
+1. In the **Applies** column (D), specify where each category can be used:
+   - `observation` - For point observations (most common)
+   - `track` - For GPS tracks/routes
+   - `observation, track` - For both
+
+**Example:**
+| Name | Icon | Fields | Applies |
+|------|------|--------|---------|
+| River | | Name, Width, Condition | observation |
+| Trail | | Name, Condition | track |
+| Wildlife sighting | | Name | observation |
+
+**Note:** If this column doesn't exist, the plugin will create it automatically with default value `observation`.
+
+---
+
+### Step 6: Search and Add Icons
+
+**Option A: Auto-Generate Icons (Recommended)**
 
 **📸 Screenshot placeholder:** *CoMapeo Tools menu with "Generate Category Icons" highlighted*
 
 1. Click **CoMapeo Tools** → **Generate Category Icons**
 2. Confirm the action
 3. The plugin will:
-   - Search for icons matching your category names
-   - Display options in a preview dialog
+   - Search https://icons.earthdefenderstoolkit.com for icons matching your category names
+   - Show you a preview with options
    - Save selected icons to your Google Drive
    - Add Drive URLs to the Icon column
 
 **📸 Screenshot placeholder:** *Icon selection dialog showing search results with thumbnails*
 
-**Alternative - Manual Icon Upload:**
-1. Upload SVG icons to your Google Drive
+**Option B: Manual Icon Upload**
+
+1. Upload SVG or PNG icons to your Google Drive
 2. Right-click each icon → Get link → Copy link
 3. Paste the link in the **Icon** column for that category
 
-**Important:** Icons must be SVG format (not PNG or JPG)
+**Option C: Use Icon Names**
+
+1. In the Icon column, just type a descriptive name (e.g., `river`, `building`, `tree`)
+2. The plugin will auto-search for matching icons during generation
+
+**Icon Format Notes:**
+- **SVG files** are preferred (scalable, small file size)
+- **PNG files** are supported (will be converted to SVG)
+- **Inline SVG** code can be pasted directly
+- **Embedded images** in cells work too
 
 ---
 
-### Step 6: Set Category Colors
+### Step 7: Set Category Colors
 
-**📸 Screenshot placeholder:** *Categories sheet with Color column showing hex codes and colored cells*
+**📸 Screenshot placeholder:** *Categories sheet with colored background cells in Name column*
 
-1. In the **Categories** sheet, **Color** column:
-   - Enter hex color codes (e.g., `#FF5733`)
-   - Or use Google Sheets' color picker:
-     - Select cells in column A (category names)
-     - Click Fill Color in toolbar
-     - The plugin will detect these background colors
+1. In the **Categories** sheet, select cells in the **Name** column (Column A)
+2. Click the **Fill Color** button in the toolbar
+3. Choose a color for each category
+
+**The background color you set becomes the category color in CoMapeo!**
 
 **Color Tips:**
 - Use distinct colors for easy identification
 - Consider colorblind-friendly palettes
 - Test colors on different devices
+- Bright colors work better than pastels
 
 ---
 
-### Step 7: Add Translations (Optional)
+### Step 8: Add Translations (Optional)
 
 **📸 Screenshot placeholder:** *Language selection dialog with checkboxes for multiple languages*
 
 1. Click **CoMapeo Tools** → **Manage Languages & Translate**
-2. Check languages you want to translate to
+2. In the dialog:
+   - **Section 1**: Check languages you want to auto-translate
+   - **Section 2**: Enter language codes for manual-only languages
 3. Click "Translate"
 4. The plugin will:
    - Create translation sheets
-   - Auto-translate using Google Translate
+   - Auto-translate checked languages using Google Translate
+   - Create empty columns for manual-only languages
    - You can manually refine translations afterward
 
 **📸 Screenshot placeholder:** *Category Translations sheet showing auto-filled translations*
@@ -287,9 +352,11 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 2. Edit cells in target language columns
 3. Leave cells blank to auto-translate later
 
+**Important:** Auto-translations should always be reviewed by native speakers for accuracy and context!
+
 ---
 
-### Step 8: Validate Your Data (Linting)
+### Step 9: Validate Your Data (Linting)
 
 **📸 Screenshot placeholder:** *Categories sheet with highlighted cells showing validation errors*
 
@@ -297,19 +364,21 @@ Before generating, check for errors:
 
 1. Click **CoMapeo Tools** → **Lint Sheets**
 2. Review highlighted cells:
-   - **Yellow** = Required field missing
-   - **Red** = Invalid value
-   - **Red text** = Invalid URL or reference
-   - **Pink** = Duplicate value
-   - **Orange** = Duplicate translation slug
-   - **Bright red with white text** = Critical error that will cause generation to fail
+   - **🔴 Bright Red with White Text** = CRITICAL error (will cause generation to fail)
+   - **🟡 Yellow** = Required field missing or warning
+   - **🔴 Red Background** = Invalid value
+   - **🔴 Red Text** = Invalid URL or reference
+   - **🩷 Pink** = Duplicate value
+   - **🟠 Orange** = Duplicate translation slug
 
 3. Fix all issues (see [Linting section](#data-validation-linting) for details)
 4. Run **Lint Sheets** again to verify fixes
 
+**Critical:** Fix ALL bright red errors before generating - these will cause failures!
+
 ---
 
-### Step 9: Generate CoMapeo Configuration
+### Step 10: Generate CoMapeo Configuration
 
 **📸 Screenshot placeholder:** *CoMapeo Tools menu with "Generate CoMapeo Category" highlighted*
 
@@ -328,35 +397,55 @@ Before generating, check for errors:
 - Generating configuration files
 - Creating icon sprite
 - Packaging configuration
-- Uploading to server
+- Uploading to packaging server
 
-5. When complete, the `.comapeocat` file downloads automatically
+5. When complete, the `.comapeocat` file downloads automatically to your Downloads folder
 
 **📸 Screenshot placeholder:** *Success dialog with download confirmation*
 
 ---
 
-### Step 10: Load Configuration into CoMapeo
+### Step 11: Share and Load Configuration into CoMapeo
 
-**📸 Screenshot placeholder:** *Mobile device showing CoMapeo app with config import screen*
+**Sharing the Configuration:**
 
-1. **Transfer the file** to your mobile device:
-   - Email to yourself
-   - Upload to cloud storage (Dropbox, Google Drive)
-   - Use USB cable
+**📸 Screenshot placeholder:** *Uploading .comapeocat file to Google Drive*
 
-2. **Open in CoMapeo:**
-   - Open the CoMapeo app
-   - Go to Settings → Configuration
-   - Tap "Import Configuration"
-   - Select your `.comapeocat` file
+1. **Upload to Google Drive:**
+   - Go to Google Drive
+   - Click "New" → "File upload"
+   - Select the downloaded `.comapeocat` file
 
-3. **Verify:**
+2. **Get shareable link:**
+   - Right-click the file in Google Drive
+   - Click "Get link"
+   - Change to "Anyone with the link can view"
+   - Copy the link
+
+3. **Share the link** with CoMapeo users (email, WhatsApp, etc.)
+
+**Loading on Mobile Device:**
+
+**📸 Screenshot placeholder:** *Mobile device showing downloading from Drive link*
+
+1. **On mobile device**, open the Drive link you received
+2. **Download the file** from Google Drive to your phone
+3. **Open CoMapeo app**
+4. Go to **Settings → Configuration**
+5. Tap **"Import Configuration"**
+6. Select the downloaded `.comapeocat` file
+7. **Verify:**
    - Check that all categories appear
    - Test that icons display correctly
    - Try creating a test observation
 
 **📸 Screenshot placeholder:** *CoMapeo app showing imported categories with icons*
+
+**Alternative sharing methods:**
+- Email the file as an attachment
+- Use cloud storage (Dropbox, OneDrive)
+- Transfer via USB cable
+- Use messaging apps that support file sharing
 
 ---
 
@@ -379,15 +468,15 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 
 **How it works:**
 
-**📸 Screenshot placeholder:** *Language management dialog with two sections - languages to translate and manual languages*
+**📸 Screenshot placeholder:** *Language management dialog with two sections*
 
 1. **Select languages to auto-translate:**
    - Check languages you want Google Translate to handle
    - These will be auto-filled in translation sheets
 
 2. **Add manual-only languages:**
-   - Enter language codes for languages you'll translate manually
-   - These columns will be added but left blank
+   - Enter language codes (e.g., `qu` for Quechua)
+   - These columns will be added but left blank for manual translation
 
 3. **Translation process:**
    - The plugin translates ALL translation sheets:
@@ -401,15 +490,15 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 **Best practices:**
 - Always review auto-translations for accuracy
 - Have native speakers verify translations
-- Use manual-only for languages not well-supported by Google Translate
+- Use manual-only for languages not well-supported by Google Translate (e.g., indigenous languages)
 
-**📸 Screenshot placeholder:** *Completion dialog showing "Translation Complete - All sheets have been translated successfully"*
+**📸 Screenshot placeholder:** *Completion dialog showing "Translation Complete"*
 
 ---
 
 ### Generate Category Icons
 
-**What it does:** Automatically finds and adds icons for your categories.
+**What it does:** Automatically searches for and adds icons for your categories using the Earth Defenders Toolkit icon database.
 
 **When to use:**
 - You haven't added icons yet
@@ -421,15 +510,15 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 **📸 Screenshot placeholder:** *Icon generation process showing search → preview → save*
 
 1. Reads category names from Categories sheet
-2. Searches icon database for each name
-3. Shows preview of available icons
+2. Searches https://icons.earthdefenderstoolkit.com for each name
+3. Shows preview of available icon options
 4. Saves selected icons to your Google Drive
 5. Updates Icon column with Drive URLs
 
 **Tips:**
-- Icon search works best with common English terms
-- You can manually upload custom icons afterward
-- Icons must be SVG format
+- Icon search works best with common English terms (e.g., "river", "building", "tree")
+- You can manually edit icons afterward at https://icons.earthdefenderstoolkit.com
+- Icons are converted to SVG format and colored to match your category color
 
 **Requirements:**
 - Categories must have names in column A
@@ -452,8 +541,9 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 
 1. **Pre-flight checks:**
    - Validates required fields
-   - Checks icon URLs
+   - Checks icon references
    - Verifies field references
+   - Ensures at least one category has "track" in Applies (warns if missing)
 
 2. **Language selection:**
    - If translations exist, choose which languages to include
@@ -472,9 +562,10 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 
 **Common issues:**
 - **"Missing required fields"** → Run Lint Sheets to find empty required fields
-- **"Invalid icon URL"** → Check that icons are SVG and Drive links are correct
+- **"Invalid icon URL"** → Check that icons are accessible
 - **"Translation mismatch"** → Translation sheets need to be re-synced (see Linting section)
 - **"Timeout"** → Large configurations may take time; try again
+- **"No track categories"** → Warning that track viewer will be empty; add "track" to Applies column
 
 **Success indicators:**
 - Progress dialog completes all stages
@@ -504,7 +595,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 4. The plugin will:
    - Extract all files from the archive
    - Parse configuration data
-   - Extract individual icons from sprite
+   - Extract individual icons from sprite (if SVG sprite)
    - Upload icons to your Google Drive
    - Populate all spreadsheet tabs
    - Import translations if present
@@ -512,12 +603,18 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 **📸 Screenshot placeholder:** *Import progress showing extraction → parsing → uploading icons → populating sheets*
 
 **What gets imported:**
-- ✅ All categories with names and metadata
+- ✅ All categories with names, applies, and metadata
 - ✅ All fields with types and options
-- ✅ Icons (extracted and saved to Drive)
+- ✅ Icons (extracted and saved to Drive, or kept as inline SVG)
 - ✅ Translations for all languages
-- ✅ Colors and geometry types
+- ✅ Colors (set as background colors in Name column)
 - ✅ Metadata (dataset ID, version, etc.)
+
+**Icon handling:**
+- **SVG sprites** - Individual icons extracted and uploaded to Drive
+- **Individual PNGs** - Uploaded to Drive as-is
+- **Inline SVG** - Kept inline in Icon column
+- **PNG sprites** - Not fully supported (use individual PNGs)
 
 **Tips:**
 - Make a backup copy of your spreadsheet first
@@ -532,7 +629,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 **What it does:** Validates all data in your spreadsheet and highlights errors.
 
 **When to use:**
-- Before generating a configuration (recommended!)
+- Before generating a configuration (highly recommended!)
 - After making significant changes
 - After importing a configuration
 - When troubleshooting errors
@@ -543,7 +640,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 
 ### Reset Spreadsheet
 
-**What it does:** Removes all translations, metadata, and resets the spreadsheet to empty template state.
+**What it does:** Removes all translation sheets and metadata, resetting the spreadsheet to a clean state.
 
 **⚠️ WARNING:** This action cannot be undone!
 
@@ -555,18 +652,19 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 **What gets removed:**
 - ❌ All translation sheets
 - ❌ Metadata sheet
-- ❌ All icon Drive URLs (but icons remain in your Drive)
+- ❌ Auto-created columns (Applies, Category ID)
 
 **What remains:**
-- ✅ Categories sheet structure
-- ✅ Details sheet structure
-- ✅ Category and field names you entered
+- ✅ Categories sheet with data
+- ✅ Details sheet with data
+- ✅ Icons remain in your Google Drive (URLs removed from sheet)
 
 **Process:**
 1. Click **Reset Spreadsheet**
 2. Confirm (this is your last chance to cancel!)
 3. Translation and metadata sheets are deleted
-4. Categories and Details sheets are cleared of URLs/metadata but structure remains
+4. Auto-created columns removed
+5. You can start fresh
 
 ---
 
@@ -576,11 +674,11 @@ Advanced features for troubleshooting and testing:
 
 **📸 Screenshot placeholder:** *Debug submenu expanded*
 
-- **Export Raw Files:** Creates a Google Drive folder with individual JSON files for debugging
 - **Create Test Spreadsheet:** Generates test data for regression testing
 - **Test Runner:** Runs automated tests
-- **Capture Baseline Metrics:** Records performance benchmarks
+- **Capture Baseline Performance Metrics:** Records performance benchmarks
 - **Turn on legacy compatibility:** Enables compatibility mode for older CoMapeo versions
+- **Generate CoMapeo Category (Debug):** Exports raw files to Google Drive for debugging
 
 **When to use:**
 - Plugin developer or system administrator
@@ -591,8 +689,8 @@ Advanced features for troubleshooting and testing:
 
 ### Help & About
 
-- **Help:** Opens help dialog with quick tips
-- **About / Version:** Shows plugin version and repository link
+- **Help:** Opens help dialog with quick tips and link to documentation
+- **About / Version:** Shows plugin version number and repository link
 
 ---
 
@@ -619,16 +717,17 @@ The linter highlights cells with different colors based on error severity:
 #### 🔴 Bright Red Background + White Text = CRITICAL ERROR
 **What it means:** Primary column mismatch between source and translation sheets
 
-**Where:** Translation sheets, column A
+**Where:** Translation sheets, column A only
 
 **Example:** Categories sheet has "Animal" but Category Translations sheet has "Animal Terrs"
 
-**Why it's critical:** This will cause translation lookup failures and generation will fail
+**Why it's critical:** This will cause translation lookup failures and generation will FAIL
 
 **How to fix:**
-1. Click **CoMapeo Tools** → **Debug** → **Fix Translation Mismatches** (if available)
-2. Or manually re-sync formulas in translation sheets
-3. See "Translation Sheet Mismatches" section below
+1. Translation sheets use formulas like `=Categories!A2:A100` to auto-sync
+2. If these formulas break, values diverge and translations fail
+3. Fix by re-entering the formula or using Debug → Fix Translation Mismatches (if available)
+4. See "Translation Sheet Mismatches" section below for detailed instructions
 
 ---
 
@@ -640,17 +739,18 @@ The linter highlights cells with different colors based on error severity:
 
 **Where:**
 - Categories: Name or Icon columns
-- Details: Name column
+- Details: Name or Type columns
 - Translation sheets: Row count warnings
 
 **Examples:**
 - Empty category name
-- Missing icon URL
+- Missing icon reference
 - Field defined but not used by any category
+- Translation sheet has different number of rows than source
 
 **How to fix:**
 - Fill in missing required data
-- Delete or add unreferenced fields to a category
+- Delete unreferenced fields OR add them to a category's Fields column
 - Add/remove rows in translation sheets to match source
 
 ---
@@ -659,24 +759,22 @@ The linter highlights cells with different colors based on error severity:
 **What it means:** Data is present but invalid format or type
 
 **Where:**
-- Categories: Icon column (invalid URLs)
+- Categories: Icon column (invalid references)
 - Details: Type column (invalid type code), Options column (missing options for select fields)
 - Details: Universal column (value other than TRUE/FALSE)
 - Translation headers: Invalid language codes
 
 **Examples:**
-- Icon URL is not SVG
-- Icon URL is not a valid Google Drive link
 - Field type is `x` (should be `t`, `n`, `m`, or `s`)
 - Dropdown field has no options
 - Universal column contains "Yes" instead of "TRUE"
+- Translation header is "spanish" instead of "es" or "Español - es"
 
 **How to fix:**
-- Fix icon URLs to point to SVG files on Google Drive
-- Correct field types to valid codes
+- Correct field types to valid codes (`t`, `n`, `m`, `s`, or blank)
 - Add options for dropdown/multiple choice fields
-- Change Universal to TRUE, FALSE, or leave blank
-- Fix translation headers to valid language codes
+- Change Universal to `TRUE`, `FALSE`, or leave blank
+- Fix translation headers to valid language codes or "Language - ISO" format
 
 ---
 
@@ -685,17 +783,15 @@ The linter highlights cells with different colors based on error severity:
 
 **Where:**
 - Categories: Icon column (font color, not background)
-- Categories: Details column (invalid field references)
+- Categories: Fields column (invalid field references)
 
 **Examples:**
 - Icon URL doesn't point to a file that exists
-- Icon URL points to PNG instead of SVG
-- Details column references "Width" but no field named "Width" exists
+- Fields column references "Width" but no field named "Width" exists in Details sheet
 
 **How to fix:**
-- Verify icon file exists and you have access
-- Upload correct SVG icon and update URL
-- Fix field name spelling in Details column
+- Verify icon reference is valid (Drive URL, icon name, inline SVG, etc.)
+- Fix field name spelling in Fields column
 - Add missing field to Details sheet
 
 **Tip:** Hover over red text cells to see notes with specific error details
@@ -708,7 +804,6 @@ The linter highlights cells with different colors based on error severity:
 **Where:**
 - Categories: Name column (duplicate category names)
 - Details: Name column (duplicate field names)
-- Categories: Fields column (invalid field references)
 - Translation sheets: Option count mismatch
 
 **Examples:**
@@ -719,7 +814,7 @@ The linter highlights cells with different colors based on error severity:
 **How to fix:**
 - Rename duplicates to unique values
 - Delete duplicate rows
-- Fix option count mismatches in translations
+- Fix option count mismatches in translations (ensure same number of comma-separated values)
 
 ---
 
@@ -735,7 +830,7 @@ The linter highlights cells with different colors based on error severity:
 
 **How to fix:**
 - Make translations more distinct
-- Avoid special characters that get stripped
+- Avoid special characters that get stripped during slug generation
 - Use more descriptive translations
 
 ---
@@ -745,6 +840,7 @@ The linter highlights cells with different colors based on error severity:
 **📸 Screenshot placeholder:** *Categories sheet with various validation highlights*
 
 **What gets checked:**
+
 1. **Name column (A):**
    - ✅ Auto-capitalizes first letter
    - 🟡 Required - must not be empty
@@ -752,23 +848,24 @@ The linter highlights cells with different colors based on error severity:
 
 2. **Icon column (B):**
    - 🟡 Required - must have a value
-   - 🔴 Must be SVG file (not PNG/JPG)
-   - 🔴 Must be valid Google Drive URL
-   - 🔴 (Red text) URL must be accessible
-   - Hover over red text for specific error
+   - Accepts: Drive URLs, icon names, inline SVG, data URIs, cell images
+   - 🔴 (Red text) Invalid icon references get red text with hover notes
 
-3. **Details column (C):**
+3. **Fields column (C):**
    - 🔴 (Red text) All field names must exist in Details sheet
    - Auto-formats comma-separated lists
    - Capitalization enforced
 
-4. **Color column (D):**
-   - No specific validation
-   - Accepts hex codes (#FF5733)
+4. **Applies column (D):**
+   - Auto-created if missing
+   - Accepts: `observation`, `track`, or both (comma-separated)
+   - Also accepts abbreviations: `o`, `t`
+   - Default: `observation`
 
-5. **Geometry column (E):**
-   - Accepts: point, area, vertex, or blank
-   - No highlighting for invalid values (future enhancement)
+5. **Category ID column (E):**
+   - Auto-created if missing
+   - Used for import/export
+   - Usually don't need to edit manually
 
 ---
 
@@ -793,10 +890,10 @@ The linter highlights cells with different colors based on error severity:
    - ✅ Can be blank (defaults to select-one)
    - 🔴 Invalid if any other value
    - Type meanings:
-     - `t` = text (free-form)
-     - `n` = number
-     - `m` = multiple-select
-     - `s` or blank = select-one (dropdown)
+     - `t`/`text` = text (free-form)
+     - `n`/`number` = number
+     - `m`/`multiple` = multiple-select (checkboxes)
+     - `s`/`select` or blank = select-one (dropdown)
 
 4. **Options column (D):**
    - ✅ Auto-capitalizes and formats comma lists
@@ -810,7 +907,8 @@ The linter highlights cells with different colors based on error severity:
 
 6. **Universal column (F):**
    - Accepts: `TRUE`, `FALSE`, or blank
-   - 🔴 Invalid for any other value (e.g., "Yes", "No", "yes")
+   - 🔴 Invalid for any other value (e.g., "Yes", "No", "yes", "1", "0")
+   - Must be exactly `TRUE` or `FALSE`
 
 ---
 
@@ -823,7 +921,8 @@ The linter highlights cells with different colors based on error severity:
 1. **Column A (Primary column):**
    - 🔴 **CRITICAL:** Must exactly match source sheet
    - 🔴 Bright red + white text if mismatch
-   - Auto-synced via formula (normally)
+   - Auto-synced via formula (normally): `=Categories!A2:A100`
+   - If formula breaks, you get bright red highlighting
 
 2. **Headers (Row 1):**
    - 🔴 Must be valid language codes or "Name - ISO" format
@@ -833,7 +932,7 @@ The linter highlights cells with different colors based on error severity:
      - `pt` ✅
      - `Español - es` ✅
      - `Português - pt` ✅
-     - `spanish` ❌ (should be `es`)
+     - `spanish` ❌ (should be `es` or `Español - es`)
 
 3. **All cells:**
    - ✅ Auto-capitalize first letter
@@ -841,7 +940,7 @@ The linter highlights cells with different colors based on error severity:
 
 4. **Row counts:**
    - 🟡 Translation sheet should have same row count as source
-   - Yellow highlight if mismatch
+   - Yellow highlight on first row if mismatch
 
 5. **Option counts (Detail Option Translations only):**
    - 🩷 Each translation must have same number of comma-separated options as source
@@ -857,7 +956,7 @@ The linter highlights cells with different colors based on error severity:
 
 #### Scenario 1: Fresh Spreadsheet
 **What you'll see:**
-- 🟡 Yellow highlights on empty required fields
+- 🟡 Yellow highlights on empty required fields (Name, Icon in Categories; Name, Type in Details)
 - All other cells clean
 
 **Action:** Fill in required data
@@ -866,10 +965,10 @@ The linter highlights cells with different colors based on error severity:
 
 #### Scenario 2: After Adding Icons
 **What you'll see:**
-- 🔴 Red text on icon URLs if files aren't accessible or aren't SVG
+- 🔴 Red text on icon references if they're invalid
 - Otherwise clean
 
-**Action:** Verify all icon URLs point to valid SVG files on Google Drive
+**Action:** Verify all icon references are valid
 
 ---
 
@@ -903,33 +1002,26 @@ Translation sheets use formulas to auto-sync with source sheets:
 =Categories!A2:A50
 ```
 
-If this formula breaks or values diverge, generation will fail.
+If this formula breaks or values diverge, generation will fail with translation lookup errors.
 
 **How to detect:**
 1. Run Lint Sheets
 2. Look for bright red cells with white text in translation sheets
 3. Check completion dialog mentions "CRITICAL translation mismatch"
 
-**How to fix (Automatic):**
-Some versions have a menu option:
-1. **CoMapeo Tools** → **Debug** → **Fix Translation Mismatches**
-2. Choose whether to re-translate afterward
-3. Plugin re-syncs formulas and optionally re-translates
-
 **How to fix (Manual):**
 
 For **Category Translations**:
 1. Open Category Translations sheet
-2. Select column A cells (below header)
+2. Select cells in column A (below header, e.g., A2:A100)
 3. Delete content
 4. In cell A2, enter formula:
    ```
    =Categories!A2:A100
    ```
-   (Adjust row count to match your Categories sheet)
-5. Repeat for all translation sheets
+   (Adjust row count to match your Categories sheet last row)
 
-**Formulas for each sheet:**
+**Formulas for each translation sheet:**
 - **Category Translations:** `=Categories!A2:A[lastRow]`
 - **Detail Label Translations:** `=Details!A2:A[lastRow]`
 - **Detail Helper Text Translations:** `=Details!B2:B[lastRow]`
@@ -938,7 +1030,7 @@ For **Category Translations**:
 **After fixing formulas:**
 1. Run Lint Sheets again
 2. Verify bright red highlighting is gone
-3. Re-translate if needed
+3. Re-translate if translations were lost (Manage Languages & Translate)
 
 ---
 
@@ -953,7 +1045,7 @@ For **Category Translations**:
    - 🔴 Red - fix before generating
    - 🟡 Yellow - fix before generating
    - 🩷 Pink - fix before generating
-   - 🟠 Orange - fix if causing translation issues
+   - 🟠 Orange - fix if causing issues
 
 3. **Use consistent naming:**
    - Keep category/field names simple and unique
@@ -961,8 +1053,7 @@ For **Category Translations**:
    - Be consistent across all sheets
 
 4. **Verify icons thoroughly:**
-   - Always use SVG format
-   - Test that Drive links are accessible
+   - Test that icons are accessible
    - Preview icons before generating
 
 5. **Review translations:**
@@ -973,6 +1064,7 @@ For **Category Translations**:
 6. **Keep backups:**
    - Make a copy before major changes
    - Export/download configurations regularly
+   - Use File → Version history to track changes
 
 ---
 
@@ -984,12 +1076,13 @@ For **Category Translations**:
 
 **Solutions:**
 1. ✅ Run **Lint Sheets** first
-2. ✅ Fix ALL red and bright red highlights
-3. ✅ Verify all icons are SVG files on Google Drive
-4. ✅ Check that field references in Categories match Details exactly
-5. ✅ Make sure translation sheets have no bright red cells
-6. ✅ Try generating with fewer languages selected
-7. ✅ Check internet connection (required for packaging server)
+2. ✅ Fix ALL bright red highlights (critical)
+3. ✅ Fix all red highlights
+4. ✅ Verify all icons are accessible
+5. ✅ Check that field references in Categories→Fields column match Details→Name exactly
+6. ✅ Make sure translation sheets have no bright red cells
+7. ✅ Try generating with fewer languages selected
+8. ✅ Check internet connection (required for packaging server)
 
 ---
 
@@ -998,11 +1091,11 @@ For **Category Translations**:
 **Problem:** Icons don't appear or show errors
 
 **Solutions:**
-1. ✅ Verify icons are SVG format (not PNG, JPG)
-2. ✅ Check Drive URLs are complete and correct format
-3. ✅ Ensure you have "View" permission on icon files
-4. ✅ Try re-uploading icon to Drive and getting fresh link
-5. ✅ Use "Generate Category Icons" instead of manual upload
+1. ✅ Icons can be: Drive URLs, icon names, inline SVG, data URIs, or cell images
+2. ✅ If using Drive URLs, check URLs are complete and correct format
+3. ✅ Ensure you have "View" permission on icon files in Drive
+4. ✅ Try re-generating icons using "Generate Category Icons"
+5. ✅ Try using simple icon names (e.g., "river", "building") instead of URLs
 6. ✅ Run Lint Sheets and fix all red text in Icon column
 
 ---
@@ -1016,7 +1109,7 @@ For **Category Translations**:
 2. ✅ Check translation sheets exist and have data
 3. ✅ Run Lint Sheets - fix bright red translation mismatches
 4. ✅ Re-run "Manage Languages & Translate"
-5. ✅ Verify translation sheet column A matches source sheet exactly
+5. ✅ Verify translation sheet column A formulas are intact
 
 ---
 
@@ -1029,27 +1122,39 @@ For **Category Translations**:
 2. ✅ Try a different configuration file to test
 3. ✅ Check file size isn't too large (>50MB may timeout)
 4. ✅ Ensure you have Google Drive storage space for icons
-5. ✅ Check browser console for specific errors
+5. ✅ Check browser console for specific errors (View → Developer → JavaScript Console)
 6. ✅ Try refreshing spreadsheet and importing again
 
 ---
 
 ### Language Not Recognized
 
-**Problem:** Error says language is not supported when setting primary language
+**Problem:** Error says language is not supported when setting primary language in cell A1
 
 **Solutions:**
 1. ✅ Check spelling - try both English and native names
-2. ✅ Try different case - `PORTUGUESE` vs `portuguese` vs `Portuguese`
+2. ✅ Try different case - `PORTUGUESE` vs `portuguese` vs `Portuguese` all work
 3. ✅ Review error message examples of valid names
 4. ✅ Check list of 142 supported languages
-5. ✅ Use full language name, not just code ("Portuguese" not just "pt")
+5. ✅ Use full language name, not just code ("Portuguese" not "pt" in cell A1)
 
 **Supported format examples:**
 - ✅ `Portuguese` or `Português`
 - ✅ `Spanish` or `Español`
 - ✅ `French` or `Français`
-- ❌ `pt`, `es`, `fr` (codes don't work in cell A1)
+- ❌ `pt`, `es`, `fr` (codes don't work in cell A1 - use full names)
+
+---
+
+### Applies Column Issues
+
+**Problem:** Applies column is missing or values not working
+
+**Solutions:**
+1. ✅ Plugin auto-creates Applies column if missing - just run generator
+2. ✅ Valid values: `observation`, `track`, `observation, track`, or abbreviations `o`, `t`
+3. ✅ At least one category should have `track` for track viewer to work
+4. ✅ Check for typos (e.g., "observe" instead of "observation")
 
 ---
 
@@ -1058,12 +1163,12 @@ For **Category Translations**:
 **Problem:** Operations take a long time or timeout
 
 **Solutions:**
-1. ✅ Reduce number of categories/fields
+1. ✅ Reduce number of categories/fields if possible
 2. ✅ Generate with fewer languages at once
-3. ✅ For import, be patient (can take 1-2 minutes)
+3. ✅ For import, be patient (can take 1-2 minutes for large configs)
 4. ✅ Close other browser tabs
 5. ✅ Clear Google Sheets cache:
-   - File → Reload
+   - Close and reopen spreadsheet
    - Clear browser cache
 6. ✅ Try during off-peak hours
 
@@ -1078,47 +1183,20 @@ For **Category Translations**:
 2. ✅ Check this guide's color code legend
 3. ✅ Review specific sheet validation section
 4. ✅ Check browser console:
-   - View → Developer tools → Console
+   - View → Developer → JavaScript Console
    - Look for specific error messages
 5. ✅ Make a copy and test fixing one error at a time
 6. ✅ Ask for help with specific cell/error description
 
 ---
 
-### Formulas Broken in Translation Sheets
-
-**Problem:** Translation sheets don't auto-sync with source
-
-**Solutions:**
-1. ✅ Check if column A has formulas (click cell, look at formula bar)
-2. ✅ Re-enter formulas manually (see "Fixing Translation Sheet Mismatches" section)
-3. ✅ Or use Debug menu → Fix Translation Mismatches
-4. ✅ Make sure source sheet has data in expected rows
-5. ✅ Adjust formula row range to match your data
-
----
-
-### Categories/Fields Missing After Import
-
-**Problem:** Import completed but some data is missing
-
-**Solutions:**
-1. ✅ Check original `.comapeocat` file is complete
-2. ✅ Verify import completion message said "success"
-3. ✅ Look in all tabs - data may be in different sheet
-4. ✅ Check browser console for import warnings
-5. ✅ Some old formats may not import all data
-6. ✅ Try importing into a fresh spreadsheet copy
-
----
-
 ## Tips for Success
 
 ### Before You Start
-- ✅ Make a copy of the template
+- ✅ Make a copy of the template spreadsheet
 - ✅ Plan your categories and fields on paper first
-- ✅ Gather or create icons before starting
 - ✅ Decide which languages you need
+- ✅ Understand the difference between observations and tracks
 
 ### During Configuration
 - ✅ Start with Categories and Details, add icons and translations later
@@ -1126,17 +1204,19 @@ For **Category Translations**:
 - ✅ Run Lint Sheets frequently
 - ✅ Use meaningful, descriptive names
 - ✅ Keep it simple - start small, expand later
+- ✅ Set Applies column appropriately (observation vs track)
 
 ### Before Generating
 - ✅ Run Lint Sheets one last time
 - ✅ Fix ALL errors (especially bright red)
-- ✅ Verify all icons are SVG
+- ✅ Verify all icons are accessible
 - ✅ Test a small language subset first
 - ✅ Make a backup copy of spreadsheet
 
 ### After Generating
 - ✅ Test configuration in CoMapeo app immediately
 - ✅ Create a test observation for each category
+- ✅ Test a track if you have track categories
 - ✅ Verify translations display correctly
 - ✅ Check icons appear properly
 - ✅ Document the version in Metadata sheet
@@ -1152,7 +1232,9 @@ For **Category Translations**:
 
 ## Additional Resources
 
+- **Earth Defenders Toolkit Icon Editor:** https://icons.earthdefenderstoolkit.com
 - **CoMapeo Documentation:** https://docs.comapeo.app/
+- **Template Spreadsheet:** https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
 - **Plugin Repository:** https://github.com/digidem/comapeo-config-spreadsheet-plugin
 - **Google Sheets Help:** https://support.google.com/docs/
 
@@ -1162,13 +1244,13 @@ For **Category Translations**:
 
 For questions or issues:
 1. Review this guide thoroughly
-2. Check browser console for detailed error messages
+2. Check browser console for detailed error messages (View → Developer → JavaScript Console)
 3. Run Lint Sheets to identify specific problems
-4. Contact your system administrator
+4. Contact your system administrator or project lead
 5. Report bugs at the plugin repository
 
 ---
 
-**Document Version:** 2.0
+**Document Version:** 2.1
 **Last Updated:** 2026-01-10
-**Plugin Version:** 2.0.0
+**Plugin Compatibility:** v2.0.0+

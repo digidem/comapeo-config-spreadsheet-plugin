@@ -69,19 +69,19 @@ In the **Categories** sheet:
 
 | Column | Description | Required | Format |
 |--------|-------------|----------|--------|
-| Name | Category name | Yes | Text (e.g., "River", "Building") |
-| Icon | Google Drive URL to icon | Yes | Valid Drive URL |
-| Details | Comma-separated field names | No | "field1, field2, field3" |
-| Color | Category color | No | Hex code (e.g., "#FF0000") |
-| Geometry | Geometry type | No | "point", "area", or "vertex" |
+| Name (A) | Category name | Yes | Text (e.g., "River", "Building"). Background color of this cell sets category color. |
+| Icon (B) | Icon reference | Yes | Drive URL, icon name, inline SVG, data URI, or cell image |
+| Fields (C) | Comma-separated field names | No | "field1, field2, field3" (also called "Details") |
+| Applies (D) | Where category can be used | Auto-created | "observation", "track", or "observation, track" |
+| Category ID (E) | Unique identifier | Auto-created | Auto-generated slug |
 
 **Example:**
 ```
-Name: River
-Icon: https://drive.google.com/file/d/1abc...
-Details: name, width, depth
-Color: #0066CC
-Geometry: area
+Name: River (with blue background color #0066CC)
+Icon: river (or https://drive.google.com/file/d/1abc...)
+Fields: name, width, depth
+Applies: observation
+Category ID: river-001 (auto-generated)
 ```
 
 ### 2. Define Details (Fields)
@@ -90,14 +90,14 @@ In the **Details** sheet:
 
 | Column | Description | Required | Format |
 |--------|-------------|----------|--------|
-| Name | Field name | Yes | Text (e.g., "Name", "Width") |
-| Helper Text | Help text for users | No | Text |
-| Type | Field type | No* | blank/"s" = dropdown, "m" = multi-select, "n" = number, "t" = text |
-| Options | Dropdown options | Yes* | Comma-separated (e.g., "Small, Medium, Large") |
-| (Column 5) | Reserved | No | Leave blank |
-| Universal | Available to all categories | No | TRUE, FALSE, or blank |
+| Name (A) | Field name | Yes | Text (e.g., "Name", "Width") |
+| Helper Text (B) | Help text for users | No | Text question or instruction |
+| Type (C) | Field type | No* | blank/"s"/"select" = dropdown, "m"/"multiple" = multi-select, "n"/"number" = number, "t"/"text" = text |
+| Options (D) | Dropdown options | Yes* | Comma-separated (e.g., "Small, Medium, Large") |
+| (Column E) | Reserved | No | Leave blank |
+| Universal (F) | Available to all categories | No | Exactly "TRUE" or "FALSE" or blank |
 
-\* Type defaults to dropdown if blank. Options are required for dropdown and multi-select fields.
+\* Type defaults to dropdown if blank. Options are required for dropdown and multi-select fields. Case-insensitive.
 
 **Example:**
 ```
@@ -141,9 +141,33 @@ The exported `.comapeocat` file contains:
 
 - `presets.json` - Category definitions
 - `fields.json` - Field definitions
-- `icons.svg` - Icon sprite with all category icons
+- `icons.svg` - Icon sprite with all category icons (or individual PNG files)
 - `translations.json` - All translations for selected languages
 - `metadata.json` - Configuration metadata
+
+### Sharing the Configuration
+
+After generating the `.comapeocat` file:
+
+1. **Upload to Google Drive:**
+   - Go to Google Drive
+   - Click "New" → "File upload"
+   - Select the downloaded `.comapeocat` file
+
+2. **Get shareable link:**
+   - Right-click the file in Google Drive
+   - Click "Get link"
+   - Change to "Anyone with the link can view"
+   - Copy the link
+
+3. **Share the link** with CoMapeo users via email, WhatsApp, SMS, etc.
+
+4. **Users download on mobile:**
+   - Open the Drive link on their phone
+   - Download the file from Google Drive
+   - Open CoMapeo app
+   - Go to Settings → Configuration → Import Configuration
+   - Select the downloaded file
 
 ---
 
@@ -284,10 +308,13 @@ The linter automatically:
 **Problem**: Icons don't appear or URLs are broken
 
 **Solutions**:
-1. Verify icon URLs start with `https://drive.google.com/`
-2. Check that you have permission to access the icon files
-3. After import, verify icons are in your Google Drive
-4. Re-upload icons if they're missing
+1. Icons can be: Drive URLs, icon names (e.g., "river"), inline SVG, data URIs, or cell images
+2. Use "Generate Category Icons" to auto-search https://icons.earthdefenderstoolkit.com
+3. For Drive URLs, verify URLs start with `https://drive.google.com/`
+4. Check that you have permission to access the icon files
+5. After import, verify icons are in your Google Drive
+6. Try using simple icon names instead of URLs (e.g., "river", "building", "tree")
+7. Edit icons manually at https://icons.earthdefenderstoolkit.com
 
 ### Translation Issues
 
