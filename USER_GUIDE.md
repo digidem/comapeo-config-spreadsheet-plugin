@@ -61,13 +61,18 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
   - The background color of cells in this column sets the category color (not a separate column)
 
 - **Icon** (Column B, Required): Icon reference for your category
-  - Can be:
-    - Google Drive URL: `https://drive.google.com/file/d/FILE_ID/view`
-    - Icon name for auto-generation: `river`, `building`, `tree`
-    - Embedded image in cell (will be converted to SVG)
+  - **Recommended: Simple text** for icon search (most common):
+    - Examples: `river`, `building`, `tree`, `forest`, `animal`
+    - Plugin searches https://icons.earthdefenderstoolkit.com automatically
+    - No need for .svg extension
+  - **Or use Drive URL** for custom icons:
+    - Format: `https://drive.google.com/file/d/FILE_ID/view`
+    - Supports SVG and PNG files (PNG converted to SVG)
+  - **Or paste directly:**
+    - Embedded image in cell (processed via icon API)
     - Inline SVG code: `<svg>...</svg>`
     - Data URI: `data:image/svg+xml,...`
-  - Supported formats: SVG (preferred), PNG (will be converted)
+    - HTTPS URL: `https://example.com/icon.svg`
 
 - **Fields** (Column C): Comma-separated list of field names this category uses
   - Example: `Name, Width, Depth, Water quality`
@@ -96,6 +101,18 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 **Note about colors:** Set the background color of the Name cell (Column A) to define the category color. This color appears in the CoMapeo app.
 
 **📸 Screenshot placeholder:** *Categories sheet with colored Name cells showing different category colors*
+
+**Note about icons - JUST USE SIMPLE TEXT!**
+The easiest way is to just type a descriptive word in the Icon column:
+- Examples: `river`, `building`, `tree`, `forest`, `animal`, `path`, `water`
+- Plugin automatically searches https://icons.earthdefenderstoolkit.com
+- No need for .svg extension or URLs
+- Works during both "Generate Category Icons" menu and final export
+
+**Alternative icon methods** (less common):
+- **Drive URL**: Upload custom icon to Drive, paste link
+- **Cell image**: Paste image directly into cell
+- **Inline SVG/Data URI**: For advanced users
 
 ---
 
@@ -277,38 +294,41 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 ---
 
-### Step 6: Search and Add Icons
+### Step 6: Add Icons
 
-**Option A: Auto-Generate Icons (Recommended)**
+**EASY WAY - Just Type Names (Recommended):**
+
+**📸 Screenshot placeholder:** *Categories sheet Icon column with simple text: river, building, tree*
+
+1. In the **Icon** column (Column B), just type descriptive words:
+   - `river`, `building`, `tree`, `forest`, `animal`, `path`, `water`
+   - No need for .svg extension
+   - No URLs needed
+2. During generation, plugin automatically searches https://icons.earthdefenderstoolkit.com
+3. Done! Icons will be found and included automatically
+
+**ALTERNATIVE - Use "Generate Category Icons" Menu:**
 
 **📸 Screenshot placeholder:** *CoMapeo Tools menu with "Generate Category Icons" highlighted*
 
 1. Click **CoMapeo Tools** → **Generate Category Icons**
-2. Confirm the action
-3. The plugin will:
-   - Search https://icons.earthdefenderstoolkit.com for icons matching your category names
-   - Show you a preview with options
-   - Save selected icons to your Google Drive
-   - Add Drive URLs to the Icon column
+2. Plugin searches for each category name
+3. Shows preview with icon options
+4. Saves selected icons to your Google Drive
+5. Updates Icon column with Drive URLs
 
-**📸 Screenshot placeholder:** *Icon selection dialog showing search results with thumbnails*
+**ADVANCED - Manual Custom Icons:**
 
-**Option B: Manual Icon Upload**
+1. Upload SVG or PNG to your Google Drive
+2. Right-click → Get link → Copy
+3. Paste Drive URL in Icon column
 
-1. Upload SVG or PNG icons to your Google Drive
-2. Right-click each icon → Get link → Copy link
-3. Paste the link in the **Icon** column for that category
-
-**Option C: Use Icon Names**
-
-1. In the Icon column, just type a descriptive name (e.g., `river`, `building`, `tree`)
-2. The plugin will auto-search for matching icons during generation
-
-**Icon Format Notes:**
-- **SVG files** are preferred (scalable, small file size)
-- **PNG files** are supported (will be converted to SVG)
-- **Inline SVG** code can be pasted directly
-- **Embedded images** in cells work too
+**Format Support:**
+- ✅ **Plain text** (e.g., `river`) - Recommended!
+- ✅ **Drive URLs** - For custom icons
+- ✅ **Cell images** - Paste image into cell
+- ✅ **Inline SVG** - For advanced users
+- ✅ **SVG and PNG files** - PNG converted to SVG
 
 ---
 
@@ -848,8 +868,17 @@ The linter highlights cells with different colors based on error severity:
 
 2. **Icon column (B):**
    - 🟡 Required - must have a value
-   - Accepts: Drive URLs, icon names, inline SVG, data URIs, cell images
-   - 🔴 (Red text) Invalid icon references get red text with hover notes
+   - ✅ Accepts ANY non-empty text:
+     - **Plain text** (e.g., `river`, `building`) - Used to search icon API (most common!)
+     - **Drive URLs** - Custom icons from your Drive
+     - **Cell images** - Embedded images in cells
+     - **Inline SVG** - Direct SVG code
+     - **Data URIs** - SVG data URIs
+     - **HTTPS URLs** - External icon URLs
+   - 🟠 HTTP URLs show orange warning (should use HTTPS for security)
+   - 🔴 Only shows red for:
+     - Empty/missing value
+     - Invalid Drive URLs (file doesn't exist or no access)
 
 3. **Fields column (C):**
    - 🔴 (Red text) All field names must exist in Details sheet
@@ -1091,12 +1120,15 @@ For **Category Translations**:
 **Problem:** Icons don't appear or show errors
 
 **Solutions:**
-1. ✅ Icons can be: Drive URLs, icon names, inline SVG, data URIs, or cell images
-2. ✅ If using Drive URLs, check URLs are complete and correct format
-3. ✅ Ensure you have "View" permission on icon files in Drive
-4. ✅ Try re-generating icons using "Generate Category Icons"
-5. ✅ Try using simple icon names (e.g., "river", "building") instead of URLs
-6. ✅ Run Lint Sheets and fix all red text in Icon column
+1. ✅ **Easiest fix:** Just use plain text in Icon column (e.g., `river`, `building`, `tree`)
+2. ✅ Plugin automatically searches https://icons.earthdefenderstoolkit.com during generation
+3. ✅ No need for .svg extension or URLs
+4. ✅ If using Drive URLs:
+   - Check URL format is correct: `https://drive.google.com/file/d/FILE_ID/view`
+   - Ensure you have "View" permission on icon files
+   - Both SVG and PNG files work (PNG converted to SVG)
+5. ✅ Run Lint Sheets - red text indicates Drive access issues or empty values
+6. ✅ Orange warning on HTTP URLs is just a security notice (still works)
 
 ---
 

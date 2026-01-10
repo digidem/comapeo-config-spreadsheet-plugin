@@ -70,7 +70,7 @@ In the **Categories** sheet:
 | Column | Description | Required | Format |
 |--------|-------------|----------|--------|
 | Name (A) | Category name | Yes | Text (e.g., "River", "Building"). Background color of this cell sets category color. |
-| Icon (B) | Icon reference | Yes | Drive URL, icon name, inline SVG, data URI, or cell image |
+| Icon (B) | Icon reference | Yes | Plain text (e.g., "river", "building"), Drive URL, cell image, inline SVG, data URI, or HTTPS URL |
 | Fields (C) | Comma-separated field names | No | "field1, field2, field3" (also called "Details") |
 | Applies (D) | Where category can be used | Auto-created | "observation", "track", or "observation, track" |
 | Category ID (E) | Unique identifier | Auto-created | Auto-generated slug |
@@ -78,11 +78,17 @@ In the **Categories** sheet:
 **Example:**
 ```
 Name: River (with blue background color #0066CC)
-Icon: river (or https://drive.google.com/file/d/1abc...)
+Icon: river (plain text - searches icon API automatically)
 Fields: name, width, depth
 Applies: observation
 Category ID: river-001 (auto-generated)
 ```
+
+**Icon Column Tips:**
+- **Recommended:** Just type simple text (e.g., `river`, `building`, `tree`)
+- Plugin automatically searches https://icons.earthdefenderstoolkit.com
+- No .svg extension needed for plain text
+- Alternative: Drive URL for custom icons
 
 ### 2. Define Details (Fields)
 
@@ -308,12 +314,15 @@ The linter automatically:
 **Problem**: Icons don't appear or URLs are broken
 
 **Solutions**:
-1. Icons can be: Drive URLs, icon names (e.g., "river"), inline SVG, data URIs, or cell images
-2. Use "Generate Category Icons" to auto-search https://icons.earthdefenderstoolkit.com
-3. For Drive URLs, verify URLs start with `https://drive.google.com/`
-4. Check that you have permission to access the icon files
-5. After import, verify icons are in your Google Drive
-6. Try using simple icon names instead of URLs (e.g., "river", "building", "tree")
+1. **Easiest:** Use plain text in Icon column (e.g., `river`, `building`, `tree`)
+2. Plugin automatically searches https://icons.earthdefenderstoolkit.com during generation
+3. No .svg extension needed for plain text
+4. For Drive URLs:
+   - Verify format: `https://drive.google.com/file/d/FILE_ID/view`
+   - Check permissions (you must have View access)
+   - Both SVG and PNG files work (PNG converted to SVG)
+5. Cell images and inline SVG are also supported
+6. Run Lint Sheets to identify issues (red text = problem, orange = warning)
 7. Edit icons manually at https://icons.earthdefenderstoolkit.com
 
 ### Translation Issues
