@@ -56,4 +56,13 @@ This page tracks the ongoing consolidation of historical context files into a si
 - **HTML dialog validation** → Leverage `docs/reference/html-validation.md` to avoid regressions in dialog rendering.
 - **Assistant onboarding** → Share `docs/process/assistant-guide.md` with any coding assistants so expectations stay aligned.
 
-_Last updated: 2025-10-31_
+## Public Docs Site (MkDocs + GitHub Pages)
+
+The public docs site publishes a curated subset of documentation while keeping the full internal tree under `docs/`.
+
+- **Source files**: `USER_GUIDE.md` and `docs/LINTING_GUIDE.md`.
+- **Build config**: `mkdocs.yml` (MkDocs Material theme).
+- **CI workflow**: `.github/workflows/docs.yml` copies the two source files into a temporary `docs-site/` directory (`index.md` and `linting-guide.md`) before running `mkdocs build`.
+- **To add/remove pages**: update the copy list in `.github/workflows/docs.yml` and the `nav` section in `mkdocs.yml`.
+
+_Last updated: 2026-01-11_

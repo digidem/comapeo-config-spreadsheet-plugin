@@ -1,0 +1,61 @@
+name: Publish Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install MkDocs Material
+        run: pip install mkdocs-material
+
+      - name: Prepare docs
+        run: |
+          rm -rf docs-site site
+          mkdir -p docs-site
+          cp USER_GUIDE.md docs-site/index.md
+          cp docs/LINTING_GUIDE.md docs-site/linting-guide.md
+          sed -i "s#docs/LINTING_GUIDE.md#linting-guide.md#g" docs-site/index.md
+          sed -i "s#../USER_GUIDE.md#index.md#g" docs-site/linting-guide.md
+
+      - name: Build site
+        run: mkdocs build --strict
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

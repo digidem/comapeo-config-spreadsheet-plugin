@@ -120,6 +120,10 @@ out
 .nuxt
 dist
 
+# MkDocs build output
+site/
+docs-site/
+
 # Gatsby files
 
 # Comment in the public line in if your project uses Gatsby and not Next.js
@@ -185,3 +189,4 @@ sample.comapeocat
 # Agent tooling metadata
 .serena/
 .beads/*.db
+.claude/
