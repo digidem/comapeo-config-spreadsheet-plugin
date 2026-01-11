@@ -48,10 +48,7 @@ function clearRangeBackgroundIfMatches(
   for (let row = 0; row < backgrounds.length; row++) {
     for (let col = 0; col < backgrounds[row].length; col++) {
       const background = backgrounds[row][col];
-      if (
-        background &&
-        normalized.includes(background.toUpperCase())
-      ) {
+      if (background && normalized.includes(background.toUpperCase())) {
         backgrounds[row][col] = null;
         updated = true;
       }
@@ -77,10 +74,7 @@ function clearRangeFontColorIfMatches(
   for (let row = 0; row < fontColors.length; row++) {
     for (let col = 0; col < fontColors[row].length; col++) {
       const fontColor = fontColors[row][col];
-      if (
-        fontColor &&
-        normalized.includes(fontColor.toUpperCase())
-      ) {
+      if (fontColor && normalized.includes(fontColor.toUpperCase())) {
         fontColors[row][col] = null;
         updated = true;
       }
@@ -108,7 +102,7 @@ function clearRangeNotesWithPrefix(
       if (
         note &&
         (note.startsWith(prefix) ||
-          note.includes("Icon slug \"") ||
+          note.includes('Icon slug "') ||
           note.includes("No SVG icon found") ||
           note.includes("Unable to determine an icon name"))
       ) {
@@ -214,7 +208,9 @@ function checkForDuplicates(
         'Found duplicate value "' + value + '" in rows: ' + rows.join(", "),
       );
       const columnLetter = columnNumberToLetter(columnIndex);
-      const rangeAddresses = rows.map((rowNumber) => `${columnLetter}${rowNumber}`);
+      const rangeAddresses = rows.map(
+        (rowNumber) => `${columnLetter}${rowNumber}`,
+      );
       sheet.getRangeList(rangeAddresses).setBackground("#FFC7CE"); // Light red
     }
   });
@@ -403,8 +399,13 @@ function validateTranslationHeaders(): void {
     return validLanguageNames.has(normalized) || aliasNames.has(normalized);
   };
 
+  // Validate against actual supported language codes, which includes
+  // BCP-47 regional codes like zh-CN and zh-TW, not just 2-3 letter ISO codes
+  const validLanguageCodes = new Set(
+    Object.keys(allLanguages).map((c) => c.toLowerCase()),
+  );
   const isValidIsoCode = (header: string): boolean =>
-    /^[a-z]{2,3}$/i.test(header);
+    validLanguageCodes.has(header.toLowerCase());
 
   for (const sheetName of translationSheets) {
     const sheet = spreadsheet.getSheetByName(sheetName);
@@ -415,13 +416,17 @@ function validateTranslationHeaders(): void {
       if (lastCol < 2) continue; // Need at least a source column and one language column
 
       const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-      clearRangeBackgroundIfMatches(
-        sheet.getRange(1, 1, 1, lastCol),
-        ["#FFC7CE", "#FFEB9C"],
-      );
+      clearRangeBackgroundIfMatches(sheet.getRange(1, 1, 1, lastCol), [
+        "#FFC7CE",
+        "#FFEB9C",
+      ]);
 
-      const headerB = String(headers[1] || "").trim().toLowerCase();
-      const headerC = String(headers[2] || "").trim().toLowerCase();
+      const headerB = String(headers[1] || "")
+        .trim()
+        .toLowerCase();
+      const headerC = String(headers[2] || "")
+        .trim()
+        .toLowerCase();
       const hasMetaColumns =
         headerB.includes("iso") && headerC.includes("source");
       const languageStartIndex = hasMetaColumns ? 3 : 1;
@@ -480,7 +485,10 @@ function lintSheet(
         const colRange = sheet.getRange(2, col + 1, lastRow - 1, 1);
 
         if (shouldClearBackground) {
-          clearRangeBackgroundIfMatches(colRange, LINT_WARNING_BACKGROUND_COLORS);
+          clearRangeBackgroundIfMatches(
+            colRange,
+            LINT_WARNING_BACKGROUND_COLORS,
+          );
         }
         clearRangeFontColorIfMatches(colRange, LINT_WARNING_FONT_COLORS);
       }
@@ -504,7 +512,12 @@ function lintSheet(
 
     console.time(`Getting data for ${sheetName}`);
     // Get all data from the sheet, excluding the header row
-    const dataRange = sheet.getRange(2, 1, lastRow - 1, columnValidations.length);
+    const dataRange = sheet.getRange(
+      2,
+      1,
+      lastRow - 1,
+      columnValidations.length,
+    );
     const data = dataRange.getValues();
     console.timeEnd(`Getting data for ${sheetName}`);
 
@@ -536,7 +549,10 @@ function lintSheet(
       data.forEach((row, rowIndex) => {
         requiredColumns.forEach((colIndex) => {
           // Skip columns that should preserve their backgrounds
-          if (!preserveBackgroundColumns.includes(colIndex) && isEmptyOrWhitespace(row[colIndex])) {
+          if (
+            !preserveBackgroundColumns.includes(colIndex) &&
+            isEmptyOrWhitespace(row[colIndex])
+          ) {
             const rows = requiredHighlights.get(colIndex);
             if (rows) {
               rows.push(rowIndex + 2); // +2 accounts for header row
@@ -550,7 +566,9 @@ function lintSheet(
           return;
         }
         const columnLetter = columnNumberToLetter(colIndex + 1);
-        const rangeAddresses = rows.map((rowNumber) => `${columnLetter}${rowNumber}`);
+        const rangeAddresses = rows.map(
+          (rowNumber) => `${columnLetter}${rowNumber}`,
+        );
         sheet.getRangeList(rangeAddresses).setBackground("#FFF2CC"); // Light yellow for required fields
       });
     }
@@ -641,7 +659,11 @@ function validateCategoryIcons(): void {
     const rowNumber = index + 2;
     const iconCellValue = row[0];
 
-    if (iconCellValue === null || iconCellValue === undefined || iconCellValue === "") {
+    if (
+      iconCellValue === null ||
+      iconCellValue === undefined ||
+      iconCellValue === ""
+    ) {
       return;
     }
 
@@ -678,7 +700,10 @@ function validateCategoryIcons(): void {
           // Note: We don't validate SVG format here because PNG files are also supported
           // and will be converted to SVG during generation
         } else {
-          addIssue(rowNumber, "Icon URL must contain a valid Google Drive file ID.");
+          addIssue(
+            rowNumber,
+            "Icon URL must contain a valid Google Drive file ID.",
+          );
         }
       } else if (/^http:\/\//i.test(iconValue)) {
         // HTTP URL - warn about security (should use HTTPS)
@@ -785,7 +810,9 @@ function lintCategoriesSheet(): void {
           const cell = categoriesSheetRef?.getRange(row, col);
           if (cell) {
             cell.setFontColor("red");
-            cell.setNote(`${LINT_NOTE_PREFIX}Icon is required but missing or empty`);
+            cell.setNote(
+              `${LINT_NOTE_PREFIX}Icon is required but missing or empty`,
+            );
           }
           return;
         }
@@ -801,11 +828,15 @@ function lintCategoriesSheet(): void {
         // Only validate HTTP URLs must be HTTPS (security best practice)
         const isHttpUrl = /^http:\/\//i.test(trimmedValue);
         if (isHttpUrl) {
-          console.log("Icon HTTP URL should use HTTPS for security: " + trimmedValue);
+          console.log(
+            "Icon HTTP URL should use HTTPS for security: " + trimmedValue,
+          );
           const cell = categoriesSheetRef?.getRange(row, col);
           if (cell) {
             cell.setFontColor("orange");
-            cell.setNote(`${LINT_NOTE_PREFIX}Icon URL should use HTTPS instead of HTTP for security`);
+            cell.setNote(
+              `${LINT_NOTE_PREFIX}Icon URL should use HTTPS instead of HTTP for security`,
+            );
           }
           return;
         }
@@ -845,7 +876,9 @@ function lintCategoriesSheet(): void {
             const cell = categoriesSheetRef?.getRange(row, col);
             if (cell) {
               cell.setFontColor("red");
-              cell.setNote(`${LINT_NOTE_PREFIX}Invalid fields: ${invalidFields.join(", ")}. These fields do not exist in the Details sheet`);
+              cell.setNote(
+                `${LINT_NOTE_PREFIX}Invalid fields: ${invalidFields.join(", ")}. These fields do not exist in the Details sheet`,
+              );
             }
           }
         }
@@ -879,22 +912,19 @@ function lintDetailsSheet(): void {
   if (lastRow > 1) {
     const lastColumn = sheet.getLastColumn();
     if (lastColumn >= 3) {
-      clearRangeBackgroundIfMatches(
-        sheet.getRange(2, 3, lastRow - 1, 1),
-        ["#FFC7CE"],
-      );
+      clearRangeBackgroundIfMatches(sheet.getRange(2, 3, lastRow - 1, 1), [
+        "#FFC7CE",
+      ]);
     }
     if (lastColumn >= 4) {
-      clearRangeBackgroundIfMatches(
-        sheet.getRange(2, 4, lastRow - 1, 1),
-        ["#FFC7CE"],
-      );
+      clearRangeBackgroundIfMatches(sheet.getRange(2, 4, lastRow - 1, 1), [
+        "#FFC7CE",
+      ]);
     }
     if (lastColumn >= 6) {
-      clearRangeBackgroundIfMatches(
-        sheet.getRange(2, 6, lastRow - 1, 1),
-        ["#FFC7CE"],
-      );
+      clearRangeBackgroundIfMatches(sheet.getRange(2, 6, lastRow - 1, 1), [
+        "#FFC7CE",
+      ]);
     }
   }
 
@@ -1019,7 +1049,9 @@ function lintDetailsSheet(): void {
 
           if (options.length === 0) {
             console.log(
-              "Select field at row " + row + " has empty options after trimming",
+              "Select field at row " +
+                row +
+                " has empty options after trimming",
             );
             setInvalidCellBackground(sheet, row, col, "#FFC7CE"); // Light red for empty options
             return;
@@ -1248,11 +1280,19 @@ function validateSheetConsistency(
       }
 
       // Read source and translation primary columns
-      const sourceData = sourceSheet.getRange(2, sourceColumn, minRowCheck, 1).getValues();
-      const translationData = translationSheet.getRange(2, 1, minRowCheck, 1).getValues();
+      const sourceData = sourceSheet
+        .getRange(2, sourceColumn, minRowCheck, 1)
+        .getValues();
+      const translationData = translationSheet
+        .getRange(2, 1, minRowCheck, 1)
+        .getValues();
 
       // Collect mismatched cells
-      const mismatchedCells: Array<{ row: number; sourceValue: string; translationValue: string }> = [];
+      const mismatchedCells: Array<{
+        row: number;
+        sourceValue: string;
+        translationValue: string;
+      }> = [];
 
       for (let i = 0; i < minRowCheck; i++) {
         const sourceValue = String(sourceData[i][0] || "").trim();
@@ -1260,7 +1300,9 @@ function validateSheetConsistency(
 
         // Normalize comparison (case-insensitive, whitespace-normalized)
         const normalizedSource = sourceValue.toLowerCase().replace(/\s+/g, " ");
-        const normalizedTranslation = translationValue.toLowerCase().replace(/\s+/g, " ");
+        const normalizedTranslation = translationValue
+          .toLowerCase()
+          .replace(/\s+/g, " ");
 
         if (normalizedSource !== normalizedTranslation) {
           mismatchedCells.push({
@@ -1322,7 +1364,9 @@ function validateSheetConsistency(
 
         // Check each translation column (starting from column 4, after Name, ISO, Source columns)
         for (let col = 3; col < translationData[i].length; col++) {
-          const translatedOptions = String(translationData[i][col] || "").trim();
+          const translatedOptions = String(
+            translationData[i][col] || "",
+          ).trim();
           if (!translatedOptions) continue;
 
           const translatedOptionCount = translatedOptions
@@ -1344,8 +1388,8 @@ function validateSheetConsistency(
 
       // OPTIMIZATION: Apply all highlights in a single batch operation using RangeList
       if (cellsToHighlight.length > 0) {
-        const rangeStrings = cellsToHighlight.map(
-          ({ row, col }) => translationSheet.getRange(row, col).getA1Notation(),
+        const rangeStrings = cellsToHighlight.map(({ row, col }) =>
+          translationSheet.getRange(row, col).getA1Notation(),
         );
         const rangeList = translationSheet.getRangeList(rangeStrings);
         rangeList.setBackground("#FFC7CE"); // Light red for mismatch
@@ -1411,7 +1455,9 @@ function validateHtmlContent(html: string): {
     // Check if it's a closing tag
     if (fullTag.startsWith("</")) {
       if (tagStack.length === 0) {
-        errors.push(`Closing tag </${tagName}> found without matching opening tag`);
+        errors.push(
+          `Closing tag </${tagName}> found without matching opening tag`,
+        );
       } else {
         const lastTag = tagStack.pop();
         if (lastTag !== tagName) {
@@ -1428,7 +1474,9 @@ function validateHtmlContent(html: string): {
 
   // Check for unclosed tags
   if (tagStack.length > 0) {
-    errors.push(`Unclosed tags: ${tagStack.map((tag) => `<${tag}>`).join(", ")}`);
+    errors.push(
+      `Unclosed tags: ${tagStack.map((tag) => `<${tag}>`).join(", ")}`,
+    );
   }
 
   // Check for common HTML errors
@@ -1561,7 +1609,7 @@ function testHtmlValidation(): void {
     // The test case for unclosed quotes has been removed
     {
       name: "Valid complex HTML",
-      html: '<!DOCTYPE html><html><head><style>body { color: red; }</style></head><body><p>Test</p></body></html>',
+      html: "<!DOCTYPE html><html><head><style>body { color: red; }</style></head><body><p>Test</p></body></html>",
       shouldPass: true,
     },
   ];
@@ -1622,7 +1670,12 @@ function testDialogHtmlGeneration(): void {
   // Test 2: Dialog with button
   try {
     totalTests++;
-    const html = generateDialog("Test", "<p>Message</p>", "Click", "https://example.com");
+    const html = generateDialog(
+      "Test",
+      "<p>Message</p>",
+      "Click",
+      "https://example.com",
+    );
     validateDialogHtml(html, "Dialog with Button");
     console.log("✅ Dialog with button HTML is valid");
     passedTests++;
@@ -1633,7 +1686,13 @@ function testDialogHtmlGeneration(): void {
   // Test 3: Dialog with function button
   try {
     totalTests++;
-    const html = generateDialog("Test", "<p>Message</p>", "Submit", null, "submitForm");
+    const html = generateDialog(
+      "Test",
+      "<p>Message</p>",
+      "Submit",
+      null,
+      "submitForm",
+    );
     validateDialogHtml(html, "Dialog with Function");
     console.log("✅ Dialog with function button HTML is valid");
     passedTests++;
@@ -1644,8 +1703,8 @@ function testDialogHtmlGeneration(): void {
   // Test 4: Dialog with special characters (should be escaped)
   try {
     totalTests++;
-    const title = "Test <> & \"Title\"";
-    const message = "<p>" + escapeHtml("Message with <> & \"quotes\"") + "</p>";
+    const title = 'Test <> & "Title"';
+    const message = "<p>" + escapeHtml('Message with <> & "quotes"') + "</p>";
     const html = generateDialog(title, message);
     validateDialogHtml(html, "Dialog with Special Chars");
     console.log("✅ Dialog with special characters HTML is valid");
@@ -1660,7 +1719,9 @@ function testDialogHtmlGeneration(): void {
   if (passedTests === totalTests) {
     console.log("✅ All dialog generation tests passed!");
   } else {
-    console.log(`❌ ${totalTests - passedTests} dialog generation test(s) failed`);
+    console.log(
+      `❌ ${totalTests - passedTests} dialog generation test(s) failed`,
+    );
   }
 }
 
@@ -1685,7 +1746,11 @@ function detectTranslationMismatches(): {
     sheetName: string;
     sourceSheet: string;
     sourceColumn: string;
-    mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+    mismatches: Array<{
+      row: number;
+      sourceValue: string;
+      translationValue: string;
+    }>;
   }>;
 } | null {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -1693,12 +1758,18 @@ function detectTranslationMismatches(): {
     sheetName: string;
     sourceSheet: string;
     sourceColumn: string;
-    mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+    mismatches: Array<{
+      row: number;
+      sourceValue: string;
+      translationValue: string;
+    }>;
   }> = [];
 
   // Check Category Translations
   const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const categoryTranslationsSheet = spreadsheet.getSheetByName("Category Translations");
+  const categoryTranslationsSheet = spreadsheet.getSheetByName(
+    "Category Translations",
+  );
 
   if (categoriesSheet && categoryTranslationsSheet) {
     const catMismatches = checkSheetMismatches(
@@ -1719,12 +1790,22 @@ function detectTranslationMismatches(): {
   // Check Detail translations
   const detailsSheet = spreadsheet.getSheetByName("Details");
   if (detailsSheet) {
-    const detailLabelTranslations = spreadsheet.getSheetByName("Detail Label Translations");
-    const detailHelperTranslations = spreadsheet.getSheetByName("Detail Helper Text Translations");
-    const detailOptionTranslations = spreadsheet.getSheetByName("Detail Option Translations");
+    const detailLabelTranslations = spreadsheet.getSheetByName(
+      "Detail Label Translations",
+    );
+    const detailHelperTranslations = spreadsheet.getSheetByName(
+      "Detail Helper Text Translations",
+    );
+    const detailOptionTranslations = spreadsheet.getSheetByName(
+      "Detail Option Translations",
+    );
 
     if (detailLabelTranslations) {
-      const labelMismatches = checkSheetMismatches(detailsSheet, detailLabelTranslations, 1);
+      const labelMismatches = checkSheetMismatches(
+        detailsSheet,
+        detailLabelTranslations,
+        1,
+      );
       if (labelMismatches.length > 0) {
         allDetails.push({
           sheetName: "Detail Label Translations",
@@ -1736,7 +1817,11 @@ function detectTranslationMismatches(): {
     }
 
     if (detailHelperTranslations) {
-      const helperMismatches = checkSheetMismatches(detailsSheet, detailHelperTranslations, 2);
+      const helperMismatches = checkSheetMismatches(
+        detailsSheet,
+        detailHelperTranslations,
+        2,
+      );
       if (helperMismatches.length > 0) {
         allDetails.push({
           sheetName: "Detail Helper Text Translations",
@@ -1748,7 +1833,11 @@ function detectTranslationMismatches(): {
     }
 
     if (detailOptionTranslations) {
-      const optionMismatches = checkSheetMismatches(detailsSheet, detailOptionTranslations, 4);
+      const optionMismatches = checkSheetMismatches(
+        detailsSheet,
+        detailOptionTranslations,
+        4,
+      );
       if (optionMismatches.length > 0) {
         allDetails.push({
           sheetName: "Detail Option Translations",
@@ -1786,17 +1875,27 @@ function checkSheetMismatches(
     return [];
   }
 
-  const sourceData = sourceSheet.getRange(2, sourceColumn, minRowCheck, 1).getValues();
-  const translationData = translationSheet.getRange(2, 1, minRowCheck, 1).getValues();
+  const sourceData = sourceSheet
+    .getRange(2, sourceColumn, minRowCheck, 1)
+    .getValues();
+  const translationData = translationSheet
+    .getRange(2, 1, minRowCheck, 1)
+    .getValues();
 
-  const mismatches: Array<{ row: number; sourceValue: string; translationValue: string }> = [];
+  const mismatches: Array<{
+    row: number;
+    sourceValue: string;
+    translationValue: string;
+  }> = [];
 
   for (let i = 0; i < minRowCheck; i++) {
     const sourceValue = String(sourceData[i][0] || "").trim();
     const translationValue = String(translationData[i][0] || "").trim();
 
     const normalizedSource = sourceValue.toLowerCase().replace(/\s+/g, " ");
-    const normalizedTranslation = translationValue.toLowerCase().replace(/\s+/g, " ");
+    const normalizedTranslation = translationValue
+      .toLowerCase()
+      .replace(/\s+/g, " ");
 
     if (normalizedSource !== normalizedTranslation) {
       mismatches.push({
@@ -1825,22 +1924,32 @@ function fixTranslationMismatches(
       sheetName: string;
       sourceSheet: string;
       sourceColumn: string;
-      mismatches: Array<{ row: number; sourceValue: string; translationValue: string }>;
+      mismatches: Array<{
+        row: number;
+        sourceValue: string;
+        translationValue: string;
+      }>;
     }>;
-  } | null
+  } | null,
 ): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   // Re-sync Category Translations formulas
   const categoriesSheet = spreadsheet.getSheetByName("Categories");
-  const categoryTranslationsSheet = spreadsheet.getSheetByName("Category Translations");
+  const categoryTranslationsSheet = spreadsheet.getSheetByName(
+    "Category Translations",
+  );
 
   if (categoriesSheet && categoryTranslationsSheet) {
     const lastRow = categoriesSheet.getLastRow();
     if (lastRow > 1) {
       const formula = `=Categories!A2:A${lastRow}`;
-      categoryTranslationsSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
-      console.log(`Re-synced Category Translations formulas (rows 2-${lastRow})`);
+      categoryTranslationsSheet
+        .getRange(2, 1, lastRow - 1, 1)
+        .setFormula(formula);
+      console.log(
+        `Re-synced Category Translations formulas (rows 2-${lastRow})`,
+      );
     }
   }
 
@@ -1851,27 +1960,39 @@ function fixTranslationMismatches(
 
     if (lastRow > 1) {
       // Detail Label Translations (column A)
-      const detailLabelSheet = spreadsheet.getSheetByName("Detail Label Translations");
+      const detailLabelSheet = spreadsheet.getSheetByName(
+        "Detail Label Translations",
+      );
       if (detailLabelSheet) {
         const formula = `=Details!A2:A${lastRow}`;
         detailLabelSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
-        console.log(`Re-synced Detail Label Translations formulas (rows 2-${lastRow})`);
+        console.log(
+          `Re-synced Detail Label Translations formulas (rows 2-${lastRow})`,
+        );
       }
 
       // Detail Helper Text Translations (column B)
-      const detailHelperSheet = spreadsheet.getSheetByName("Detail Helper Text Translations");
+      const detailHelperSheet = spreadsheet.getSheetByName(
+        "Detail Helper Text Translations",
+      );
       if (detailHelperSheet) {
         const formula = `=Details!B2:B${lastRow}`;
         detailHelperSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
-        console.log(`Re-synced Detail Helper Text Translations formulas (rows 2-${lastRow})`);
+        console.log(
+          `Re-synced Detail Helper Text Translations formulas (rows 2-${lastRow})`,
+        );
       }
 
       // Detail Option Translations (column D)
-      const detailOptionSheet = spreadsheet.getSheetByName("Detail Option Translations");
+      const detailOptionSheet = spreadsheet.getSheetByName(
+        "Detail Option Translations",
+      );
       if (detailOptionSheet) {
         const formula = `=Details!D2:D${lastRow}`;
         detailOptionSheet.getRange(2, 1, lastRow - 1, 1).setFormula(formula);
-        console.log(`Re-synced Detail Option Translations formulas (rows 2-${lastRow})`);
+        console.log(
+          `Re-synced Detail Option Translations formulas (rows 2-${lastRow})`,
+        );
       }
     }
   }
@@ -1884,7 +2005,9 @@ function fixTranslationMismatches(
     if (categoryTranslationsSheet) {
       const lastColumn = categoryTranslationsSheet.getLastColumn();
       if (lastColumn > 1) {
-        const headers = categoryTranslationsSheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+        const headers = categoryTranslationsSheet
+          .getRange(1, 1, 1, lastColumn)
+          .getValues()[0];
         const targetLanguages: TranslationLanguage[] = [];
         const allLanguages = getAllLanguages();
 
@@ -1910,31 +2033,35 @@ function fixTranslationMismatches(
         }
 
         if (targetLanguages.length > 0) {
-          console.log(`Re-translating to languages: ${targetLanguages.join(", ")}`);
+          console.log(
+            `Re-translating to languages: ${targetLanguages.join(", ")}`,
+          );
 
           // OPTIMIZATION: Only clear and re-translate rows that have mismatches
           // Use pre-detected mismatch data if provided, otherwise detect now
           const mismatchResult = mismatchData || detectTranslationMismatches();
 
           if (mismatchResult && mismatchResult.hasMismatches) {
-            console.log(`Found ${mismatchResult.details.length} translation sheet(s) with mismatches`);
+            console.log(
+              `Found ${mismatchResult.details.length} translation sheet(s) with mismatches`,
+            );
 
             // Clear only the mismatched rows in each sheet
-            mismatchResult.details.forEach(detail => {
+            mismatchResult.details.forEach((detail) => {
               const sheet = spreadsheet.getSheetByName(detail.sheetName);
               if (!sheet || sheet.getLastColumn() <= 1) return;
 
               const colCount = sheet.getLastColumn() - 1; // Exclude primary language column
-              const mismatchedRows = detail.mismatches.map(m => m.row);
+              const mismatchedRows = detail.mismatches.map((m) => m.row);
 
               // Clear translation columns for only the mismatched rows
-              mismatchedRows.forEach(row => {
+              mismatchedRows.forEach((row) => {
                 sheet.getRange(row, 2, 1, colCount).clearContent();
               });
 
               console.log(
                 `Cleared translations for ${mismatchedRows.length} mismatched row(s) in ${detail.sheetName}: ` +
-                `rows ${mismatchedRows.join(", ")}`
+                  `rows ${mismatchedRows.join(", ")}`,
               );
             });
           } else {
@@ -1943,7 +2070,9 @@ function fixTranslationMismatches(
 
           autoTranslateSheetsBidirectional(targetLanguages);
         } else {
-          console.log("No target languages found in headers, skipping re-translation");
+          console.log(
+            "No target languages found in headers, skipping re-translation",
+          );
         }
       }
     }
@@ -1958,7 +2087,7 @@ function fixTranslationMismatches(
     "Detail Option Translations",
   ];
 
-  translationSheetNames.forEach(sheetName => {
+  translationSheetNames.forEach((sheetName) => {
     const sheet = spreadsheet.getSheetByName(sheetName);
     if (sheet && sheet.getLastRow() > 1) {
       const range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1);
