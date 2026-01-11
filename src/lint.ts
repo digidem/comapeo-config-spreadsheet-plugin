@@ -664,14 +664,13 @@ function validateCategoryIcons(): void {
       }
 
       if (iconValue.startsWith("<svg")) {
-        // Inline SVG markup is allowed; no extra validation here
+        // Inline SVG markup - passed through
         iconSlug = presetSlug;
       } else if (iconValue.startsWith("data:")) {
-        if (!iconValue.startsWith("data:image/svg+xml")) {
-          addIssue(rowNumber, "Icon data URI must be image/svg+xml.");
-        }
+        // Data URI - passed through (will be validated during generation)
         iconSlug = presetSlug;
       } else if (iconValue.startsWith("https://drive.google.com/")) {
+        // Drive URL - validate access
         const fileId = extractDriveFileId(iconValue);
         if (fileId) {
           let info = driveFileCache.get(fileId);
@@ -686,43 +685,36 @@ function validateCategoryIcons(): void {
 
           if (info.errorMessage) {
             addIssue(rowNumber, info.errorMessage);
-          } else if (!info.isSvg) {
-            addIssue(
-              rowNumber,
-              "Icon Drive file must be an SVG (MIME type image/svg+xml).",
-            );
           }
+          // Note: We don't validate SVG format here because PNG files are also supported
+          // and will be converted to SVG during generation
         } else {
           addIssue(rowNumber, "Icon URL must contain a valid Google Drive file ID.");
         }
-      } else if (/^https?:\/\//i.test(iconValue)) {
-        const segment = iconValue.split("/").pop() || "";
-        const fileName = segment.split("?")[0];
-        if (!/\.svg(\?|$)/i.test(fileName)) {
-          addIssue(rowNumber, "Icon URL must point to an SVG file.");
-        }
+      } else if (/^http:\/\//i.test(iconValue)) {
+        // HTTP URL - warn about security (should use HTTPS)
+        iconSlug = presetSlug;
+        addIssue(rowNumber, "Icon URL should use HTTPS instead of HTTP for security.");
+      } else if (/^https:\/\//i.test(iconValue)) {
+        // HTTPS URL - passed through
         iconSlug = presetSlug;
       } else {
+        // Plain text - will be used to search icon API (e.g., "river", "building", "tree")
+        // This is the most common use case!
         iconSlug = normalizeIconSlug(slugify(iconValue));
-        if (!iconValue.toLowerCase().endsWith(".svg")) {
-          addIssue(rowNumber, "Icon reference must be an SVG file.");
-        }
       }
     } else if (
       iconCellValue &&
       typeof iconCellValue === "object" &&
       iconCellValue.toString() === "CellImage"
     ) {
+      // Cell images ARE supported and will be processed via icon API
       iconSlug = presetSlug;
-      addIssue(
-        rowNumber,
-        "Embedded images are not supported. Please use an SVG URL stored in the cell.",
-      );
     } else {
       iconSlug = presetSlug;
       addIssue(
         rowNumber,
-        "Unrecognized icon cell value. Please provide an SVG URL for the icon.",
+        "Unrecognized icon cell value. Expected text, Drive URL, or cell image.",
       );
     }
 
@@ -827,7 +819,7 @@ function lintCategoriesSheet(): void {
         }
       }
     },
-    // Rule 2: Validate icon value - must reference an SVG (Drive link, HTTPS URL, data URI, or filename)
+    // Rule 2: Validate icon value - accepts Drive URLs, plain text (for icon search), inline SVG, data URIs, or HTTP URLs
     (value, row, col) => {
       try {
         const trimmedValue = value.trim();
@@ -842,44 +834,34 @@ function lintCategoriesSheet(): void {
           return;
         }
 
-        const isInlineSvg = trimmedValue.startsWith("<svg");
-        const isDriveUrl =
-          trimmedValue.startsWith("https://drive.google.com/") &&
-          extractDriveFileId(trimmedValue) !== null;
-        const isDataUri = trimmedValue.startsWith("data:image/svg+xml");
-        const isHttpUrl = /^https?:\/\//i.test(trimmedValue);
-        const endsWithSvg = /\.svg(?:[?#].*)?$/i.test(trimmedValue);
-        const isHttpSvg = isHttpUrl && endsWithSvg;
-        const isFilenameSvg = !isHttpUrl && endsWithSvg;
+        // Icon processing accepts:
+        // 1. Drive URLs - processed as Drive icons
+        // 2. Plain text - used to search icon API (e.g., "river", "building")
+        // 3. Inline SVG - passed through
+        // 4. Data URIs - passed through
+        // 5. HTTP URLs - passed through
+        // All non-empty strings are valid and will be processed appropriately
 
-        if (isHttpUrl && !isHttpSvg && !isDriveUrl) {
-          console.log("Icon URL must point to an SVG file: " + trimmedValue);
+        // Only validate HTTP URLs must be HTTPS (security best practice)
+        const isHttpUrl = /^http:\/\//i.test(trimmedValue);
+        if (isHttpUrl) {
+          console.log("Icon HTTP URL should use HTTPS for security: " + trimmedValue);
           const cell = categoriesSheetRef?.getRange(row, col);
           if (cell) {
-            cell.setFontColor("red");
-            cell.setNote(`${LINT_NOTE_PREFIX}Icon URL must point to an SVG file ending in .svg`);
+            cell.setFontColor("orange");
+            cell.setNote(`${LINT_NOTE_PREFIX}Icon URL should use HTTPS instead of HTTP for security`);
           }
           return;
         }
 
-        const isValidReference =
-          isInlineSvg ||
-          isDriveUrl ||
-          isDataUri ||
-          isHttpSvg ||
-          isFilenameSvg;
-
-        if (!isValidReference) {
-          console.log("Invalid icon reference: " + trimmedValue);
-          const cell = categoriesSheetRef?.getRange(row, col);
-          if (cell) {
-            cell.setFontColor("red");
-            cell.setNote(`${LINT_NOTE_PREFIX}Invalid icon reference. Provide a Drive link, HTTPS URL, data URI, or filename that ends with .svg`);
-          }
-        }
+        // All other non-empty strings are valid
+        // They will be processed by iconProcessor.ts:
+        // - Drive URLs → processed as Drive icons
+        // - CellImages → processed as cell images
+        // - Everything else → used to search icon API
       } catch (error) {
         console.error(
-          "Error validating icon URL in Categories sheet at row " +
+          "Error validating icon in Categories sheet at row " +
             row +
             ", col " +
             col +
@@ -2065,11 +2047,13 @@ function lintAllSheets(showAlerts: boolean = true): void {
           "- BRIGHT RED cells with white text: CRITICAL translation mismatch - primary language values don't match source sheet\n" +
           "- Yellow highlighted cells: Required fields missing, unreferenced details, or translation row mismatches\n" +
           "- Red highlighted cells: Invalid values, missing options, invalid Universal flags, or invalid translation headers\n" +
-          "- Red text in Categories icon column: Missing or invalid icons (hover for details)\n" +
+          "- Red text in Categories icon column: Missing icons or Drive access issues (hover for details)\n" +
           "- Red text in Categories fields column: Invalid field references (hover for details)\n" +
           "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches\n" +
+          "- Orange text in Categories icon column: HTTP URLs (security warning - still works, but HTTPS recommended)\n" +
           "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes\n\n" +
-          "⚠️  IMPORTANT: Bright red cells will cause translation failures. Re-sync translation sheets before generating config.",
+          "⚠️  IMPORTANT: Bright red cells will cause translation failures. Re-sync translation sheets before generating config.\n" +
+          "ℹ️  TIP: For icons, just use plain text (e.g., 'river', 'building') - plugin searches icon API automatically!",
         ui.ButtonSet.OK,
       );
     }
