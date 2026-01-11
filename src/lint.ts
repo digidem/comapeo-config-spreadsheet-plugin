@@ -314,7 +314,8 @@ function validateUniversalFlag(
 }
 
 /**
- * Check for duplicate slugs in translation sheets that would cause conflicts
+ * Optional check for duplicate slugs in translation sheets.
+ * Not invoked by default because duplicate translation values are allowed.
  */
 function checkDuplicateTranslationSlugs(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -378,13 +379,32 @@ function checkDuplicateTranslationSlugs(): void {
 }
 
 /**
- * Validate translation headers are valid language codes or "Name - ISO" format
+ * Validate translation headers are valid language names, ISO codes, or "Name - ISO" format
  */
 function validateTranslationHeaders(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const translationSheets = sheets(true);
   const allLanguages = getAllLanguages();
-  const validLanguageCodes = Object.keys(allLanguages);
+  const validLanguageNames = new Set(
+    Object.values(allLanguages).map((name) => name.toLowerCase()),
+  );
+  const aliasMap =
+    typeof getLanguageAliases === "function"
+      ? getLanguageAliases()
+      : typeof LANGUAGE_NAME_ALIASES !== "undefined"
+        ? LANGUAGE_NAME_ALIASES
+        : {};
+  const aliasNames = new Set(
+    Object.keys(aliasMap).map((name) => name.toLowerCase()),
+  );
+
+  const isValidLanguageName = (header: string): boolean => {
+    const normalized = header.toLowerCase();
+    return validLanguageNames.has(normalized) || aliasNames.has(normalized);
+  };
+
+  const isValidIsoCode = (header: string): boolean =>
+    /^[a-z]{2,3}$/i.test(header);
 
   for (const sheetName of translationSheets) {
     const sheet = spreadsheet.getSheetByName(sheetName);
@@ -392,7 +412,7 @@ function validateTranslationHeaders(): void {
 
     try {
       const lastCol = sheet.getLastColumn();
-      if (lastCol < 4) continue; // Need at least Name, ISO, Source columns
+      if (lastCol < 2) continue; // Need at least a source column and one language column
 
       const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
       clearRangeBackgroundIfMatches(
@@ -400,37 +420,26 @@ function validateTranslationHeaders(): void {
         ["#FFC7CE", "#FFEB9C"],
       );
 
-      // Check language columns (starting from column 4, index 3)
-      for (let i = 3; i < headers.length; i++) {
+      const headerB = String(headers[1] || "").trim().toLowerCase();
+      const headerC = String(headers[2] || "").trim().toLowerCase();
+      const hasMetaColumns =
+        headerB.includes("iso") && headerC.includes("source");
+      const languageStartIndex = hasMetaColumns ? 3 : 1;
+
+      // Check language columns (skip meta columns if present)
+      for (let i = languageStartIndex; i < headers.length; i++) {
         const header = String(headers[i] || "").trim();
         if (!header) continue;
 
-        // Check if it's a valid language code or "Name - ISO" format
-        const isValidCode = validLanguageCodes.some(
-          (code) => code.toLowerCase() === header.toLowerCase(),
-        );
+        const validName = isValidLanguageName(header);
+        const validCode = isValidIsoCode(header);
+        const validNameIsoFormat = /.+\s*-\s*\w+$/.test(header);
 
-        const isValidNameIsoFormat = header.includes(" - ");
-
-        if (!isValidCode && !isValidNameIsoFormat) {
+        if (!validName && !validCode && !validNameIsoFormat) {
           console.log(
-            `Invalid translation header "${header}" in ${sheetName} column ${i + 1} - should be language code or "Name - ISO" format`,
+            `Invalid translation header "${header}" in ${sheetName} column ${i + 1} - should be a language name, ISO code, or "Name - ISO" format`,
           );
           sheet.getRange(1, i + 1).setBackground("#FFC7CE"); // Light red for invalid
-        } else if (isValidNameIsoFormat) {
-          // Validate the ISO part
-          const parts = header.split(" - ");
-          const isoCode = parts[parts.length - 1].trim();
-          const isValidIso = validLanguageCodes.some(
-            (code) => code.toLowerCase() === isoCode.toLowerCase(),
-          );
-
-          if (!isValidIso) {
-            console.log(
-              `Invalid ISO code "${isoCode}" in header "${header}" in ${sheetName} column ${i + 1}`,
-            );
-            sheet.getRange(1, i + 1).setBackground("#FFEB9C"); // Light orange for warning
-          }
         }
       }
     } catch (error) {
@@ -611,13 +620,7 @@ function validateCategoryIcons(): void {
   clearRangeFontColorIfMatches(iconRange, LINT_WARNING_FONT_COLORS);
   clearRangeNotesWithPrefix(iconRange, LINT_NOTE_PREFIX);
 
-  const presetValues = categoriesSheet
-    .getRange(2, 1, lastRow - 1, 1)
-    .getValues();
-  const iconValues = categoriesSheet.getRange(2, 2, lastRow - 1, 1).getValues();
-
-  const presetSlugToRow = new Map<string, number>();
-  const iconSlugToRows = new Map<string, number[]>();
+  const iconValues = iconRange.getValues();
   const driveFileCache = new Map<
     string,
     { slug: string | null; isSvg: boolean; errorMessage?: string }
@@ -634,28 +637,13 @@ function validateCategoryIcons(): void {
     }
   };
 
-  presetValues.forEach((row, index) => {
+  iconValues.forEach((row, index) => {
     const rowNumber = index + 2;
-    const rawName = row[0];
-    const presetName =
-      typeof rawName === "string"
-        ? rawName.trim()
-        : String(rawName ?? "").trim();
-
-    if (!presetName) {
-      return;
-    }
-
-    const presetSlug = createPresetSlug(presetName, index);
-    presetSlugToRow.set(presetSlug, rowNumber);
-
-    const iconCellValue = iconValues[index][0];
+    const iconCellValue = row[0];
 
     if (iconCellValue === null || iconCellValue === undefined || iconCellValue === "") {
       return;
     }
-
-    let iconSlug: string | null = null;
 
     if (typeof iconCellValue === "string") {
       const iconValue = iconCellValue.trim();
@@ -665,10 +653,10 @@ function validateCategoryIcons(): void {
 
       if (iconValue.startsWith("<svg")) {
         // Inline SVG markup - passed through
-        iconSlug = presetSlug;
+        return;
       } else if (iconValue.startsWith("data:")) {
         // Data URI - passed through (will be validated during generation)
-        iconSlug = presetSlug;
+        return;
       } else if (iconValue.startsWith("https://drive.google.com/")) {
         // Drive URL - validate access
         const fileId = extractDriveFileId(iconValue);
@@ -680,7 +668,8 @@ function validateCategoryIcons(): void {
           }
 
           if (info.slug) {
-            iconSlug = info.slug;
+            // Access is valid; no lint issue.
+            return;
           }
 
           if (info.errorMessage) {
@@ -693,15 +682,14 @@ function validateCategoryIcons(): void {
         }
       } else if (/^http:\/\//i.test(iconValue)) {
         // HTTP URL - warn about security (should use HTTPS)
-        iconSlug = presetSlug;
-        addIssue(rowNumber, "Icon URL should use HTTPS instead of HTTP for security.");
+        return;
       } else if (/^https:\/\//i.test(iconValue)) {
         // HTTPS URL - passed through
-        iconSlug = presetSlug;
+        return;
       } else {
         // Plain text - will be used to search icon API (e.g., "river", "building", "tree")
         // This is the most common use case!
-        iconSlug = normalizeIconSlug(slugify(iconValue));
+        return;
       }
     } else if (
       iconCellValue &&
@@ -709,43 +697,11 @@ function validateCategoryIcons(): void {
       iconCellValue.toString() === "CellImage"
     ) {
       // Cell images ARE supported and will be processed via icon API
-      iconSlug = presetSlug;
+      return;
     } else {
-      iconSlug = presetSlug;
       addIssue(
         rowNumber,
         "Unrecognized icon cell value. Expected text, Drive URL, or cell image.",
-      );
-    }
-
-    if (iconSlug) {
-      const rows = iconSlugToRows.get(iconSlug) || [];
-      rows.push(rowNumber);
-      iconSlugToRows.set(iconSlug, rows);
-    } else {
-      addIssue(
-        rowNumber,
-        "Unable to determine an icon name. Icon file name must match the preset slug.",
-      );
-    }
-  });
-
-  iconSlugToRows.forEach((rows, slug) => {
-    if (!presetSlugToRow.has(slug)) {
-      rows.forEach((rowNumber) => {
-        addIssue(
-          rowNumber,
-          `Icon slug "${slug}" does not match any preset in the Categories sheet.`,
-        );
-      });
-    }
-  });
-
-  presetSlugToRow.forEach((rowNumber, slug) => {
-    if (!iconSlugToRows.has(slug)) {
-      addIssue(
-        rowNumber,
-        "No SVG icon found for this preset. Ensure the icon file name matches the category slug.",
       );
     }
   });
@@ -1108,10 +1064,6 @@ function lintTranslationSheets(): void {
   // First validate translation headers
   console.log("Validating translation headers...");
   validateTranslationHeaders();
-
-  // Then check for duplicate slugs
-  console.log("Checking for duplicate translation slugs...");
-  checkDuplicateTranslationSlugs();
 
   const translationSheets = sheets(true);
   translationSheets.forEach((sheetName) => {
@@ -2046,12 +1998,11 @@ function lintAllSheets(showAlerts: boolean = true): void {
         "All sheets have been linted. Please check for:\n" +
           "- BRIGHT RED cells with white text: CRITICAL translation mismatch - primary language values don't match source sheet\n" +
           "- Yellow highlighted cells: Required fields missing, unreferenced details, or translation row mismatches\n" +
-          "- Red highlighted cells: Invalid values, missing options, invalid Universal flags, or invalid translation headers\n" +
+          "- Light red highlighted cells: Invalid values, missing options, invalid Universal flags, duplicate values, or option count mismatches\n" +
           "- Red text in Categories icon column: Missing icons or Drive access issues (hover for details)\n" +
           "- Red text in Categories fields column: Invalid field references (hover for details)\n" +
-          "- Pink highlighted cells: Duplicate values, invalid references, or option count mismatches\n" +
           "- Orange text in Categories icon column: HTTP URLs (security warning - still works, but HTTPS recommended)\n" +
-          "- Orange highlighted cells: Duplicate slugs in translations or invalid ISO codes\n\n" +
+          "- Invalid translation headers: Unrecognized formats are highlighted in light red\n\n" +
           "⚠️  IMPORTANT: Bright red cells will cause translation failures. Re-sync translation sheets before generating config.\n" +
           "ℹ️  TIP: For icons, just use plain text (e.g., 'river', 'building') - plugin searches icon API automatically!",
         ui.ButtonSet.OK,

@@ -50,6 +50,7 @@ This page tracks the ongoing consolidation of historical context files into a si
 - **Category import** → Use `docs/reference/import-cat.md` when working on import flows, archive extraction, or translation alignment.
 - **File formats** → Keep `docs/reference/comapeocat-format.md` and `docs/reference/spreadsheet-format.md` handy for schema validation and data shape questions.
 - **User workflows** → Reference `docs/reference/user-guide.md` for end-user steps, translations, and troubleshooting guidance.
+- **Linting details** → Use `docs/LINTING_GUIDE.md` for validation rules, color codes, and fix workflows.
 - **Icon constraints** → Check `docs/reference/png-sprite-limitations.md` to understand the platform limits around sprites and icons.
 - **Performance patterns** → Review `docs/historical/performance-fix-summary.md` for proven optimization approaches before re-inventing them.
 - **HTML dialog validation** → Leverage `docs/reference/html-validation.md` to avoid regressions in dialog rendering.
