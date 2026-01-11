@@ -69,25 +69,32 @@ In the **Categories** sheet:
 
 | Column | Description | Required | Format |
 |--------|-------------|----------|--------|
-| Name (A) | Category name | Yes | Text (e.g., "River", "Building"). Background color of this cell sets category color. |
+| Name (A) | Category name | Yes | Text (e.g., "River", "Building"). **Background color of this cell sets category color.** |
 | Icon (B) | Icon reference | Yes | Plain text (e.g., "river", "building"), Drive URL, cell image, inline SVG, data URI, or HTTPS URL |
 | Fields (C) | Comma-separated field names | No | "field1, field2, field3" (also called "Details") |
-| Applies (D) | Where category can be used | Auto-created | "observation", "track", or "observation, track" |
+| Applies (D) | Where category can be used | **Auto-created. At least one MUST have "track"!** | "observation", "track", or "observation, track". Abbreviations: "o", "t" |
 | Category ID (E) | Unique identifier | Auto-created | Auto-generated slug |
 
 **Example:**
 ```
-Name: River (with blue background color #0066CC)
+Name: River (with blue background color #0066CC set via Fill Color button)
 Icon: river (plain text - searches icon API automatically)
 Fields: name, width, depth
 Applies: observation
 Category ID: river-001 (auto-generated)
+
+Name: Trail (with green background color #00CC66)
+Icon: path
+Fields: name, condition
+Applies: track (REQUIRED - at least one category must have track!)
+Category ID: trail-001 (auto-generated)
 ```
 
-**Icon Column Tips:**
-- **Recommended:** Just type simple text (e.g., `river`, `building`, `tree`)
-- Plugin automatically searches https://icons.earthdefenderstoolkit.com
-- No .svg extension needed for plain text
+**CRITICAL NOTES:**
+- **Colors:** Set via background color on Name column (Column A) using Fill Color button. DO NOT type hex codes!
+- **Applies:** Column D must have at least one category with "track" or generation fails
+- **Icons:** Just type simple text (e.g., `river`, `building`, `tree`) - plugin searches icon API automatically
+- No .svg extension needed for plain text icons
 - Alternative: Drive URL for custom icons
 
 ### 2. Define Details (Fields)
@@ -293,11 +300,25 @@ The linter automatically:
 
 **Problem**: Export fails or produces errors
 
+**Most Common Error: "At least one category must include 'track' in the Applies column"**
+
+This happens when:
+- No category has `track` in the Applies column (Column D)
+- Column D doesn't exist or is empty
+- Column D contains invalid values (like hex color codes!)
+
 **Solutions**:
+1. Open Categories sheet, find or create column D (labeled "Applies")
+2. For at least one category (usually a path/trail/route), enter: `track` or `observation, track`
+3. **DO NOT put color codes in column D!** Colors come from background color of Name column (Column A)
+4. Valid values: `observation`, `track`, `o`, `t`, or combinations
+
+**Other Export Issues:**
 1. Run the linter to check for validation issues
 2. Verify all required fields are filled in
-3. Check that icon URLs are valid Google Drive URLs
+3. Check that icons are accessible (plain text, Drive URLs, or other valid formats)
 4. Ensure dropdown/multi-select fields have options
+5. Verify at least one category includes "track" in Applies column
 
 ### Import Issues
 

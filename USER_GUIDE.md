@@ -80,13 +80,15 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
   - Also called "Details" in some versions
 
 - **Applies** (Column D, Auto-created): Where this category can be used
+  - ⚠️ **CRITICAL: At least one category MUST include "track"!**
   - Options: `observation`, `track`, or both (comma-separated)
+  - Abbreviations: `o`, `t`, `o, t` also work
   - Examples:
     - `observation` - regular observations only
-    - `track` - GPS tracks only
+    - `track` - GPS tracks only (required for at least one category!)
     - `observation, track` - both types
-  - Default: `observation`
-  - If missing, plugin auto-creates this column
+  - Default: `observation, track` (auto-created for first row if missing)
+  - **DO NOT put hex color codes here!** Colors come from Name column background
 
 - **Category ID** (Column E, Auto-created): Unique identifier for the category
   - Auto-generated if not present
@@ -276,12 +278,19 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 ### Step 5: Set "Applies To" Values
 
+**⚠️ CRITICAL: At least one category MUST have "track" in the Applies column, or generation will fail!**
+
 **📸 Screenshot placeholder:** *Categories sheet with Applies column showing observation, track values*
 
-1. In the **Applies** column (D), specify where each category can be used:
+1. In the **Applies** column (Column D), specify where each category can be used:
    - `observation` - For point observations (most common)
    - `track` - For GPS tracks/routes
    - `observation, track` - For both
+   - Can also use abbreviations: `o`, `t`, `o, t`
+
+2. **REQUIRED:** At least one category must include `track` (or `t`)
+   - CoMapeo's track viewer requires this
+   - If no category has `track`, generation fails with error
 
 **Example:**
 | Name | Icon | Fields | Applies |
@@ -290,7 +299,10 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 | Trail | | Name, Condition | track |
 | Wildlife sighting | | Name | observation |
 
-**Note:** If this column doesn't exist, the plugin will create it automatically with default value `observation`.
+**Note:**
+- If this column doesn't exist, the plugin will create it automatically with default value `observation, track` for the first row
+- You'll need to set it appropriately for your use case
+- **DO NOT put hex color codes in this column!** Colors come from the background color of the Name column (Column A)
 
 ---
 
@@ -336,9 +348,14 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 **📸 Screenshot placeholder:** *Categories sheet with colored background cells in Name column*
 
+**⚠️ IMPORTANT: Colors come from the BACKGROUND COLOR of the Name column (Column A)!**
+
+**There is NO separate Color column! DO NOT put hex codes in Column D (that's the Applies column)!**
+
+**How to set colors:**
 1. In the **Categories** sheet, select cells in the **Name** column (Column A)
-2. Click the **Fill Color** button in the toolbar
-3. Choose a color for each category
+2. Click the **Fill Color** button in the Google Sheets toolbar
+3. Choose a background color for each category
 
 **The background color you set becomes the category color in CoMapeo!**
 
@@ -347,6 +364,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 - Consider colorblind-friendly palettes
 - Test colors on different devices
 - Bright colors work better than pastels
+- **DO NOT type hex codes (like #FF0000) anywhere!** Use the Fill Color button instead
 
 ---
 
@@ -886,10 +904,12 @@ The linter highlights cells with different colors based on error severity:
    - Capitalization enforced
 
 4. **Applies column (D):**
-   - Auto-created if missing
+   - Auto-created if missing (defaults to `observation, track` for first row)
    - Accepts: `observation`, `track`, or both (comma-separated)
    - Also accepts abbreviations: `o`, `t`
-   - Default: `observation`
+   - ⚠️ **At least one category MUST include `track`** or generation will fail
+   - Invalid values (like hex codes) are treated as empty → defaults to `observation`
+   - This is NOT a color column! Colors come from Name column background
 
 5. **Category ID column (E):**
    - Auto-created if missing
@@ -1103,7 +1123,20 @@ For **Category Translations**:
 
 **Problem:** "Generate CoMapeo Category" fails with errors
 
+**Common Error: "At least one category must include 'track' in the Applies column"**
+
+This is the most common generation failure! It happens when:
+- No category has `track` in the Applies column (Column D)
+- Column D doesn't exist or is empty
+- Column D contains invalid values (like hex color codes!)
+
 **Solutions:**
+1. ✅ Open Categories sheet, find or create column D (Applies)
+2. ✅ For at least one category (usually a path/trail/route category), enter: `track` or `observation, track`
+3. ✅ **DO NOT put color codes in column D!** Colors come from background color of Name column (Column A)
+4. ✅ Valid values: `observation`, `track`, `o`, `t`, or combinations like `observation, track`
+
+**Other Generation Issues:**
 1. ✅ Run **Lint Sheets** first
 2. ✅ Fix ALL bright red highlights (critical)
 3. ✅ Fix all red highlights
