@@ -26,7 +26,7 @@ Technical documentation for contributors, maintainers, and AI assistants.
 
 Team standards, AI guidelines, and testing procedures.
 
-*   **[Assistant Guide](process/assistant-guide.md)**: Context and rules for AI assistants (Claude, Copilot, etc.) working on this codebase.
+*   **[Assistant Guide](../AGENTS.md)**: Context and rules for AI assistants (Claude, Copilot, etc.) working on this codebase.
 *   **[Naming Conventions](process/naming-conventions.md)**: Code style and naming standards.
 *   **[Dependencies](process/dependencies.md)**: List of external libraries and APIs.
 *   **[Regression Testing](process/regression-testing-guide.md)**: Strategy for preventing regressions.

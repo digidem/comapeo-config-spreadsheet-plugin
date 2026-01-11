@@ -1,43 +1,72 @@
-# Repository Guidelines
+# CoMapeo Config Spreadsheet Plugin - AI Agent Guidelines
 
-## Project Structure & Modules
-- `src/`: Core Google Apps Script logic (e.g., `apiService.ts`, `importService.ts`, `dialog.ts`, `utils.ts`).
-- `index.ts`: Menu wiring; calls into generate/import/translate flows.
-- `scripts/`: Helper scripts (`generate-fixture.ts`, `update-version.cjs`).
-- `appsscript.json`: Apps Script manifest; keep scopes in sync with deployed code.
-- Generated artifacts (`.clasp*`, `dist/`, `sample.comapeocat`, `fixture.json`) are ignored—do not commit.
+**Mission:** Maintain and enhance the Google Apps Script plugin that generates `.comapeocat` configuration files from Google Spreadsheets.
 
-## Build, Test, and Development Commands
-- `bunx biome lint --write --unsafe .` — format + lint TypeScript/JSON. Run before pushing.
-- `bun run scripts/generate-fixture.ts` — regenerate fixture data for manual checks.
-- `npm run push` (or `bun run push`) — `clasp push` current code to Apps Script (runs version:update first).
-- `npm run dev` — `clasp push --watch`; keep batches small to avoid quota hits.
-- `npm run push:all` — pushes all clasp files (use sparingly; overwrites remote state).
+## ⚠️ Core Directives (CRITICAL)
 
-## Coding Style & Naming Conventions
-- TypeScript, ES modules, 2-space indent; prefer const/let, no implicit any.
-- Use descriptive function names (verbNoun), camelCase variables, PascalCase types/interfaces.
-- Keep Apps Script logging via `getScopedLogger` where available; avoid `Logger.log`.
-- Prefer pure helpers in `src/utils.ts` and keep spreadsheet column constants in `types.ts` / enums where present.
+1.  **Environment Constraints (Google Apps Script):**
+    *   **NO ES6 Modules at Runtime:** The runtime environment does not support `import` or `export`. All files share a global scope.
+    *   **Syntax:** Use `export` keywords *only* for local TypeScript tooling/type-checking. Do **not** use `import { x } from './y'` in source files. Reference global variables directly.
+    *   **Guards:** Use `typeof` checks for optional global references (e.g., `if (typeof VERSION !== 'undefined')`).
+    *   **APIs:** Use `SpreadsheetApp`, `DriveApp`, `LanguageApp`, `UrlFetchApp`, `PropertiesService`, `CacheService`.
 
-## Testing Guidelines
-- No automated test suite is currently wired; rely on manual spreadsheet flows plus the lightweight tests in `src/test/`.
-- When changing field/category parsing, validate with a throwaway spreadsheet: run “Generate CoMapeo Category,” then re-import the produced `.comapeocat` to ensure round-trip for Fields/Details and icons.
-- Add targeted assertions inside scripts when practical (fail fast on invalid sheet shapes).
+2.  **State Management:**
+    *   Global variables do **not** persist between `google.script.run` calls.
+    *   Use `PropertiesService` or pass state as arguments for cross-execution persistence.
 
-## Commit & Pull Request Guidelines
-- Commit messages: short imperative line (e.g., “Handle category field arrays and icons”).
-- Scope commits narrowly (parsing, lint, deploy) to simplify rollbacks.
-- PRs should include: summary of behavior change, manual test notes (spreadsheet steps + results), and any scope changes to `appsscript.json`.
-- Link related tickets/issues; include screenshots only when UI dialogs change.
+3.  **Logging & Error Handling:**
+    *   **Use:** `getScopedLogger()` (from `src/loggingHelpers.ts`) instead of `Logger.log`.
+    *   **Errors:** Wrap major operations in `try-catch` blocks and use `showErrorDialog` or `showIconErrorDialog` for user feedback.
 
-## Security & Configuration Tips
-- Apps Script runs with editor creds—minimize added scopes; review `appsscript.json` before push.
-- Icons from Drive now inline SVG; ensure Drive access is acceptable and sanitized SVG is expected.
-- API config: `src/config.ts` holds `API_BASE_URL` for v2 JSON endpoint; consider Script Properties for deploy-specific values.
-- Keep secrets out of the repo; prefer Script Properties for runtime config.
+4.  **Icons:**
+    *   **Format:** We use **individual PNGs** or **SVGs** for icons (stored in Drive).
+    *   **Sprites:** We do **NOT** use sprites for the Apps Script implementation due to parsing limitations (see `docs/reference/png-sprite-limitations.md`).
 
-## v2-specific Notes
-- Generation uses the JSON-only v2 API (no ZIP workflow). Categories sheet expected headers: `Name | Icon | Fields | Applies`; IDs/iconIds derive from slugified names; color derives from column A background.
-- Import is v2-aware and round-trips `.comapeocat` JSON; translations are opt-in via the Translate menu, not auto-run on generate.
-- Version info is auto-updated via `scripts/update-version.cjs` before pushes.
+## 🏗️ Architecture & Data Flow
+
+### 1. Data Pipeline
+1.  **Extraction:** `src/spreadsheetData.ts` reads Sheets (Categories, Details, Translations) -> `SheetData` object.
+2.  **Processing:** `src/generateCoMapeoConfig.ts` orchestrates processing modules in `src/generateConfig/`:
+    *   `processFields.ts`: Field definitions -> `CoMapeoField[]`
+    *   `processPresets.ts`: Categories -> `CoMapeoPreset[]`
+    *   `processMetadata.ts`: Metadata & `package.json`
+    *   `processTranslations.ts`: Aggregates all translation sheets
+3.  **Export:** `src/driveService.ts` saves JSONs to Drive -> `src/apiService.ts` sends ZIP to external API for packaging -> Returns `.comapeocat`.
+
+### 2. Import System (Reverse Engineering)
+*   **Entry:** `src/importCategory.ts`
+*   **Flow:** Upload `.comapeocat` -> Extract TAR/ZIP -> Parse JSONs -> Extract Icons -> Populate Sheets.
+*   **Critical:** Icons must be saved to a *permanent* Drive folder, not the temp extraction folder.
+
+### 3. Language System (Dual-Name Support)
+*   **Feature:** Users can enter "Portuguese" OR "Português".
+*   **Modules:** `src/languageLookup.ts`, `src/types.ts` (`LanguageData`), `src/validation.ts`.
+*   **Constraint:** Maintain O(1) lookup performance using Map-based indexes.
+
+## 🛠️ Development Workflow
+
+### Commands
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Watch mode - auto-push to Apps Script (`clasp push --watch`) |
+| `npm run push` | Manual push (`clasp push`). Runs version update first. |
+| `bunx biome lint --write --unsafe .` | Format and lint code. **Run before pushing.** |
+| `bun run scripts/generate-fixture.ts` | Regenerate fixture data for manual checks. |
+
+### Code Style
+*   **Formatting:** 2-space indent, semicolons, double quotes (per Biome config).
+*   **Naming:** `verbNoun` for functions, `PascalCase` for types/interfaces, `camelCase` for variables.
+*   **Comments:** Use JSDoc for complex logic. Focus on *why*, not *what*.
+
+## 🧪 Testing Strategy
+*   **Automated:** Lightweight tests in `src/test/`. Run via `testRunner.ts`.
+*   **Manual (Primary):**
+    1.  **Round-Trip:** Generate Config -> Download -> Import Config -> Verify Sheets match.
+    2.  **Linting:** Use the "Lint Sheets" menu to verify data integrity.
+    3.  **HTML Validation:** Dialogs are validated via `src/generateIcons/svgValidator.ts` and `src/formatDetection.ts` helpers to prevent malformed HTML errors.
+
+## 📂 Documentation Index
+*   **`docs/reference/architecture.md`**: Full system topology.
+*   **`docs/reference/cat-generation.md`**: Export pipeline deep dive.
+*   **`docs/reference/import-cat.md`**: Import process deep dive.
+*   **`docs/LINTING_GUIDE.md`**: Validation rules reference.
