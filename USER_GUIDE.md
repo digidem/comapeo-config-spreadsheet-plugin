@@ -496,6 +496,8 @@ Before generating, check for errors:
 
 **📸 Screenshot placeholder:** *Uploading .comapeocat file to Google Drive*
 
+If you just generated the file, it is already saved to your Google Drive folder. You can skip upload and go straight to the shareable link.
+
 1. **Upload to Google Drive:**
    - Go to Google Drive
    - Click "New" → "File upload"
@@ -604,6 +606,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 - Icon search works best with common English terms (e.g., "river", "building", "tree")
 - You can manually edit icons afterward at https://icons.earthdefenderstoolkit.com
 - Icons are converted to SVG format and colored to match your category color
+- For best results, use the Icon App and paste inline SVG directly (see Step 6)
 
 **Requirements:**
 - Categories must have names in column A
@@ -832,15 +835,14 @@ This is the most common generation failure! It happens when:
 **Problem:** Icons don't appear or show errors
 
 **Solutions:**
-1. ✅ **Easiest fix:** Just use plain text in Icon column (e.g., `river`, `building`, `tree`)
-2. ✅ Plugin automatically searches https://icons.earthdefenderstoolkit.com during generation
-3. ✅ No need for .svg extension or URLs
-4. ✅ If using Drive URLs:
+1. ✅ **Best results:** Paste inline SVG from https://icons.earthdefenderstoolkit.com (see Step 6)
+2. ✅ **Quick fallback:** Use plain text in Icon column (e.g., `river`, `building`, `tree`) — plugin auto-searches during generation (no .svg or URLs needed)
+3. ✅ If using Drive URLs:
    - Check URL format is correct: `https://drive.google.com/file/d/FILE_ID/view`
    - Ensure you have "View" permission on icon files
    - Both SVG and PNG files work (PNG converted to SVG)
-5. ✅ Run Lint Sheets - red text indicates Drive access issues or empty values
-6. ✅ Orange warning on HTTP URLs is just a security notice (still works)
+4. ✅ Run Lint Sheets - red text indicates Drive access issues or empty values
+5. ✅ Orange warning on HTTP URLs is just a security notice (still works)
 
 ---
 
