@@ -438,7 +438,12 @@ function validateTranslationHeaders(): void {
 
         const validName = isValidLanguageName(header);
         const validCode = isValidIsoCode(header);
-        const validNameIsoFormat = /.+\s*-\s*\w+$/.test(header);
+
+        // Check "Name - ISO" format (e.g., "Portuguese - pt-BR")
+        // Allow hyphens in ISO codes to support BCP-47 regional codes
+        const nameIsoMatch = header.match(/^.+\s*-\s*([\w-]+)$/);
+        const validNameIsoFormat =
+          nameIsoMatch && isValidIsoCode(nameIsoMatch[1]);
 
         if (!validName && !validCode && !validNameIsoFormat) {
           console.log(
