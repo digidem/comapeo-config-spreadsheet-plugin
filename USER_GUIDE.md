@@ -217,13 +217,13 @@ Translations of dropdown/multiple choice options
 #### 7. Metadata Sheet (auto-generated)
 Contains configuration metadata like dataset ID, name, version, and primary language.
 
-**Legacy Format Support:**
+**Legacy Format Support (Metadata "LEGACY" flag):**
 
-- The plugin can import `.mapeosettings` files (older Mapeo format)
-- During import, legacy configs are converted to the new `.comapeocat` format
-- Metadata sheet preserves the original dataset ID for continuity
-- For more information on legacy Mapeo configuration formats, see:
-  [Mapeo Documentation - Coding Configuration](https://docs.mapeo.app/complete-reference-guide/customization-options/custom-configurations/creating-custom-configurations/coding-configuration)
+- The Metadata sheet can include a `legacyCompat` key (this is the "LEGACY" flag).
+- Set it to `TRUE` to support **older plugin usage** and keep existing `categoryId` values valid in the newest format.
+- Set it to `FALSE` (or leave it out) for current behavior.
+- You can toggle this automatically via **Debug Menu → Turn on legacy compatibility**, which writes `legacyCompat` as `TRUE`/`FALSE` in Metadata.
+- This flag only affects **export/build** behavior. It does **not** control importing `.mapeosettings` files.
 
 **📸 Screenshot placeholder:** *Metadata sheet showing Key-Value pairs*
 
@@ -774,7 +774,7 @@ Advanced features for troubleshooting and testing:
 - **Create Test Spreadsheet:** Generates test data for regression testing
 - **Test Runner:** Runs automated tests
 - **Capture Baseline Performance Metrics:** Records performance benchmarks
-- **Turn on legacy compatibility:** Enables compatibility mode for older CoMapeo versions
+- **Turn on legacy compatibility:** Toggles the Metadata `legacyCompat` flag so older plugin configs keep `categoryId` valid in the newest format
 - **Generate CoMapeo Category (Debug):** Exports raw files to Google Drive for debugging
 
 **When to use:**
