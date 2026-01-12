@@ -220,10 +220,10 @@ Contains configuration metadata like dataset ID, name, version, and primary lang
 **Legacy Format Support (Metadata "LEGACY" flag):**
 
 - The Metadata sheet can include a `legacyCompat` key (this is the "LEGACY" flag).
-- Set it to `TRUE` to support **older plugin usage** and keep existing `categoryId` values valid in the newest format.
+- Set it to `TRUE` to support **older versions of this plugin** and keep existing `categoryId` values valid in the newest format.
 - Set it to `FALSE` (or leave it out) for current behavior.
 - You can toggle this automatically via **Debug Menu → Turn on legacy compatibility**, which writes `legacyCompat` as `TRUE`/`FALSE` in Metadata.
-- This flag only affects **export/build** behavior. It does **not** control importing `.mapeosettings` files.
+- This flag only affects **export/build** behavior and how `categoryId` values are handled.
 
 **📸 Screenshot placeholder:** *Metadata sheet showing Key-Value pairs*
 
