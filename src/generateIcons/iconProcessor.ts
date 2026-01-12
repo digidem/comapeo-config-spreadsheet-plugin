@@ -6,7 +6,8 @@
  * Fallback icon SVG to use when icon generation fails
  * Simple marker icon with 100% fill to use background color
  */
-const FALLBACK_ICON_SVG = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E';
+const FALLBACK_ICON_SVG =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/%3E%3C/svg%3E';
 
 /**
  * Result of icon processing with error tracking
@@ -50,8 +51,8 @@ function processIcons(
       collector.addFormatError(
         name,
         validation.error || "Unknown validation error",
-        true,  // Will use fallback
-        validation.context
+        true, // Will use fallback
+        validation.context,
       );
       const iconUrl = FALLBACK_ICON_SVG;
       updateIconUrlInSheet(categoriesSheet, index + 2, 2, iconUrl);
@@ -59,11 +60,18 @@ function processIcons(
       return icons;
     }
 
-    const iconSvg = processIconImage(name, iconImage, backgroundColor, presetSlug, collector, folder);
+    const iconSvg = processIconImage(
+      name,
+      iconImage,
+      backgroundColor,
+      presetSlug,
+      collector,
+      folder,
+    );
     let iconUrl = iconSvg;
 
     // Validate icon result before proceeding
-    if (!iconSvg || iconSvg.trim() === '') {
+    if (!iconSvg || iconSvg.trim() === "") {
       console.warn(`Empty icon generated for ${name}, using fallback icon`);
       collector.addFormatError(name, "Empty icon generated", true);
       iconUrl = FALLBACK_ICON_SVG;
@@ -84,7 +92,7 @@ function processIcons(
     updateIconUrlInSheet(categoriesSheet, index + 2, 2, iconUrl);
 
     // Only push valid icons to array
-    if (iconUrl && iconUrl.trim() !== '') {
+    if (iconUrl && iconUrl.trim() !== "") {
       collector.recordSuccess(name);
       icons.push({
         name: presetSlug,
@@ -92,7 +100,11 @@ function processIcons(
       });
     } else {
       console.error(`Failed to generate valid icon for ${name}, skipping`);
-      collector.addUnknownError(name, "Failed to generate valid icon URL", false);
+      collector.addUnknownError(
+        name,
+        "Failed to generate valid icon URL",
+        false,
+      );
     }
 
     console.log(`Finished processing icon for: ${name}`);
@@ -152,7 +164,7 @@ function validateAndFixIconFilename(
         name,
         `Drive file not accessible: ${error.message}`,
         false,
-        { fileId, url: iconUrl }
+        { fileId, url: iconUrl },
       );
       return iconUrl; // Return original URL, caller will handle fallback
     }
@@ -163,11 +175,15 @@ function validateAndFixIconFilename(
 
     // If filename already matches expected slug, return as-is
     if (currentSlug === presetSlug) {
-      console.log(`Icon filename "${fileName}" matches preset slug "${presetSlug}" ✓`);
+      console.log(
+        `Icon filename "${fileName}" matches preset slug "${presetSlug}" ✓`,
+      );
       return iconUrl;
     }
 
-    console.log(`Icon filename mismatch for ${name}: expected "${presetSlug}", found "${currentSlug}"`);
+    console.log(
+      `Icon filename mismatch for ${name}: expected "${presetSlug}", found "${currentSlug}"`,
+    );
 
     // Get file extension and construct correct filename
     const extension = fileName.match(/\.[^/.]+$/)?.[0] || ".svg";
@@ -185,7 +201,9 @@ function validateAndFixIconFilename(
         folder = parents.next();
       } else {
         // File has no parent - shouldn't happen in normal use
-        console.warn(`Icon file "${fileName}" has no parent folder, using Drive root`);
+        console.warn(
+          `Icon file "${fileName}" has no parent folder, using Drive root`,
+        );
         folder = DriveApp.getRootFolder();
       }
     }
@@ -207,7 +225,9 @@ function validateAndFixIconFilename(
       try {
         applyDefaultSharing(newFile);
       } catch (error) {
-        console.warn(`Failed to apply sharing for ${correctFileName}: ${error.message}`);
+        console.warn(
+          `Failed to apply sharing for ${correctFileName}: ${error.message}`,
+        );
       }
     }
 
@@ -216,12 +236,14 @@ function validateAndFixIconFilename(
 
     return newUrl;
   } catch (error) {
-    console.error(`Error validating icon filename for ${name}: ${error.message}`);
+    console.error(
+      `Error validating icon filename for ${name}: ${error.message}`,
+    );
     collector.addUnknownError(
       name,
       `Failed to validate/fix icon filename: ${error.message}`,
       false,
-      { originalUrl: iconUrl }
+      { originalUrl: iconUrl },
     );
     // Return original URL, caller will handle fallback
     return iconUrl;
@@ -238,6 +260,15 @@ function processIconImage(
 ): string {
   try {
     if (isInlineSvg(iconImage)) {
+      // Normalize to strip XML declarations and ensure clean SVG
+      const normalized = normalizeSvgContent(iconImage);
+      if (normalized) {
+        return normalized;
+      }
+      // Fallback if normalization fails (shouldn't happen after isInlineSvg check)
+      console.warn(
+        `Inline SVG normalization failed for ${name}, using original`,
+      );
       return iconImage.trim();
     }
 
@@ -256,7 +287,7 @@ function processIconImage(
           name,
           presetSlug,
           targetFolder,
-          collector
+          collector,
         );
 
         // If validation returned different URL, it means we created/found corrected file
@@ -271,7 +302,13 @@ function processIconImage(
       // Non-standard Drive URL format - return as-is
       return iconImage;
     } else if (isCellImage(iconImage)) {
-      return processCellImage(name, iconImage, backgroundColor, presetSlug, collector);
+      return processCellImage(
+        name,
+        iconImage,
+        backgroundColor,
+        presetSlug,
+        collector,
+      );
     } else {
       console.log(`Generating new icon for ${name}`);
       return generateNewIcon(name, backgroundColor, presetSlug, collector);
@@ -281,8 +318,8 @@ function processIconImage(
     collector.addUnknownError(
       name,
       `Unexpected error during processing: ${error.message}`,
-      true,  // Will generate fallback
-      { errorStack: error.stack }
+      true, // Will generate fallback
+      { errorStack: error.stack },
     );
     console.log(`Falling back to generating new icon for ${name}`);
     return generateNewIcon(name, backgroundColor, presetSlug, collector);
@@ -296,12 +333,51 @@ function isGoogleDriveIcon(iconImage: any): boolean {
   );
 }
 
+/**
+ * Normalizes inline SVG content by stripping XML declarations, doctypes, and comments.
+ * Extracts the clean <svg>...</svg> content for consistent processing.
+ *
+ * @param svgString - Raw SVG string that may contain XML prologs
+ * @returns Cleaned SVG string starting with <svg, or null if invalid
+ */
+function normalizeSvgContent(svgString: string): string | null {
+  if (!svgString || typeof svgString !== "string") {
+    return null;
+  }
+
+  let cleaned = svgString.trim();
+
+  // Strip XML declarations: <?xml version="1.0" encoding="UTF-8"?>
+  cleaned = cleaned.replace(/<\?xml[^?]*\?>\s*/gi, "");
+
+  // Strip DOCTYPE declarations: <!DOCTYPE svg ...>
+  cleaned = cleaned.replace(/<!DOCTYPE[^>]*>\s*/gi, "");
+
+  // Strip leading comments: <!-- ... -->
+  cleaned = cleaned.replace(/^(\s*<!--[\s\S]*?-->\s*)+/, "");
+
+  // Verify we still have valid SVG structure
+  if (!cleaned.includes("<svg") || !cleaned.includes("</svg>")) {
+    return null;
+  }
+
+  // Extract just the <svg>...</svg> content if there's extra wrapper content
+  const svgMatch = cleaned.match(/(<svg[\s\S]*<\/svg>)/i);
+  if (svgMatch) {
+    return svgMatch[1].trim();
+  }
+
+  return cleaned.trim();
+}
+
 function isInlineSvg(iconImage: any): boolean {
-  return (
-    typeof iconImage === "string" &&
-    iconImage.includes("<svg") &&
-    iconImage.includes("</svg>")
-  );
+  if (typeof iconImage !== "string") {
+    return false;
+  }
+
+  // Use normalizeSvgContent to handle XML declarations and other prologs
+  const normalized = normalizeSvgContent(iconImage);
+  return normalized !== null;
 }
 
 function isSvgDataUri(iconImage: any): boolean {
@@ -334,8 +410,8 @@ function processCellImage(
     collector.addApiError(
       name,
       "Failed to process cell image through icon API",
-      true,  // Will generate fallback
-      { iconUrl }
+      true, // Will generate fallback
+      { iconUrl },
     );
     return generateNewIcon(name, backgroundColor, presetSlug, collector);
   }
@@ -351,7 +427,10 @@ function saveIconToFolder(
   zipBlobs?: GoogleAppsScript.Base.Blob[],
   collector?: IconErrorCollector,
 ): string {
-  console.log(`Saving icon to folder for ${displayName} (slug: ${presetSlug}):`, iconSvg);
+  console.log(
+    `Saving icon to folder for ${displayName} (slug: ${presetSlug}):`,
+    iconSvg,
+  );
 
   const { iconContent, mimeType, error } = getIconContent(
     {
@@ -359,11 +438,13 @@ function saveIconToFolder(
       name: presetSlug,
     },
     collector,
-    displayName
+    displayName,
   );
 
   if (!iconContent) {
-    console.warn(`Failed to get icon content for ${displayName}, using fallback approach`);
+    console.warn(
+      `Failed to get icon content for ${displayName}, using fallback approach`,
+    );
     if (collector && error) {
       // Error already recorded by getIconContent
     }
@@ -388,9 +469,15 @@ function saveIconToFolder(
         collector,
       );
     } else {
-      console.error(`Complete failure to generate icon for ${displayName}, using fallback icon`);
+      console.error(
+        `Complete failure to generate icon for ${displayName}, using fallback icon`,
+      );
       if (collector) {
-        collector.addUnknownError(displayName, "Complete failure to generate or save icon", true);
+        collector.addUnknownError(
+          displayName,
+          "Complete failure to generate or save icon",
+          true,
+        );
       }
       return FALLBACK_ICON_SVG;
     }
@@ -428,15 +515,17 @@ function saveIconToFolder(
 function getIconContent(
   icon: CoMapeoIcon,
   collector?: IconErrorCollector,
-  iconName?: string
+  iconName?: string,
 ): {
   iconContent: string | null;
   mimeType: string;
   error?: string;
 } {
-  if (icon.svg.trim().startsWith("<svg")) {
+  // Try to normalize inline SVG (handles XML declarations, comments, etc.)
+  const normalized = normalizeSvgContent(icon.svg);
+  if (normalized) {
     return {
-      iconContent: icon.svg.trim(),
+      iconContent: normalized,
       mimeType: MimeType.SVG,
     };
   }
@@ -454,7 +543,9 @@ function getIconContent(
       const errorMsg = `Failed to decode SVG data URI: ${error.message}`;
       console.error(errorMsg);
       if (collector && iconName) {
-        collector.addFormatError(iconName, errorMsg, false, { iconSvgPreview: icon.svg.substring(0, 100) });
+        collector.addFormatError(iconName, errorMsg, false, {
+          iconSvgPreview: icon.svg.substring(0, 100),
+        });
       }
       return { iconContent: null, mimeType: "", error: errorMsg };
     }
@@ -473,7 +564,10 @@ function getIconContent(
       console.error(errorMsg);
       console.warn(`Skipping inaccessible Drive file, returning null content`);
       if (collector && iconName) {
-        collector.addDriveError(iconName, errorMsg, false, { fileId, url: icon.svg });
+        collector.addDriveError(iconName, errorMsg, false, {
+          fileId,
+          url: icon.svg,
+        });
       }
       return { iconContent: null, mimeType: "", error: errorMsg };
     }
@@ -481,7 +575,9 @@ function getIconContent(
     const errorMsg = "Unsupported icon format";
     console.error(errorMsg);
     if (collector && iconName) {
-      collector.addFormatError(iconName, errorMsg, false, { iconSvgPreview: icon.svg.substring(0, 100) });
+      collector.addFormatError(iconName, errorMsg, false, {
+        iconSvgPreview: icon.svg.substring(0, 100),
+      });
     }
     return { iconContent: null, mimeType: "", error: errorMsg };
   }
@@ -506,7 +602,9 @@ function createIconFile(
     try {
       applyDefaultSharing(file);
     } catch (error) {
-      console.warn(`Failed to apply sharing for icon file ${fileName}: ${error.message}`);
+      console.warn(
+        `Failed to apply sharing for icon file ${fileName}: ${error.message}`,
+      );
     }
   }
   if (zipBlobs) {
@@ -522,7 +620,9 @@ function removeExistingFilesByName(
   const matches = folder.getFilesByName(fileName);
   while (matches.hasNext()) {
     const existing = matches.next();
-    console.log(`Removing existing icon file to avoid duplicates: ${existing.getName()} (${existing.getId()})`);
+    console.log(
+      `Removing existing icon file to avoid duplicates: ${existing.getName()} (${existing.getId()})`,
+    );
     folder.removeFile(existing);
     existing.setTrashed(true);
   }
@@ -573,7 +673,7 @@ function generateNewIcon(
 
 function getIconForPreset(
   preset: Partial<CoMapeoPreset>,
-  collector?: IconErrorCollector
+  collector?: IconErrorCollector,
 ): CoMapeoIcon | null {
   const searchParams = getSearchParams(preset.name);
   let searchData = findValidSearchData(searchParams);
@@ -583,19 +683,23 @@ function getIconForPreset(
   const maxRetries = 3;
 
   while (!searchData && retryCount < maxRetries) {
-    console.log(`Retrying search for ${preset.name} (attempt ${retryCount + 1}/${maxRetries})`);
+    console.log(
+      `Retrying search for ${preset.name} (attempt ${retryCount + 1}/${maxRetries})`,
+    );
     searchData = findValidSearchData(searchParams);
     retryCount++;
   }
 
   if (!searchData) {
-    console.error(`Failed to find icon data for ${preset.name} after ${maxRetries} attempts`);
+    console.error(
+      `Failed to find icon data for ${preset.name} after ${maxRetries} attempts`,
+    );
     if (collector) {
       collector.addApiError(
         preset.name || "unknown",
         `Icon search failed after ${maxRetries} attempts`,
         false,
-        { searchParams }
+        { searchParams },
       );
     }
     return null;
@@ -614,7 +718,7 @@ function getIconForPreset(
           preset.name || "unknown",
           "Icon generation API returned no data",
           false,
-          { searchUrl: searchData[0], color: preset.color }
+          { searchUrl: searchData[0], color: preset.color },
         );
       }
     }
