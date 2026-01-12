@@ -310,8 +310,21 @@ function processIconImage(
         collector,
       );
     } else {
-      console.log(`Generating new icon for ${name}`);
-      return generateNewIcon(name, backgroundColor, presetSlug, collector);
+      // Plain text search term (e.g., "river", "building", "tree")
+      // Use the icon cell value as the search term instead of the category name
+      const searchTerm =
+        typeof iconImage === "string" && iconImage.trim() !== ""
+          ? iconImage.trim()
+          : name;
+      console.log(
+        `Generating new icon for ${name} using search term: "${searchTerm}"`,
+      );
+      return generateNewIcon(
+        searchTerm,
+        backgroundColor,
+        presetSlug,
+        collector,
+      );
     }
   } catch (error) {
     console.error(`Error processing icon for ${name}: ${error.message}`);
@@ -321,8 +334,20 @@ function processIconImage(
       true, // Will generate fallback
       { errorStack: error.stack },
     );
-    console.log(`Falling back to generating new icon for ${name}`);
-    return generateNewIcon(name, backgroundColor, presetSlug, collector);
+    // Use icon cell value as search term if it's a non-empty string, otherwise use category name
+    const fallbackSearchTerm =
+      typeof iconImage === "string" && iconImage.trim() !== ""
+        ? iconImage.trim()
+        : name;
+    console.log(
+      `Falling back to generating new icon for ${name} using search term: "${fallbackSearchTerm}"`,
+    );
+    return generateNewIcon(
+      fallbackSearchTerm,
+      backgroundColor,
+      presetSlug,
+      collector,
+    );
   }
 }
 
