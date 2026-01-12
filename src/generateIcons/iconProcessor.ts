@@ -530,15 +530,38 @@ function getIconContent(
     };
   }
 
-  if (icon.svg.startsWith("data:image/svg+xml,")) {
+  // Handle SVG Data-URIs with various encoding schemes
+  if (icon.svg.startsWith("data:image/svg+xml")) {
     try {
-      const content = decodeURIComponent(
-        icon.svg.replace(/data:image\/svg\+xml,/, ""),
-      );
-      return {
-        iconContent: content,
-        mimeType: MimeType.SVG,
-      };
+      let content: string;
+
+      // Match: data:image/svg+xml;base64,<base64-content>
+      const base64Match = icon.svg.match(/^data:image\/svg\+xml;base64,(.+)$/);
+      if (base64Match) {
+        const decoded = Utilities.newBlob(
+          Utilities.base64Decode(base64Match[1]),
+        ).getDataAsString();
+        return {
+          iconContent: decoded,
+          mimeType: MimeType.SVG,
+        };
+      }
+
+      // Match: data:image/svg+xml,<url-encoded-content>
+      // Also handles: data:image/svg+xml;charset=utf-8,<content>
+      //               data:image/svg+xml;utf8,<content>
+      const commaIndex = icon.svg.indexOf(",");
+      if (commaIndex !== -1) {
+        const encodedContent = icon.svg.substring(commaIndex + 1);
+        content = decodeURIComponent(encodedContent);
+        return {
+          iconContent: content,
+          mimeType: MimeType.SVG,
+        };
+      }
+
+      // Fallback: no comma found (malformed Data-URI)
+      throw new Error("Malformed SVG Data-URI: no comma separator found");
     } catch (error) {
       const errorMsg = `Failed to decode SVG data URI: ${error.message}`;
       console.error(errorMsg);
