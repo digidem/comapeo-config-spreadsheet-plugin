@@ -138,10 +138,10 @@ The linter highlights cells with different colors based on error severity:
 2. **Icon column (B):**
    - 🟡 Required - must have a value
    - ✅ Accepts ANY non-empty text:
-     - **Plain text** (e.g., `river`, `building`) - Used to search icon API (most common!)
+     - **Inline SVG** - Direct SVG code (recommended)
+     - **Plain text** (e.g., `river`, `building`) - Used to search icon API
      - **Drive URLs** - Custom icons from your Drive
      - **Cell images** - Embedded images in cells
-     - **Inline SVG** - Direct SVG code
      - **Data URIs** - SVG data URIs
      - **HTTPS URLs** - External icon URLs
    - 🟠 HTTP URLs show orange warning (should use HTTPS for security)

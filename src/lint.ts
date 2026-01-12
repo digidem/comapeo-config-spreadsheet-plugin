@@ -2133,7 +2133,7 @@ function lintAllSheets(showAlerts: boolean = true): void {
           "- Orange text in Categories icon column: HTTP URLs (security warning - still works, but HTTPS recommended)\n" +
           "- Invalid translation headers: Unrecognized formats are highlighted in light red\n\n" +
           "⚠️  IMPORTANT: Bright red cells will cause translation failures. Re-sync translation sheets before generating config.\n" +
-          "ℹ️  TIP: For icons, just use plain text (e.g., 'river', 'building') - plugin searches icon API automatically!",
+          "ℹ️  TIP: For icons, paste inline SVG from https://icons.earthdefenderstoolkit.com for best results. Plain text still works (auto lookup), but is less accurate.",
         ui.ButtonSet.OK,
       );
     }

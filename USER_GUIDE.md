@@ -61,18 +61,28 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
   - The background color of cells in this column sets the category color (not a separate column)
 
 - **Icon** (Column B, Required): Icon reference for your category
-  - **Recommended: Simple text** for icon search (most common):
+  - **Recommended: Use Earth Defenders Toolkit Icon App** (best results):
+    1. Visit https://icons.earthdefenderstoolkit.com
+    2. Search for your category name (e.g., "river", "forest", "building")
+    3. Select the best matching icon and choose your color
+    4. Click "Copy SVG" to copy the inline SVG code
+    5. Paste the SVG code directly into the Icon column
+
+    Example format:
+    ```svg
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+    <path fill="#194d33" fill-rule="evenodd" d="..."/>
+    </svg>
+    ```
+  - **Alternative: Simple text** for automatic lookup:
     - Examples: `river`, `building`, `tree`, `forest`, `animal`
-    - Plugin searches https://icons.earthdefenderstoolkit.com automatically
-    - No need for .svg extension
-  - **Or use Drive URL** for custom icons:
-    - Format: `https://drive.google.com/file/d/FILE_ID/view`
-    - Supports SVG and PNG files (PNG converted to SVG)
-  - **Or paste directly:**
-    - Embedded image in cell (processed via icon API)
-    - Inline SVG code: `<svg>...</svg>`
-    - Data URI: `data:image/svg+xml,...`
-    - HTTPS URL: `https://example.com/icon.svg`
+    - Plugin searches https://icons.earthdefenderstoolkit.com during export
+    - ⚠️ Automatic search may not find the best icon match
+  - **Other supported formats:**
+    - **Drive URL**: `https://drive.google.com/file/d/FILE_ID/view` (SVG or PNG; PNG converted to SVG)
+    - **Cell image**: Paste an image directly into the cell
+    - **Data URI**: `data:image/svg+xml,...`
+    - **HTTPS URL**: `https://example.com/icon.svg`
 
 - **Fields** (Column C): Comma-separated list of field names this category uses
   - Example: `Name, Width, Depth, Water quality`
@@ -104,17 +114,16 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 
 **📸 Screenshot placeholder:** *Categories sheet with colored Name cells showing different category colors*
 
-**Note about icons - JUST USE SIMPLE TEXT!**
-The easiest way is to just type a descriptive word in the Icon column:
-- Examples: `river`, `building`, `tree`, `forest`, `animal`, `path`, `water`
-- Plugin automatically searches https://icons.earthdefenderstoolkit.com
-- No need for .svg extension or URLs
-- Works during both "Generate Category Icons" menu and final export
+**Note about icons - RECOMMENDED: Use inline SVG**
+The best results come from pasting inline SVG from the Icon App directly:
+- Visit https://icons.earthdefenderstoolkit.com, pick an icon + color, then click "Copy SVG"
+- Paste the SVG directly into the Icon column
+- Plain text still works for automatic lookup, but results may be less accurate
 
-**Alternative icon methods** (less common):
+**Other supported formats** (less common):
 - **Drive URL**: Upload custom icon to Drive, paste link
 - **Cell image**: Paste image directly into cell
-- **Inline SVG/Data URI**: For advanced users
+- **Data URI**: `data:image/svg+xml,...`
 
 ---
 
@@ -308,18 +317,32 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 
 ### Step 6: Add Icons
 
-**EASY WAY - Just Type Names (Recommended):**
+**RECOMMENDED - Use Earth Defenders Toolkit Icon App (Inline SVG):**
 
-**📸 Screenshot placeholder:** *Categories sheet Icon column with simple text: river, building, tree*
+This method gives you the best results by letting you visually browse and select icons.
 
-1. In the **Icon** column (Column B), just type descriptive words:
-   - `river`, `building`, `tree`, `forest`, `animal`, `path`, `water`
-   - No need for .svg extension
-   - No URLs needed
-2. During generation, plugin automatically searches https://icons.earthdefenderstoolkit.com
-3. Done! Icons will be found and included automatically
+1. Visit https://icons.earthdefenderstoolkit.com
+2. For each category, search for relevant terms (e.g., "river", "forest", "building")
+3. Select the best matching icon and choose your category color
+4. Click "Copy SVG" to copy the inline SVG code
+5. Paste the SVG code directly into the Icon column (Column B)
 
-**ALTERNATIVE - Use "Generate Category Icons" Menu:**
+Example format:
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<path fill="#194d33" fill-rule="evenodd" d="..."/>
+</svg>
+```
+
+**ALTERNATIVE - Simple Text (Automatic Lookup):**
+
+1. In the **Icon** column (Column B), type descriptive words:
+   - Examples: `river`, `building`, `tree`, `forest`, `animal`
+   - No need for .svg extension or URLs
+2. During export, plugin automatically searches https://icons.earthdefenderstoolkit.com
+3. ⚠️ Automatic search may not find the best icon match
+
+**OPTIONAL - Use "Generate Category Icons" Menu:**
 
 **📸 Screenshot placeholder:** *CoMapeo Tools menu with "Generate Category Icons" highlighted*
 
@@ -336,10 +359,12 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 3. Paste Drive URL in Icon column
 
 **Format Support:**
-- ✅ **Plain text** (e.g., `river`) - Recommended!
+- ✅ **Inline SVG** - Recommended (best results)
+- ✅ **Plain text** (e.g., `river`) - Automatic lookup
 - ✅ **Drive URLs** - For custom icons
 - ✅ **Cell images** - Paste image into cell
-- ✅ **Inline SVG** - For advanced users
+- ✅ **Data URIs** - SVG data URIs
+- ✅ **HTTPS URLs** - External SVG URLs
 - ✅ **SVG and PNG files** - PNG converted to SVG
 
 ---
