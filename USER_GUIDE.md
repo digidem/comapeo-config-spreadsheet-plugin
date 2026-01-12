@@ -59,6 +59,9 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 - **Name** (Column A, Required): Category name in your primary language
   - Examples: "River", "Building", "Animal Sighting"
   - The background color of cells in this column sets the category color (not a separate column)
+  - This color appears in the CoMapeo app as:
+    - **Border color** around categories on the category selection screen
+    - **Dot color** for observation markers on the map
 
 - **Icon** (Column B, Required): Icon reference for your category
   - **Recommended: Use Earth Defenders Toolkit Icon App** (best results):
@@ -103,6 +106,7 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 - **Category ID** (Column E, Auto-created): Unique identifier for the category
   - Auto-generated if not present
   - Used for importing/exporting
+  - ⚠️ **Important:** If you change this ID after observations have been collected, those observations will no longer be linked to this category in the CoMapeo app
   - Usually you don't need to edit this
 
 **Example row:**
@@ -110,7 +114,7 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
 |------|------|--------|---------|-------------|
 | River | river | Name, Width, Depth | observation | river-001 |
 
-**Note about colors:** Set the background color of the Name cell (Column A) to define the category color. This color appears in the CoMapeo app.
+**Note about colors:** Set the background color of the Name cell (Column A) to define the category color. This color appears in the CoMapeo app as the category border color and the map dot color.
 
 **📸 Screenshot placeholder:** *Categories sheet with colored Name cells showing different category colors*
 
@@ -151,9 +155,13 @@ The best results come from pasting inline SVG from the Icon App directly:
   - Example: `Small, Medium, Large`
   - Example: `Good, Fair, Poor`
   - Required if Type is blank, `s`, or `m`
-  - Optional for `t` and `n` types
+  - Ignored if Type is `t` or `n` (text and number fields don't use options)
 
-- **(Column E)**: Reserved - leave blank
+- **Field ID** (Column E, Auto-generated): Unique identifier for each field
+  - Auto-generated from field name if blank (e.g., "Water Quality" → "water-quality")
+  - Used internally by CoMapeo for field references
+  - Required for maintaining consistency during import/export
+  - **Do not edit manually** - system manages this automatically
 
 - **Universal** (Column F): Whether field appears for all categories
   - `TRUE` - Available to all categories automatically
@@ -193,7 +201,12 @@ Translations of dropdown/multiple choice options
 - **Column B**: ISO language code (informational)
 - **Column C**: Source language text (informational)
 - **Columns D+**: Target language translations
-  - Header can be ISO code (`es`, `pt`) or "Language - ISO" format (`Español - es`)
+  - Header can use:
+    - **Language name** (`Spanish`, `Español`, `Portuguese`, `Português`) → mapped via built-in aliases
+    - **Raw ISO/BCP-47 code** (`es`, `pt`, `quz`, `pt-BR`, `zh-Hans`)
+    - **"Name - ISO" format** (`Spanish - es`, `Español - es`, `Português - pt`, `Quechua - quz`)
+  - Supported codes: ISO 639-1 (2-letter), ISO 639-2/3 (3-letter), BCP-47 tags with region/script (e.g., `pt-BR`, `zh-Hans`)
+  - **Important:** For BCP-47 tags with hyphens, use the raw header (`pt-BR`) — the "Name - ISO" parser only captures alphanumeric codes and will drop the region
 
 **Important:** Column A uses formulas like `=Categories!A2:A100` to stay in sync. Don't delete these formulas!
 
@@ -203,6 +216,14 @@ Translations of dropdown/multiple choice options
 
 #### 7. Metadata Sheet (auto-generated)
 Contains configuration metadata like dataset ID, name, version, and primary language.
+
+**Legacy Format Support:**
+
+- The plugin can import `.mapeosettings` files (older Mapeo format)
+- During import, legacy configs are converted to the new `.comapeocat` format
+- Metadata sheet preserves the original dataset ID for continuity
+- For more information on legacy Mapeo configuration formats, see:
+  [Mapeo Documentation - Coding Configuration](https://docs.mapeo.app/complete-reference-guide/customization-options/custom-configurations/creating-custom-configurations/coding-configuration)
 
 **📸 Screenshot placeholder:** *Metadata sheet showing Key-Value pairs*
 
@@ -401,6 +422,13 @@ Example format:
 2. In the dialog:
    - **Section 1**: Check languages you want to auto-translate
    - **Section 2**: Enter language codes for manual-only languages
+     - Use ISO 639-1/639-3 or BCP-47 format (e.g., `gn` for Guarani, `quz` for Quechua)
+     - Find indigenous language codes:
+       - [SIL ISO 639-3 Code Table](https://iso639-3.sil.org/)
+       - [Ethnologue](https://www.ethnologue.com/)
+       - [Glottolog](https://glottolog.org/)
+     - For regional variants, use raw BCP-47 tags in the header (e.g., `quz-PE`)
+     - Note: if using "Name - ISO" headers, avoid hyphenated tags (use raw header instead)
 3. Click "Translate"
 4. The plugin will:
    - Create translation sheets
@@ -455,6 +483,8 @@ Before generating, check for errors:
 - Uploading to packaging server
 
 5. When complete, the `.comapeocat` file downloads automatically to your Downloads folder
+   - **Also saved to Drive:** File is automatically saved to your Google Drive folder
+   - **For mobile:** Share the Drive URL to download directly on your phone
 
 **📸 Screenshot placeholder:** *Success dialog with download confirmation*
 
@@ -530,7 +560,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
    - These will be auto-filled in translation sheets
 
 2. **Add manual-only languages:**
-   - Enter language codes (e.g., `qu` for Quechua)
+   - Enter language codes (e.g., `gn`, `quz`, `quz-PE`)
    - These columns will be added but left blank for manual translation
 
 3. **Translation process:**
@@ -614,6 +644,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
    - Combines all files into .comapeocat archive
    - Sends to packaging server
    - Downloads result to your computer
+   - Also saved to your Google Drive folder (share the Drive URL for mobile installs)
 
 **Common issues:**
 - **"Missing required fields"** → Run Lint Sheets to find empty required fields
@@ -654,6 +685,14 @@ The **CoMapeo Tools** menu provides all plugin functionality:
    - Upload icons to your Google Drive
    - Populate all spreadsheet tabs
    - Import translations if present
+
+**After Import:**
+
+- Some columns may require manual setup:
+  - **Categories Sheet → Details column (C)**: Set as dropdown with multi-select chips enabled
+  - Steps: Right-click column C → Data validation → Dropdown → Add your field names
+  - This enables chips UI for selecting which fields each category uses
+- Note: Google Apps Script cannot programmatically set up multi-select dropdowns
 
 **📸 Screenshot placeholder:** *Import progress showing extraction → parsing → uploading icons → populating sheets*
 
