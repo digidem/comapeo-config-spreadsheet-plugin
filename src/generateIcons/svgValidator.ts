@@ -180,6 +180,7 @@ function validateDriveAccess(fileId: string): ValidationResult {
  * - Inline SVG markup (<svg>...</svg>)
  * - Google Drive URLs (https://drive.google.com/file/d/...)
  * - Data URIs (data:image/svg+xml,...)
+ * - External HTTPS URLs
  * - Plain text search terms (e.g., "river", "building", "tree")
  *
  * @param iconUrl - The URL, data URI, or search term to validate
@@ -213,6 +214,20 @@ function validateIconUrl(iconUrl: string): ValidationResult {
         context: { url: trimmed, originalError: error.message },
       };
     }
+  }
+
+  // External HTTPS URL - allow and handle during processing
+  if (
+    trimmed.startsWith("https://") &&
+    !trimmed.startsWith("https://drive.google.com")
+  ) {
+    return {
+      valid: true,
+      context: {
+        type: "external-url",
+        url: trimmed,
+      },
+    };
   }
 
   // Inline SVG markup validation
@@ -406,6 +421,11 @@ function quickValidateIcon(iconValue: any): boolean {
 
     // Drive URLs are valid
     if (trimmed.startsWith("https://drive.google.com/file/d/")) {
+      return true;
+    }
+
+    // External HTTPS URLs are valid
+    if (trimmed.startsWith("https://")) {
       return true;
     }
 

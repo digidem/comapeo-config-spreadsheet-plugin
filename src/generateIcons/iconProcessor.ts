@@ -301,6 +301,9 @@ function processIconImage(
       }
       // Non-standard Drive URL format - return as-is
       return iconImage;
+    } else if (isExternalHttpsIcon(iconImage)) {
+      console.log(`Processing external HTTPS icon for ${name}: ${iconImage}`);
+      return iconImage.trim();
     } else if (isCellImage(iconImage)) {
       return processCellImage(
         name,
@@ -355,6 +358,18 @@ function isGoogleDriveIcon(iconImage: any): boolean {
   return (
     typeof iconImage === "string" &&
     iconImage.startsWith("https://drive.google.com")
+  );
+}
+
+function isExternalHttpsIcon(iconImage: any): boolean {
+  if (typeof iconImage !== "string") {
+    return false;
+  }
+
+  const trimmed = iconImage.trim();
+  return (
+    trimmed.startsWith("https://") &&
+    !trimmed.startsWith("https://drive.google.com")
   );
 }
 
@@ -614,6 +629,71 @@ function getIconContent(
       if (collector && iconName) {
         collector.addDriveError(iconName, errorMsg, false, {
           fileId,
+          url: icon.svg,
+        });
+      }
+      return { iconContent: null, mimeType: "", error: errorMsg };
+    }
+  } else if (
+    icon.svg.startsWith("https://") &&
+    !icon.svg.startsWith("https://drive.google.com/")
+  ) {
+    try {
+      const response = UrlFetchApp.fetch(icon.svg, {
+        followRedirects: true,
+        muteHttpExceptions: true,
+      });
+      const status = response.getResponseCode();
+      if (status < 200 || status >= 300) {
+        const errorMsg = `External icon request failed with status ${status}`;
+        console.error(errorMsg);
+        if (collector && iconName) {
+          collector.addNetworkError(iconName, errorMsg, false, {
+            url: icon.svg,
+            status,
+          });
+        }
+        return { iconContent: null, mimeType: "", error: errorMsg };
+      }
+
+      const blob = response.getBlob();
+      const contentType = blob.getContentType();
+      const baseType = contentType.split(";")[0].trim();
+      const content = blob.getDataAsString();
+      const normalized = normalizeSvgContent(content);
+
+      if (
+        baseType === MimeType.SVG ||
+        normalized ||
+        content.includes("<svg")
+      ) {
+        return {
+          iconContent: normalized || content,
+          mimeType: MimeType.SVG,
+        };
+      }
+
+      if (baseType === MimeType.PNG) {
+        return {
+          iconContent: content,
+          mimeType: MimeType.PNG,
+        };
+      }
+
+      const errorMsg = `Unsupported external icon content type: ${contentType}`;
+      console.error(errorMsg);
+      if (collector && iconName) {
+        collector.addFormatError(iconName, errorMsg, false, {
+          url: icon.svg,
+          contentType,
+        });
+      }
+      return { iconContent: null, mimeType: "", error: errorMsg };
+    } catch (error) {
+      const errorMsg = `Failed to fetch external icon: ${error.message}`;
+      console.error(errorMsg);
+      if (collector && iconName) {
+        collector.addNetworkError(iconName, errorMsg, false, {
           url: icon.svg,
         });
       }
