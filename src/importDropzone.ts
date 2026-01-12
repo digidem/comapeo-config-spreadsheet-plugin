@@ -33,11 +33,11 @@ function showImportDropzoneDialog(): void {
   const htmlOutput = HtmlService.createHtmlOutput(createDropzoneHtml())
     .setWidth(600)
     .setHeight(400)
-    .setTitle("Import Configuration File");
+    .setTitle("Import Category File");
 
   SpreadsheetApp.getUi().showModalDialog(
     htmlOutput,
-    "Import Configuration File",
+    "Import Category File",
   );
 }
 
@@ -56,7 +56,7 @@ function createDropzoneHtml(): string {
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <title>Import Configuration File</title>
+  <title>Import Category File</title>
   <style>
     body {
       font-family: 'Roboto', Arial, sans-serif;
@@ -268,9 +268,9 @@ function createDropzoneHtml(): string {
 </head>
 <body>
   <div class="container">
-    <h1>Import Configuration File</h1>
+    <h1>Import Category File</h1>
     <div class="warning-message">
-      <strong>Warning:</strong> Importing a configuration file will erase all current spreadsheet data. This action cannot be undone.
+      <strong>Warning:</strong> Importing a category file will erase all current spreadsheet data. This action cannot be undone.
     </div>
     <div id="dropzone" class="dropzone">
       <div class="dropzone-icon">📁</div>
@@ -887,7 +887,7 @@ function importConfigurationFile(
     const fileType = fileName.endsWith(".comapeocat") ? "CoMapeo" : "Mapeo";
     return {
       success: true,
-      message: `${fileType} configuration file imported successfully`,
+      message: `${fileType} category file imported successfully`,
       details: {
         presets: configData.presets ? configData.presets.length : 0,
         fields: configData.fields ? configData.fields.length : 0,

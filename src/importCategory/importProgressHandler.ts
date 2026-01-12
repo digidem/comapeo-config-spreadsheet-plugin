@@ -97,7 +97,7 @@ function processImportedCategoryFileWithProgress(
     progressHandler({
       percent: 15,
       stage: "Extracting file contents",
-      detail: "Unzipping configuration archive",
+      detail: "Extracting configuration archive",
     });
 
     const extractionResult = extractAndValidateFile(fileName, blob, {
@@ -125,11 +125,11 @@ function processImportedCategoryFileWithProgress(
       },
     });
 
-    // Extract configuration data and parse files
+    // Extract category data and parse files
     progressHandler({
       percent: 45,
-      stage: "Processing configuration data",
-      detail: "Parsing configuration files",
+      stage: "Processing category data",
+      detail: "Parsing category files",
     });
 
     const configData = parseExtractedFiles(
@@ -143,7 +143,7 @@ function processImportedCategoryFileWithProgress(
 
     progressHandler({
       percent: 70,
-      stage: "Configuration processed",
+      stage: "Category data processed",
       detail: "Preparing to update spreadsheet",
       counts: {
         categories: configData.presets.length,
@@ -313,11 +313,11 @@ function processMapeoSettingsFileWithProgress(
         },
       });
 
-      // Extract configuration data
+      // Extract category data
       progressHandler({
         percent: 45,
-        stage: "Processing configuration data",
-        detail: "Parsing configuration files",
+        stage: "Processing category data",
+        detail: "Parsing category files",
       });
 
       const configData = extractMapeoConfigurationData(
@@ -327,7 +327,7 @@ function processMapeoSettingsFileWithProgress(
 
       progressHandler({
         percent: 70,
-        stage: "Configuration processed",
+        stage: "Category data processed",
         detail: "Preparing to update spreadsheet",
         counts: {
           categories: configData.presets ? configData.presets.length : 0,
@@ -340,7 +340,7 @@ function processMapeoSettingsFileWithProgress(
       progressHandler({
         percent: 75,
         stage: "Updating spreadsheet",
-        detail: "Applying configuration to sheets",
+        detail: "Applying category data to sheets",
       });
 
       applyMapeoConfigurationToSpreadsheet(configData);

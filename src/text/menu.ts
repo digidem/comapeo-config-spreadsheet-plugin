@@ -72,14 +72,14 @@ let categoryMenuTexts: Record<string, MenuText> = {
     actionText:
       "Esto generará las categorías de CoMapeo basándose en la información de la planilla actual. Puede llevar unos minutos procesar. ¿Continuar?",
     error: "Error",
-    errorText: "Ocurrió un error mientras se generaba la configuración: ",
+    errorText: "Ocurrió un error mientras se generaba la categoría: ",
   },
   en: {
     action: "Generate CoMapeo Category",
     actionText:
       "This will generate a CoMapeo category based on the current spreadsheet data. It may take a few minutes to process. Continue?",
     error: "Error",
-    errorText: "An error occurred while generating the configuration: ",
+    errorText: "An error occurred while generating the category: ",
   },
 };
 
@@ -87,18 +87,18 @@ let categoryDebugMenuTexts: Record<string, MenuText> = {
   es: {
     action: "Debug: Exportar Archivos Sin Procesar",
     actionText:
-      "Esto creará la carpeta rawBuild en Google Drive con todos los archivos individuales (presets, fields, mensajes) para depuración. ¿Continuar?",
+      "El modo depuración ejecuta el generador estándar (la exportación rawBuild está deprecada). ¿Continuar?",
     error: "Error",
     errorText:
-      "Ocurrió un error mientras se generaba la configuración en modo depuración: ",
+      "Ocurrió un error mientras se generaba la categoría en modo depuración: ",
   },
   en: {
     action: "Debug: Export Raw Files",
     actionText:
-      "This will create the rawBuild folder in Google Drive with all individual files (presets, fields, messages) for debugging. Continue?",
+      "Debug mode runs the standard generator (rawBuild export is deprecated). Continue?",
     error: "Error",
     errorText:
-      "An error occurred while generating the configuration in debug mode: ",
+      "An error occurred while generating the category in debug mode: ",
   },
 };
 

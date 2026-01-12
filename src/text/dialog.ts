@@ -76,16 +76,16 @@ let generatedConfigDialogTexts: Record<string, DialogText> = {
   es: {
     title: "Categorías de CoMapeo generadas",
     message: [
-      "Tus categorías de CoMapeo fueron creadas con éxito y comprimidas en un archivo de formato ZIP.",
-      "Para descargar tus Categorías, haz click en el botón debajo. Una vez descargadas, extrae los contenidos y busca el archivo con extensión '.comapeocat', que puede ser importado en la aplicación de CoMapeo.",
+      "Tu archivo de Categoría CoMapeo fue generado con éxito y guardado en Google Drive.",
+      "Para descargarlo o compartirlo, haz click en el botón de abajo. El archivo con extensión '.comapeocat' está listo para ser importado en la app de CoMapeo.",
     ],
     buttonText: "Descargar categorías de CoMapeo",
   },
   en: {
     title: "CoMapeo Category Generated",
     message: [
-      "Your CoMapeo Category file has been successfully generated and compressed into a zip file.",
-      "To download your Category, click the button below. Once downloaded, extract the contents to locate the .comapeocat file, which can be imported into the CoMapeo app.",
+      "Your CoMapeo Category file has been successfully generated and saved to Google Drive.",
+      "To download or share it, click the button below. The .comapeocat file is ready to import into the CoMapeo app.",
     ],
     buttonText: "Download CoMapeo Category",
   },
@@ -107,9 +107,8 @@ let helpDialogTexts: Record<string, DialogText & DialogInstructions> = {
       "Revise los íconos generados en la caerpa de íconos y modífiquelos usando la <br /><a href='https://icons.earthdefenderstoolkit.com' target='_blank'>Icon Generator App</a>  de ser necessario",
       "Copie el link compartido para cada ícono y péguelo en la celda de ícono correspondiente en la planilla",
       "Use la opción 'Validar Planillas' para asegurarse que su información está en el formato y capitalización correcta.",
-      "Use la opción 'Generar Clave de Projecto' para crear una clave única para su proyecto. Esta llave le asegura que su configuración sólo puede ser compartida con projectos que tienen la misma clave, mejorando la seguridad de CoMapeo",
-      "Repita los pasos 1 al 8 tal como necesite, actualizando traducciones, íconos y clave de projecto hasta que esté conforme con los resultados.",
-      "Cuando sus categorías estén listas, use la opcíon 'Generar Categorías de CoMapeo' para crear sus categorías finales. Este proceso puede tardar varios minutos y producira un archivo de formato zip que contiene su archivo con extensión '.comapeocat', listo para ser importado a la app de CoMapeo",
+      "Repita los pasos anteriores tal como necesite, actualizando traducciones e íconos hasta que esté conforme con los resultados.",
+      "Cuando sus categorías estén listas, use la opcíon 'Generar Categoría CoMapeo' para crear su archivo final. Este proceso puede tardar varios minutos y generará un archivo '.comapeocat' guardado en Google Drive, listo para ser importado en la app de CoMapeo.",
     ],
     footer: "Para más información, visite nuestro repositorio de Github",
     buttonText: "Visite repositorio de Github",
@@ -128,9 +127,8 @@ let helpDialogTexts: Record<string, DialogText & DialogInstructions> = {
       "Check the generated icons in the icons folder and modify them using the <br /><a href='https://icons.earthdefenderstoolkit.com' target='_blank'>Icon Generator App</a> if necessary.",
       "Copy the shared link for each icon and paste it into the corresponding icon cell in the spreadsheet.",
       "Use the 'Lint Sheets' option to ensure proper formatting and capitalization of your data.",
-      "Use the 'Generate Project Key' option to create a unique key for your project. This key ensures that your configuration can only be synced with projects using the same key, enhancing security.",
-      "Repeat steps 1-8 as needed, updating translations, icons, and the project key until you're satisfied with the results.",
-      "When ready, use the 'Generate CoMapeo Category' option to create your final configuration. This process may take a few minutes and will produce a zip file containing your .comapeocat file, ready for use with the CoMapeo app.",
+      "Repeat the previous steps as needed, updating translations and icons until you're satisfied with the results.",
+      "When ready, use the 'Generate CoMapeo Category' option to create your final file. This process may take a few minutes and will generate a '.comapeocat' file saved to Google Drive, ready for use with the CoMapeo app.",
     ],
     footer: "For more information, visit our Github repository",
     buttonText: "Visit GitHub Repository",
@@ -138,15 +136,15 @@ let helpDialogTexts: Record<string, DialogText & DialogInstructions> = {
 };
 
 let processingDialogTitle = {
-  en: "Generating CoMapeo Config",
-  es: "Generando Configuracion de CoMapeo",
+  en: "Generating CoMapeo Category",
+  es: "Generando Categoría CoMapeo",
 };
 
 let importCategoryDialogTexts: Record<string, DialogText> = {
   es: {
     title: "Importar archivo de categoría",
     message: [
-      "Selecciona un archivo de categoría de CoMapeo (.comapeocat) para importar.",
+      "Selecciona un archivo de categoría de CoMapeo (.comapeocat o .mapeosettings) para importar.",
       "El archivo será procesado y sus datos se cargarán en la hoja de cálculo actual.",
     ],
     buttonText: "Seleccionar archivo",
@@ -154,7 +152,7 @@ let importCategoryDialogTexts: Record<string, DialogText> = {
   en: {
     title: "Import category file",
     message: [
-      "Select a CoMapeo category file (.comapeocat) to import.",
+      "Select a CoMapeo category file (.comapeocat or .mapeosettings) to import.",
       "The file will be processed and its data will be loaded into the current spreadsheet.",
     ],
     buttonText: "Select file",
@@ -203,66 +201,66 @@ let processingDialogTexts: Record<string, DialogText>[] = [
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Processing data... (3/8)", "Converting spreadsheet to CoMapeo format"],
+      message: ["Preparing build request... (3/8)", "Collecting spreadsheet data"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Procesando datos... (3/8)", "Convirtiendo planilla a formato CoMapeo"],
+      message: ["Preparando solicitud... (3/8)", "Recopilando datos de la planilla"],
     },
   },
-  // Step 4: Saving to Drive (with live progress updates)
+  // Step 4: Building payload
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Saving to Drive... (4/8)", "Creating configuration files"],
+      message: ["Building payload... (4/8)", "Creating JSON for the API"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Guardando en Drive... (4/8)", "Creando archivos de configuración"],
+      message: ["Creando payload... (4/8)", "Generando JSON para la API"],
     },
   },
-  // Step 5: Creating package (with live progress updates)
+  // Step 5: Sending request
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Creating package... (5/8)", "Collecting and compressing files"],
+      message: ["Sending request... (5/8)", "Submitting build to API"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Creando paquete... (5/8)", "Recopilando y comprimiendo archivos"],
+      message: ["Enviando solicitud... (5/8)", "Enviando generación a la API"],
     },
   },
-  // Step 6: Uploading
+  // Step 6: Waiting for response
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Uploading... (6/8)", "Sending package to API server"],
+      message: ["Waiting for response... (6/8)", "This may take a few minutes"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Subiendo... (6/8)", "Enviando paquete al servidor API"],
+      message: ["Esperando respuesta... (6/8)", "Esto puede tardar algunos minutos"],
     },
   },
-  // Step 7: Processing package (with heartbeat timer)
+  // Step 7: Saving to Drive
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Processing package... (7/8)", "Waiting for API processing (this may take up to 5 minutes)"],
+      message: ["Saving to Drive... (7/8)", "Storing the .comapeocat file"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["Procesando paquete... (7/8)", "Esperando procesamiento de API (esto puede tardar hasta 5 minutos)"],
+      message: ["Guardando en Drive... (7/8)", "Guardando el archivo .comapeocat"],
     },
   },
   // Step 8: Complete
   {
     en: {
       title: processingDialogTitle["en"],
-      message: ["Complete! (8/8)", "CoMapeo configuration ready for download"],
+      message: ["Complete! (8/8)", "CoMapeo Category ready for download"],
     },
     es: {
       title: processingDialogTitle["es"],
-      message: ["¡Completo! (8/8)", "Configuración de CoMapeo lista para descargar"],
+      message: ["¡Completo! (8/8)", "Categoría CoMapeo lista para descargar"],
     },
   },
 ];
