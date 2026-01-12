@@ -864,7 +864,7 @@ This is the most common generation failure! It happens when:
 **Problem:** "Import category file" fails or doesn't populate sheets
 
 **Solutions:**
-1. ✅ Verify file is `.comapeocat` or `.mapeosettings` format
+1. ✅ Verify file is a supported import format (see **Import Category File** section)
 2. ✅ Try a different configuration file to test
 3. ✅ Check file size isn't too large (>50MB may timeout)
 4. ✅ Ensure you have Google Drive storage space for icons
