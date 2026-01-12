@@ -114,7 +114,7 @@ function generateCoMapeoConfigWithSelectedLanguages(selectedLanguages) {
 
 ### HIGH-006: Add File Size Validation
 
-**Files**: `src/importCategory/extractTarFile.ts`, `fileExtractor.ts`
+**Files**: `src/importCategory/fileExtractor.ts`
 **Effort**: 1 hour
 
 **Problem**: No file size limits - could exhaust memory
@@ -134,7 +134,7 @@ if (fileSize > MAX_FILE_SIZE) {
 
 ### HIGH-007: Add Path Traversal Validation
 
-**Files**: `src/importCategory/extractTarFile.ts`, `fileExtractor.ts`
+**Files**: `src/importCategory/fileExtractor.ts`
 **Effort**: 1-2 hours
 
 **Problem**: No path traversal validation in TAR extraction
@@ -208,7 +208,7 @@ const API_URL = PropertiesService.getScriptProperties().getProperty('API_URL')
 
 ### HIGH-011: Add Depth Limit to Recursive Operations
 
-**Files**: `src/driveService.ts`, `cleanup.ts`, `extractTarFile.ts`
+**Files**: `src/driveService.ts`, `cleanup.ts`, `fileExtractor.ts`
 **Effort**: 1 hour
 
 **Problem**: No depth limit for recursive folder operations

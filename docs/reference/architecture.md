@@ -33,14 +33,13 @@ The `src` directory contains the main functionality of the plugin, organized int
 - `driveService.ts`: Manages interactions with Google Drive for saving and retrieving files.
 - `apiService.ts`: Handles communication with external APIs for processing configuration files.
 
-#### Configuration Generation
+#### Configuration Generation (v2)
 
-The `src/generateConfig` directory contains modules for processing different aspects of the CoMapeo configuration:
+Current build flow uses the payload builder:
 
-- `processFields.ts`: Processes field definitions from the spreadsheet.
-- `processPresets.ts`: Processes preset (category) definitions from the spreadsheet.
-- `processMetadata.ts`: Processes metadata for the configuration.
-- `processTranslations.ts`: Processes translations for fields, presets, and other content.
+- `builders/payloadBuilder.ts`: Builds the JSON payload sent to the `/v2` API.
+
+Legacy (pre-v2) processors live under `src/generateConfig` and are no longer part of the main build path.
 
 #### Icon Generation
 
@@ -64,69 +63,37 @@ The `src/scripts` directory contains shell scripts for deployment and management
 
 The `src/test` directory contains test functions:
 
-- `testZipToApi.ts`: Tests the functionality for sending ZIP files to the API.
+- `testBuildAndImport.ts`: Tests JSON build flow and import integration.
 
 ## Data Model
 
-The plugin works with a specific data model defined in `types.ts`:
+The plugin uses the v2 API data model defined in `types.ts`:
 
-### Core Types
+### Core Types (v2)
 
-- `CoMapeoConfig`: The main configuration object that includes metadata, package information, fields, presets, icons, and translations.
-- `CoMapeoField`: Represents a data collection field in CoMapeo.
-- `CoMapeoPreset`: Represents a category or preset in CoMapeo.
-- `CoMapeoIcon`: Represents an icon used for categories.
-- `CoMapeoTranslations`: Contains translations for all content in multiple languages.
-- `CoMapeoMetadata`: Contains metadata about the configuration.
-- `CoMapeoPackageJson`: Contains package.json information for the configuration.
+- `BuildRequest`: JSON payload sent to the `/v2` API.
+- `Metadata`, `Category`, `Field`, `Icon`: Core schema objects for the build.
+- `TranslationsByLocale`: Translation payload keyed by locale.
+
+Legacy configuration types still exist for import/migration paths, but the build flow uses `BuildRequest`.
 
 ## Generation Modes
 
-The plugin supports **four distinct generation modes**, each optimized for different use cases:
-
-### 1. Translation-Only Mode
+### 1. Manage Languages & Translate (Translation-Only)
 **Entry Point**: `translateCoMapeoCategory()` (Menu: "Manage Languages & Translate")
 
-- **Purpose**: Standalone translation without config generation
-- **Process**: Shows language selection dialog → Translates empty cells → Updates sheets
-- **Use Case**: When you want to translate content without generating a config
-- **Output**: Updated spreadsheet with translations (no `.comapeocat` file created)
+- **Purpose**: Standalone translation workflow (no build)
+- **Process**: Language selection dialog → Translate empty cells → Update sheets
+- **Output**: Updated translation sheets only
 
-### 2. Main Generation Mode
+### 2. Generate CoMapeo Category (Build)
 **Entry Point**: `generateCoMapeoCategory()` (Menu: "Generate CoMapeo Category")
 
-- **Purpose**: Full production workflow with language selection
-- **Process**: Language selection → Auto-translate → Full pipeline → `.comapeocat` file
-- **Use Case**: Primary workflow for creating CoMapeo configurations
-- **Output**: Final packaged `.comapeocat` file in Google Drive
+- **Purpose**: Build a `.comapeocat` from current spreadsheet data
+- **Process**: Validate + read sheets → Build JSON payload → POST to API `/v2`
+- **Output**: `.comapeocat` ZIP returned by API and saved to Google Drive
 
-### 3. Debug Mode (With Drive Writes)
-**Entry Point**: `generateCoMapeoCategoryDebug()` (Menu: "Debug: Export Raw Files")
-
-- **Purpose**: Development and troubleshooting with raw file access
-- **Process**: Skips translation → Saves raw JSON files to Drive → Full API processing
-- **Use Case**: Inspecting intermediate files, debugging issues
-- **Output**: Both raw files in `rawBuilds/` folder AND final `.comapeocat` file
-- **Drive Structure**:
-  ```
-  {spreadsheet-name}/
-  └── rawBuilds/
-      └── {version}/
-          ├── presets/      # Individual preset JSON files
-          ├── fields/       # Individual field JSON files
-          ├── icons/        # SVG icon files
-          ├── messages/     # Translation JSON files per language
-          ├── metadata.json # Configuration metadata
-          └── package.json  # Package information
-  ```
-
-### 4. In-Memory Mode
-**Entry Point**: `generateCoMapeoConfigInMemory()` (Developer menu only)
-
-- **Purpose**: Fast testing and CI/CD pipelines
-- **Process**: All processing in memory → No Drive writes → Direct to API
-- **Use Case**: Automated testing, performance testing
-- **Output**: `.comapeocat` file without intermediate Drive storage
+**Debug mode note:** The "Debug: Export Raw Files" menu entry runs the standard generator in v2; raw export is deprecated (see `USER_GUIDE.md`).
 
 ## Workflow
 
@@ -151,7 +118,7 @@ When the spreadsheet is opened, `onOpen()` creates a custom menu with the follow
   - Clean sheets (remove translations, metadata, icons)
 - **Separator**
 - **Debug: Export Raw Files** (`generateCoMapeoCategoryDebug`)
-  - Debug mode with raw file access
+  - Runs the standard generator (v2); raw export is deprecated
 - **Help** (`openHelpPage`)
   - Opens help documentation
 - **About / Version** (`showVersionInfo`)
@@ -161,82 +128,17 @@ When the spreadsheet is opened, `onOpen()` creates a custom menu with the follow
 - Test functions for format detection, translation extraction, category import, etc.
 - **Clear Language Cache** - Reset cached language data
 
-### Main Generation Pipeline
+### Main Generation Pipeline (v2)
 
-The main generation mode follows this 8-step pipeline:
+The v2 build flow is JSON-only and does not create local ZIPs:
 
-#### Step 0: Pre-Flight Validation
-- **Function**: `runPreflightChecks()`
-- **Purpose**: Validate spreadsheet structure and requirements before processing
-- **Checks**: Sheet existence, required columns, data integrity
-- **Behavior**: Shows summary dialog, allows user to continue or cancel
+1. **Validate & Lint**: Check sheet structure, translation mismatches, and required fields.
+2. **Read Spreadsheet Data**: Build a `SheetData` object from Categories/Details/Translations.
+3. **Build Payload**: Create the JSON build payload (`createBuildPayload()`).
+4. **API Build**: `POST /v2` with JSON and receive a `.comapeocat` ZIP.
+5. **Save & Notify**: Save the returned file to Drive and show the success dialog.
 
-#### Step 1: Initialization
-- **Purpose**: Setup and validation
-- **Actions**:
-  - Show processing modal dialog
-  - Lint all sheets (`lintAllSheets(false)`)
-  - Add custom language columns (if specified)
-- **Note**: Validation happens BEFORE processing to catch issues early
-
-#### Step 2: Auto-Translation (Conditional)
-- **Function**: `autoTranslateSheetsBidirectional()`
-- **Purpose**: Translate empty cells to selected languages
-- **Trigger**: Only runs if languages were selected in Step 0
-- **Process**: Bidirectional translation with Google Translate API
-- **Skip**: If no languages selected, this step is skipped entirely
-
-#### Step 3: Data Extraction
-- **Function**: `getSpreadsheetData()`
-- **Purpose**: Read all sheet data into structured object
-- **Output**: `SheetData` object with all sheet contents
-- **Timing**: After translation to include any new columns
-
-#### Step 4: Data Processing
-- **Function**: `processDataForCoMapeo()`
-- **Purpose**: Transform spreadsheet data into CoMapeo configuration
-- **Sub-stages**:
-  - **4a**: Process Fields (`processFields()`)
-  - **4b**: Process Presets (`processPresets()`)
-  - **4c**: Process Icons (`processIcons()`)
-  - **4d**: Process Metadata (`processMetadata()`)
-  - **4e**: Process Translations (`processTranslations()`)
-- **Validation**: Config schema validation before proceeding
-- **Error Handling**: Icon errors stored in PropertiesService for later display
-
-#### Step 5: Save to Drive (Conditional)
-- **Function**: `saveConfigToDrive()`
-- **Behavior**:
-  - **In Debug Mode**: Creates folder structure with individual JSON files
-  - **In In-Memory Mode**: Skipped entirely (no Drive writes)
-  - **In Main Mode**: Creates minimal structure for ZIP creation
-- **Progress**: Updates processing dialog with progress callbacks
-- **Cleanup**: On failure, deletes created folder to prevent clutter
-
-#### Step 6: ZIP Creation
-- **Functions**:
-  - `saveDriveFolderToZip()` (with Drive files)
-  - `Utilities.zip()` (in-memory mode)
-- **Purpose**: Package configuration into ZIP archive
-- **Output**: `GoogleAppsScript.Base.Blob` representing ZIP file
-
-#### Step 7: API Submission
-- **Function**: `sendDataToApiAndGetZip()`
-- **Purpose**: Send ZIP to external packaging API
-- **Process**:
-  - Upload ZIP blob to packaging API (`http://137.184.153.36:3000/`)
-  - Wait for processing
-  - Download resulting `.comapeocat` file
-  - Save to Google Drive
-- **Retry Logic**: Up to 3 attempts with exponential backoff
-- **Progress**: Updates processing dialog during API calls
-
-#### Step 8: Completion
-- **Purpose**: Finalize and notify user
-- **Actions**:
-  - Show icon error report (if any errors occurred)
-  - Display success dialog with download link
-  - Close processing dialog
+Translation creation and auto-translation are handled separately via **Manage Languages & Translate**.
 
 ### Icon Generation Workflow
 

@@ -2,6 +2,8 @@
 
 Welcome to the documentation for the CoMapeo Configuration Spreadsheet Plugin.
 
+**Source of truth:** `USER_GUIDE.md` is authoritative for user-facing behavior, menu labels, and spreadsheet structure. Other docs should defer to it.
+
 ## 📚 User Documentation
 
 *   **[User Guide](../USER_GUIDE.md)**: The primary manual for end-users. Covers setup, creating configurations, managing translations, and exporting.
@@ -13,7 +15,7 @@ Technical documentation for contributors, maintainers, and AI assistants.
 
 ### Architecture & Implementation
 *   **[System Architecture](reference/architecture.md)**: High-level overview of the system topology, pipeline, and module responsibilities.
-*   **[Category Generation](reference/cat-generation.md)**: Deep dive into the export pipeline (`.comapeocat` generation).
+*   **[Category Generation (v2)](reference/cat-generation.md)**: Current JSON build pipeline (`.comapeocat` generation).
 *   **[Category Import](reference/import-cat.md)**: Details on the reverse-engineering process for importing files.
 
 ### File Formats & Specs
@@ -34,6 +36,6 @@ Team standards, AI guidelines, and testing procedures.
 
 ## 🏛️ Archives & Logs
 
-*   **[Implementation Logs](implementation/)**: Sprint logs, feature deep-dives, and in-flight plans.
-*   **[Historical Context](historical/)**: Archived summaries and decision records.
+*   **[Implementation Logs](implementation/)**: Sprint logs, feature deep-dives, and in-flight plans (may reference pre-v2 ZIP flow).
+*   **[Historical Context](historical/)**: Archived summaries and decision records (legacy context).
 *   **[Known Issues](issues/)**: Categorized issue tracking (Critical, High, etc.).

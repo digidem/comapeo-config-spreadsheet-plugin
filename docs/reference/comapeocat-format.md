@@ -4,6 +4,8 @@
 
 `.comapeocat` files are **ZIP archives** (not TAR) containing CoMapeo configuration data. This format is similar to `.mapeosettings` but uses a different archive format and file organization.
 
+**v2 build flow**: The plugin sends a JSON build request to the API (`/v2`), and the API returns the packaged `.comapeocat` ZIP. The plugin does not package configs locally, but it does create a shareable `.zip` of the returned file.
+
 **Test File**: `src/test/generated-config.comapeocat`
 - **Archive Format**: ZIP (PKZIP, uncompressed/store method)
 - **Total Files**: 197 files (7 JSON files + VERSION + 189 PNG icons)

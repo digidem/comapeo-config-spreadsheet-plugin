@@ -461,32 +461,27 @@ Before generating, check for errors:
 
 ---
 
-### Step 10: Generate CoMapeo Configuration
+### Step 10: Generate CoMapeo Category
 
 **📸 Screenshot placeholder:** *CoMapeo Tools menu with "Generate CoMapeo Category" highlighted*
 
 1. Click **CoMapeo Tools** → **Generate CoMapeo Category**
 2. Confirm you want to proceed
-3. If you have translations, select which languages to include:
-
-**📸 Screenshot placeholder:** *Language selection dialog for export*
-
-4. Monitor the progress dialog:
+3. Monitor the progress dialog:
 
 **📸 Screenshot placeholder:** *Progress dialog showing stages: Processing, Generating, Packaging*
 
 **Generation stages:**
-- Processing translations
-- Generating configuration files
-- Creating icon sprite
-- Packaging configuration
-- Uploading to packaging server
+- Validating and linting sheets
+- Building the JSON payload
+- Sending the build request to the API
+- Saving the `.comapeocat` file to Drive
 
-5. When complete, the `.comapeocat` file downloads automatically to your Downloads folder
-   - **Also saved to Drive:** File is automatically saved to your Google Drive folder
+4. When complete, the `.comapeocat` file is saved to your Google Drive folder
+   - **Shareable `.zip`:** The plugin also saves a zipped copy for easy sharing
    - **For mobile:** Share the Drive URL to download directly on your phone
 
-**📸 Screenshot placeholder:** *Success dialog with download confirmation*
+**📸 Screenshot placeholder:** *Success dialog with Drive link*
 
 ---
 
@@ -633,21 +628,18 @@ The **CoMapeo Tools** menu provides all plugin functionality:
    - Verifies field references
    - Ensures at least one category has "track" in Applies (warns if missing)
 
-2. **Language selection:**
-   - If translations exist, choose which languages to include
-   - Primary language always included
+2. **Translations (if present):**
+   - Existing translation sheets are included automatically
+   - Use **Manage Languages & Translate** to add or update languages before generating
 
 3. **Processing:**
-   - Generates configuration JSON files
-   - Creates icon sprite from all icons
-   - Packages translations
-   - Creates metadata
+   - Reads sheets and builds the JSON payload
+   - Packages categories, fields, icons, and translations
 
-4. **Packaging:**
-   - Combines all files into .comapeocat archive
-   - Sends to packaging server
-   - Downloads result to your computer
-   - Also saved to your Google Drive folder (share the Drive URL for mobile installs)
+4. **Packaging (API):**
+   - Sends the payload to the build API
+   - Receives a `.comapeocat` file and saves it to your Drive folder
+   - Creates a shareable `.zip` and shows a Drive link
 
 **Common issues:**
 - **"Missing required fields"** → Run Lint Sheets to find empty required fields
@@ -658,7 +650,7 @@ The **CoMapeo Tools** menu provides all plugin functionality:
 
 **Success indicators:**
 - Progress dialog completes all stages
-- `.comapeocat` file downloads automatically
+- `.comapeocat` file is saved to Drive and linked in the success dialog
 - No error messages in final dialog
 
 ---
@@ -775,7 +767,7 @@ Advanced features for troubleshooting and testing:
 - **Test Runner:** Runs automated tests
 - **Capture Baseline Performance Metrics:** Records performance benchmarks
 - **Turn on legacy compatibility:** Toggles the Metadata `legacyCompat` flag so older plugin configs keep `categoryId` valid in the newest format
-- **Generate CoMapeo Category (Debug):** Exports raw files to Google Drive for debugging
+- **Generate CoMapeo Category (Debug):** Runs the standard generator; raw export is deprecated
 
 **When to use:**
 - Plugin developer or system administrator

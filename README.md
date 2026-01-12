@@ -4,10 +4,10 @@ A Google Sheets plugin for generating and importing `.comapeocat` category files
 
 ## What's New in v2.0.0
 
-- **JSON-only API**: Removed ZIP workflow entirely. The plugin now sends JSON directly to the API.
+- **JSON build flow**: The plugin sends a JSON build request to the v2 API, which returns a packaged `.comapeocat` (ZIP) file.
 - **Import functionality**: Import existing `.comapeocat` files back into the spreadsheet for editing.
 - **Category ordering**: Categories are built in exact spreadsheet order using `setCategorySelection`.
-- **Simplified codebase**: Removed all ZIP-related code for better performance and maintainability.
+- **Simplified packaging**: Local ZIP creation is no longer part of the generation flow; packaging happens on the API side.
 
 ## Features
 
@@ -22,10 +22,10 @@ A Google Sheets plugin for generating and importing `.comapeocat` category files
 
 ### Build Endpoint
 
-The plugin uses `POST /build` with JSON payload:
+The plugin uses the v2 JSON build endpoint:
 
 ```
-POST http://your-server:3000/build
+POST http://your-server:3000/v2
 Content-Type: application/json
 ```
 
@@ -40,6 +40,7 @@ Content-Type: application/json
     "builderName": "comapeo-config-spreadsheet-plugin",
     "builderVersion": "2.0.0"
   },
+  "locales": ["en"],
   "categories": [
     {
       "id": "trees",
@@ -107,45 +108,7 @@ Categories are processed in the exact order they appear in the spreadsheet. The 
 
 ## Spreadsheet Structure
 
-### Categories Sheet
-| Column A | Column B | Column C | Column D | Column E | Column F |
-|----------|----------|----------|----------|----------|----------|
-| Name     | Icon URL | Fields   | Applies  | Category ID | Icon ID  |
-| Trees    | http://... | species, diameter | observation, track | trees | trees |
-
-- **Column A (Name)**: Category name (Required)
-- **Column B (Icon URL)**: SVG/PNG data or URL to icon (Required) - supports Drive URLs, data URIs, inline SVG, or auto-generated from https://icons.earthdefenderstoolkit.com
-- **Column C (Fields)**: Comma-separated list of field names from Details sheet
-- **Column D (Applies)**: What this category applies to: `observation`, `track`, or both (comma-separated). Accepts shorthand: `o`, `t`. Defaults to `observation` if blank. **At least one category must include `track`.**
-- **Column E (Category ID)**: Category ID (auto-generated from name if blank)
-- **Column F (Icon ID)**: Icon ID (auto-generated from Category ID if blank)
-
-### Details Sheet
-| Column A | Column B | Column C | Column D | Column E | Column F |
-|----------|----------|----------|----------|----------|----------|
-| Name     | Helper Text | Type | Options | Field ID | Universal |
-| Species  | Select tree species | s | Oak, Pine | species | FALSE |
-| Diameter | Enter trunk diameter | n | | diameter | FALSE |
-
-- **Column A (Name)**: Field name (Required)
-- **Column B (Helper Text)**: Help text shown to users
-- **Column C (Type)**: Single-character type code (see below). Defaults to `s` (select) if blank.
-- **Column D (Options)**: For select/multiselect, comma-separated options (Required for type `s` or `m`)
-- **Column E (Field ID)**: Field ID (auto-generated from name if blank)
-- **Column F (Universal)**: TRUE if field appears in all categories automatically
-
-**Type codes:**
-- `t` = text (single line)
-- `T` = textarea (multi-line)
-- `n` = number
-- `i` = integer
-- `s` or blank = select (single choice dropdown)
-- `m` = multiselect (multiple choice)
-- `b` = boolean
-- `d` = date
-- `D` = datetime
-- `p` = photo
-- `l` = location
+The User Guide is the canonical source for sheet tabs, columns, and rules. See `USER_GUIDE.md` (Understanding Your Spreadsheet).
 
 ## Installation
 
@@ -214,11 +177,7 @@ Tests cover:
 
 ## Sharing Configurations
 
-After generating a `.comapeocat` file:
-1. The file is saved to your computer's Downloads folder
-2. Upload it to Google Drive (or any cloud storage)
-3. Share the Drive link with CoMapeo users
-4. Users can download directly on their phone from the Drive link and import into CoMapeo
+After generating a `.comapeocat` file, the plugin saves it to a Drive folder and provides a link for sharing. See `USER_GUIDE.md` for the current end-to-end sharing steps.
 
 ## License
 
@@ -228,4 +187,5 @@ For more information on using clasp, refer to the [@google/clasp documentation](
 
 ## Project Documentation
 
-All architectural references, process guides, and sprint notes live under [`docs/`](docs/README.md). Start with the documentation index to find the right reference quickly.
+- **User Guide is the source of truth** for user-facing behavior and spreadsheet structure: see [`USER_GUIDE.md`](USER_GUIDE.md).
+- All architectural references, process guides, and sprint notes live under [`docs/`](docs/README.md). Start with the documentation index to find the right reference quickly.

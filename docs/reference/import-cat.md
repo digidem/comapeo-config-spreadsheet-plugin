@@ -2,14 +2,14 @@
 
 ## Overview
 
-The import category feature allows users to import existing `.comapeocat` files back into the spreadsheet format. This reverse-engineering process extracts metadata, presets, fields, icons, and translations from the packaged configuration file.
+The import category feature allows users to import existing `.comapeocat` or `.mapeosettings` files back into the spreadsheet format. This reverse-engineering process extracts metadata, presets, fields, icons, and translations from the packaged configuration file.
 
 ## Current Process Flow
 
 ```
-User Upload (.comapeocat file)
+User Upload (.comapeocat or .mapeosettings file)
     ↓
-extractTarFile() - Extract archive to temp folder
+extractAndValidateFile() - Detect format (ZIP/TAR/JSON) and extract to temp folder
     ↓
 parseExtractedFiles() - Parse JSON files
     ↓
@@ -231,7 +231,7 @@ options = Object.entries(field.options).map(([key, value]) => ({
 
 ### Priority 1A: Icon Extraction from .mapeosettings (Critical)
 
-**File**: `src/importCategory/extractTarFile.ts`
+**File**: `src/importCategory/fileExtractor.ts`
 
 **Problem**: When .mapeosettings files are parsed as JSON (lines 46-92), icon data is ignored, resulting in no icons during import.
 
@@ -576,7 +576,7 @@ testTranslationExtraction()    // Translation extraction test
 
 ### Core Import Flow
 - `src/importCategory.ts` - Entry point
-- `src/importCategory/extractTarFile.ts` - Archive extraction
+- `src/importCategory/fileExtractor.ts` - Archive extraction and format detection
 - `src/importCategory/parseFiles.ts` - JSON parsing
 - `src/importCategory/applyConfiguration.ts` - Orchestration
 
@@ -601,11 +601,12 @@ testTranslationExtraction()    // Translation extraction test
 
 ---
 
-## .mapeosettings / .comapeocat TAR Archive Structure
+## .mapeosettings TAR Archive Structure
 
 ### Overview
 
-`.mapeosettings` and `.comapeocat` files are **POSIX TAR archives** (often gzip compressed) containing configuration data, icons, and translations for Mapeo/CoMapeo applications.
+`.mapeosettings` files are **POSIX TAR archives** (often gzip compressed) containing configuration data, icons, and translations for Mapeo/CoMapeo applications.
+`.comapeocat` files are **ZIP archives**; see `docs/reference/comapeocat-format.md` for the ZIP layout.
 
 **Test File**: `src/test/mapeo-default-min.mapeosettings`
 - **Archive Format**: POSIX tar (gzip compressed)
@@ -925,7 +926,7 @@ After implementing icon extraction:
 
 ### Related Implementation Files
 
-- `src/importCategory/extractTarFile.ts` - TAR extraction logic
+- `src/importCategory/fileExtractor.ts` - TAR extraction logic
 - `src/importCategory/parseIconSprite.ts` - SVG sprite parsing
 - `src/importCategory/applyCategories.ts` - Apply icons to Categories sheet
 - `src/icons.ts` - Icon generation reference for export

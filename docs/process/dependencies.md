@@ -42,8 +42,8 @@ These are built-in APIs provided by Google Apps Script runtime:
   - Primary operations: Read/write cells, create sheets, format ranges
 
 - **DriveApp**: Google Drive file operations API
-  - Used in: `driveService.ts`, `importCategory/extractTarFile.ts`
-  - Primary operations: Create folders, save files, manage ZIP archives
+  - Used in: `driveService.ts`, `importCategory/fileExtractor.ts`
+  - Primary operations: Create folders, save files, manage import/export assets
 
 - **UrlFetchApp**: HTTP request API
   - Used in: `apiService.ts`, `iconApi.ts`, `spreadsheetData.ts`
@@ -54,8 +54,8 @@ These are built-in APIs provided by Google Apps Script runtime:
   - Primary operations: Translate text between languages using Google Translate
 
 - **Utilities**: Utility functions API
-  - Used in: `driveService.ts`, `apiService.ts`, `generateConfig/processMetadata.ts`
-  - Primary operations: Create ZIP files, sleep/retry logic, date formatting
+  - Used in: `driveService.ts`, `apiService.ts`, `importCategory/fileExtractor.ts`
+  - Primary operations: ZIP/Unzip helpers, sleep/retry logic, date formatting
 
 - **PropertiesService**: Persistent storage API
   - Used in: `apiService.ts`
@@ -78,7 +78,7 @@ These are built-in APIs provided by Google Apps Script runtime:
 
 - **CoMapeo Build API**: `http://137.184.153.36:3000/` (configurable)
   - Used in: `apiService.ts`
-  - Purpose: Convert ZIP to final .comapeocat package
+  - Purpose: Accept JSON build payload at `/v2` and return a `.comapeocat` ZIP
   - Retry logic: 3 attempts with exponential backoff
 
 - **GitHub Languages API**: `https://unpkg.com/@cospired/i18n-iso-languages@4.3.0/langs/en.json`
@@ -97,19 +97,15 @@ These are built-in APIs provided by Google Apps Script runtime:
 
 **Dependencies**:
 - `spreadsheetData.ts`: Get spreadsheet data
-- `generateConfig/processMetadata.ts`: Generate metadata
-- `generateConfig/processFields.ts`: Process field definitions
-- `generateConfig/processPresets.ts`: Process category definitions
-- `generateConfig/processTranslations.ts`: Process translations
-- `driveService.ts`: Save config to Drive and create ZIP
-- `apiService.ts`: Send ZIP to API for final packaging
+- `builders/payloadBuilder.ts`: Build JSON payload
+- `apiService.ts`: Send JSON build request and save `.comapeocat` to Drive
 - `dialog.ts`: Show progress and results
-- `translation.ts`: Auto-translate sheets
+- `lint.ts`: Validate sheets
 - `validation.ts`: Validate configuration
 - `logger.ts`: Logging
 - `utils.ts`: Utility functions
 
-**Data Flow**: Orchestrator → Processors → Drive → API → User
+**Data Flow**: Orchestrator → Payload Builder → API → Drive → User
 
 ---
 
@@ -117,7 +113,7 @@ These are built-in APIs provided by Google Apps Script runtime:
 **Purpose**: Main entry point for importing .comapeocat files
 
 **Dependencies**:
-- `importCategory/extractTarFile.ts`: Extract tar archive
+- `importCategory/fileExtractor.ts`: Extract ZIP/TAR archives
 - `importCategory/parseFiles.ts`: Parse JSON config files
 - `importCategory/parseIconSprite.ts`: Extract SVG icons from sprite
 - `importCategory/applyConfiguration.ts`: Main orchestrator for applying config
@@ -184,48 +180,59 @@ These are built-in APIs provided by Google Apps Script runtime:
 
 ### Processing Modules
 
+#### `builders/payloadBuilder.ts`
+**Purpose**: Build the v2 JSON payload from `SheetData`
+
+**Dependencies**:
+- `spreadsheetData.ts`: SheetData shape and helpers
+- `utils.ts`: slugify helpers
+
+**Called By**: `generateCoMapeoConfig.ts`
+
+---
+
 #### `generateConfig/processMetadata.ts`
-**Purpose**: Generate metadata and package.json
+**Purpose**: Legacy metadata/package.json generator (pre-v2)
 
 **Dependencies**:
 - `utils.ts`: slugify()
 - Google Utilities: Date formatting
 
-**Called By**: `generateCoMapeoConfig.ts`
+**Called By**: Legacy build flow (not used in v2)
 
 ---
 
 #### `generateConfig/processFields.ts`
-**Purpose**: Convert spreadsheet fields to CoMapeo field format
+**Purpose**: Legacy field processor (pre-v2)
 
 **Dependencies**:
 - `utils.ts`: slugify(), getFieldType(), getFieldOptions()
 - `validation.ts`: validateFieldDefinition()
 
-**Called By**: `generateCoMapeoConfig.ts`
+**Called By**: Legacy build flow (not used in v2)
 
 ---
 
 #### `generateConfig/processPresets.ts`
-**Purpose**: Convert spreadsheet categories to CoMapeo preset format
+**Purpose**: Legacy preset processor (pre-v2)
 
 **Dependencies**:
 - `utils.ts`: slugify()
 - `validation.ts`: validateCategoryDefinition()
 
-**Called By**: `generateCoMapeoConfig.ts`
+**Called By**: Legacy build flow (not used in v2)
 
 ---
 
 #### `generateConfig/processTranslations.ts`
-**Purpose**: Aggregate translations from all translation sheets
+**Purpose**: Legacy translation aggregator (pre-v2)
 
 **Dependencies**:
 - `spreadsheetData.ts`: getPrimaryLanguage(), getAllLanguages(), sheets()
 - `utils.ts`: getFieldType()
 - `logger.ts`: Logging (implicit via console.log)
 
-**Called By**: `generateCoMapeoConfig.ts`
+**Called By**: Legacy build flow (not used in v2)
 
 ---
 
@@ -249,7 +256,7 @@ These are built-in APIs provided by Google Apps Script runtime:
 
 ---
 
-#### `importCategory/extractTarFile.ts`
+#### `importCategory/fileExtractor.ts`
 **Purpose**: Extract tar archive to Google Drive temp folder
 
 **Dependencies**:
@@ -335,17 +342,17 @@ These are built-in APIs provided by Google Apps Script runtime:
 ### Service Modules
 
 #### `driveService.ts`
-**Purpose**: Google Drive operations (folders, files, ZIP archives)
+**Purpose**: Google Drive operations (folders, files, optional ZIP helpers)
 
 **Dependencies**:
 - Google DriveApp: Folder/file operations
-- Google Utilities: ZIP creation, sleep
+- Google Utilities: ZIP creation (shareable bundles), sleep
 - `generateIcons/iconProcessor.ts`: processIcons()
 - `utils.ts`: slugify()
 - `logger.ts`: Logging
 
 **Called By**:
-- `generateCoMapeoConfig.ts`: Save config and create ZIP
+- `apiService.ts`: Get config folder and save build outputs
 - `icons.ts`: Get config folder
 - `cleanup.ts`: Get config folder for cleanup
 
@@ -358,7 +365,7 @@ These are built-in APIs provided by Google Apps Script runtime:
 - Google UrlFetchApp: HTTP requests
 - Google PropertiesService: Store API URL
 - Google Utilities: Sleep for retry
-- `driveService.ts`: saveZipToDrive()
+- `driveService.ts`: getConfigFolder()
 - `logger.ts`: Logging (implicit via console.log)
 
 **Called By**: `generateCoMapeoConfig.ts`
@@ -463,49 +470,19 @@ User Action (Menu: "Generate CoMapeo Category")
   ↓
 generateCoMapeoConfig.ts (Entry Point)
   ↓
-dialog.ts → Show language selection dialog
+lint.ts → Validate sheets + translation mismatches
   ↓
-User selects target languages
+spreadsheetData.ts → Get all sheet data
   ↓
-processDataForCoMapeo() orchestration:
-  │
-  ├─→ spreadsheetData.ts → Get all sheet data
-  │
-  ├─→ translation.ts → Auto-translate sheets (if languages selected)
-  │
-  ├─→ validation.ts → Validate sheet data
-  │
-  ├─→ processMetadata.ts → Generate metadata + package.json
-  │
-  ├─→ processFields.ts → Convert Details sheet to fields
-  │   └─→ validation.ts → Validate each field
-  │
-  ├─→ processPresets.ts → Convert Categories sheet to presets
-  │   └─→ validation.ts → Validate each category
-  │
-  └─→ processTranslations.ts → Aggregate all translation sheets
-  │
+builders/payloadBuilder.ts → Build JSON payload
   ↓
-CoMapeoConfig object created
+apiService.ts → sendBuildRequest() (POST /v2)
   ↓
-driveService.ts → saveConfigToDrive()
-  ├─→ Create folder structure in Drive
-  ├─→ Save JSON files (fields, presets, metadata, package.json)
-  ├─→ iconProcessor.ts → Process and save icons
-  │   └─→ iconApi.ts → Fetch icons from API
-  └─→ Save translations
+apiService.ts → saveComapeocatToDrive() (Drive builds folder)
   ↓
-driveService.ts → saveDriveFolderToZip()
-  └─→ Create ZIP archive of all files
+dialog.ts → Show success dialog with Drive link
   ↓
-apiService.ts → sendDataToApiAndGetZip()
-  └─→ POST ZIP to external API
-  └─→ Receive .comapeocat file
-  └─→ saveZipToDrive() → Save to "builds" folder
-  ↓
-dialog.ts → Show success dialog with download link
-  ↓
-User downloads .comapeocat file
+User downloads .comapeocat file from Drive
 ```
 
 ---
@@ -523,7 +500,7 @@ importCategory.ts (Entry Point)
   ↓
 importProgressHandler.ts → Show progress dialog
   ↓
-extractTarFile.ts → Extract tar archive to Drive temp folder
+fileExtractor.ts → Extract ZIP/TAR archive to Drive temp folder
   ↓
 parseFiles.ts → Parse all JSON config files
   │
@@ -746,7 +723,7 @@ generateCoMapeoConfig.ts
 ```
 importCategory.ts
 ├── importDropzone.ts
-├── importCategory/extractTarFile.ts
+├── importCategory/fileExtractor.ts
 │   ├── importCategory/debugLogger.ts
 │   └── utils.ts
 ├── importCategory/parseFiles.ts
@@ -865,7 +842,7 @@ All modules depend on Google Apps Script runtime APIs:
 - SpreadsheetApp (most common)
 - DriveApp (file operations)
 - UrlFetchApp (HTTP requests)
-- Utilities (ZIP, sleep, date formatting)
+- Utilities (ZIP/Unzip, sleep, date formatting)
 - LanguageApp (translation)
 - PropertiesService (configuration)
 - CacheService (caching)
@@ -885,7 +862,7 @@ All modules depend on Google Apps Script runtime APIs:
 ### Module Design Patterns
 
 - **Entry Points**: Orchestrate workflows (generateCoMapeoConfig.ts, importCategory.ts)
-- **Processors**: Transform data (processFields.ts, processPresets.ts, processTranslations.ts)
+- **Processors**: Transform data (`builders/payloadBuilder.ts`; legacy processors in `generateConfig/*`)
 - **Services**: Interface with external systems (apiService.ts, driveService.ts)
 - **Utilities**: Shared helper functions (utils.ts, logger.ts, validation.ts)
 - **Data**: Pure data modules (languagesFallback.ts, dialog text files)
