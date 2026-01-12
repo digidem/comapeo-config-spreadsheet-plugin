@@ -1,13 +1,13 @@
-# CoMapeo Config Spreadsheet Plugin: Architecture
+# CoMapeo Category Set Spreadsheet Plugin: Architecture
 
-This document provides a comprehensive technical reference for the CoMapeo Config Spreadsheet Plugin architecture, including system design, data flow, and module organization.
+This document provides a comprehensive technical reference for the CoMapeo Category Set Spreadsheet Plugin architecture, including system design, data flow, and module organization.
 
 **Audience**: Developers, AI assistants, and technical contributors
 **For Users**: See [USER_GUIDE.md](../USER_GUIDE.md) for end-user documentation
 
 ## Overview
 
-The CoMapeo Config Spreadsheet Plugin is a Google Apps Script application that allows users to create and manage configuration files for the CoMapeo mapping application directly from Google Spreadsheets. It streamlines the process of creating `.comapeocat` category files, which define the data collection schema for CoMapeo projects.
+The CoMapeo Category Set Spreadsheet Plugin is a Google Apps Script application that allows users to create and manage configuration files for the CoMapeo mapping application directly from Google Spreadsheets. It streamlines the process of creating `.comapeocat` category files, which define the data collection schema for CoMapeo projects.
 
 ## Project Structure
 
@@ -241,4 +241,4 @@ The plugin includes several security features:
 
 ## Conclusion
 
-The CoMapeo Config Spreadsheet Plugin provides a user-friendly interface for creating and managing CoMapeo configuration files directly from Google Spreadsheets. It streamlines the process of defining data collection schemas, generating icons, and translating content, making it easier for users to create and maintain CoMapeo projects.
+The CoMapeo Category Set Spreadsheet Plugin provides a user-friendly interface for creating and managing CoMapeo configuration files directly from Google Spreadsheets. It streamlines the process of defining data collection schemas, generating icons, and translating content, making it easier for users to create and maintain CoMapeo projects.

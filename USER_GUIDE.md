@@ -1,4 +1,4 @@
-# CoMapeo Configuration Spreadsheet Plugin - User Guide
+# CoMapeo Category Set Spreadsheet Plugin - User Guide
 
 ## Table of Contents
 - [Overview](#overview)
@@ -13,7 +13,7 @@
 
 ## Overview
 
-The CoMapeo Configuration Spreadsheet Plugin allows you to create and manage CoMapeo field data collection configurations directly in Google Sheets. This tool transforms your spreadsheet data into `.comapeocat` files that can be loaded into the CoMapeo mobile app for field data collection.
+The CoMapeo Category Set Spreadsheet Plugin allows you to create and manage CoMapeo field data collection configurations directly in Google Sheets. This tool transforms your spreadsheet data into `.comapeocat` files that can be loaded into the CoMapeo mobile or desktop app for field data collection.
 
 **What you can do:**
 - Define observation categories (e.g., River, Building, Animal)
@@ -29,7 +29,7 @@ The CoMapeo Configuration Spreadsheet Plugin allows you to create and manage CoM
 
 ### Prerequisites
 - A Google account with access to Google Sheets
-- The CoMapeo Config Spreadsheet template: https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
+- The CoMapeo Category Set Spreadsheet template: https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
 
 ### First Steps
 1. **Make a copy** of the template spreadsheet
@@ -148,7 +148,7 @@ The best results come from pasting inline SVG from the Icon App directly:
   - `t` or `text` - Free-form text input
   - `n` or `number` - Numeric input
   - `m` or `multiple` - Multiple choice (checkboxes)
-  - Blank or `s` or `select` - Single choice (dropdown)
+  - Blank or `s` or `select` - Single choice (checkbox)
   - Case insensitive: `TEXT`, `Text`, `text` all work
 
 - **Options** (Column D, Required for select fields): Comma-separated choices
@@ -167,6 +167,7 @@ The best results come from pasting inline SVG from the Icon App directly:
   - `TRUE` - Available to all categories automatically
   - `FALSE` or blank - Only for categories that list this field
   - Must be exactly `TRUE` or `FALSE` (not "Yes", "No", etc.)
+  - ⚠️ **Not implemented in CoMapeo app** — This field currently has no effect
 
 **Example rows:**
 | Name | Helper Text | Type | Options | | Universal |
@@ -194,7 +195,7 @@ Translations of field names
 Translations of the helper text/questions
 
 #### 6. Detail Option Translations
-Translations of dropdown/multiple choice options
+Translations of multiple choice options
 
 **Translation Sheet Structure:**
 - **Column A**: Auto-synced from source sheet (Categories or Details) via formula
@@ -506,15 +507,15 @@ If you just generated the file, it is already saved to your Google Drive folder.
 
 3. **Share the link** with CoMapeo users (email, WhatsApp, etc.)
 
-**Loading on Mobile Device:**
+**Loading on Mobile or Desktop:**
 
-**📸 Screenshot placeholder:** *Mobile device showing downloading from Drive link*
+**📸 Screenshot placeholder:** *Device showing downloading from Drive link*
 
-1. **On mobile device**, open the Drive link you received
-2. **Download the file** from Google Drive to your phone
+1. **On your device**, open the Drive link you received
+2. **Download the file** from Google Drive to your device
 3. **Open CoMapeo app**
-4. Go to **Settings → Configuration**
-5. Tap **"Import Configuration"**
+4. Go to **Menu → Coordinator Tools → Update Project Categories → Import**
+5. Select **"Import Categories"**
 6. Select the downloaded `.comapeocat` file
 7. **Verify:**
    - Check that all categories appear

@@ -1,6 +1,6 @@
-# CoMapeo Config Spreadsheet Plugin - Documentation
+# CoMapeo Category Set Spreadsheet Plugin - Documentation
 
-Welcome to the documentation for the CoMapeo Configuration Spreadsheet Plugin.
+Welcome to the documentation for the CoMapeo Category Set Spreadsheet Plugin.
 
 **Source of truth:** `USER_GUIDE.md` is authoritative for user-facing behavior, menu labels, and spreadsheet structure. Other docs should defer to it.
 

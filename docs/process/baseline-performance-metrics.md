@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document captures the baseline performance metrics for the CoMapeo Config Spreadsheet Plugin. These metrics serve as the reference point for measuring performance improvements or regressions in future development work.
+This document captures the baseline performance metrics for the CoMapeo Category Set Spreadsheet Plugin. These metrics serve as the reference point for measuring performance improvements or regressions in future development work.
 
 **Critical**: All future code changes should be compared against these baseline metrics to ensure no performance degradation.
 

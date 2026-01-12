@@ -1,4 +1,4 @@
-# CoMapeo Config Spreadsheet Plugin - AI Agent Guidelines
+# CoMapeo Category Set Spreadsheet Plugin - AI Agent Guidelines
 
 **Mission:** Maintain and enhance the Google Apps Script plugin that generates `.comapeocat` configuration files from Google Spreadsheets.
 

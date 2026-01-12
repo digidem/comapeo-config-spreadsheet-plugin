@@ -2,7 +2,7 @@
 
 **Last Updated**: 2025-10-12
 
-Complete documentation of module dependencies, data flow patterns, and external dependencies for the CoMapeo Config Spreadsheet Plugin.
+Complete documentation of module dependencies, data flow patterns, and external dependencies for the CoMapeo Category Set Spreadsheet Plugin.
 
 ## Table of Contents
 

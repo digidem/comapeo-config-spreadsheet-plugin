@@ -1,4 +1,4 @@
-# CoMapeo Configuration Spreadsheet Plugin - Linting Guide
+# CoMapeo Category Set Spreadsheet Plugin - Linting Guide
 
 This guide expands on the linting overview in the user guide. For general setup and workflow, see [USER_GUIDE.md](../USER_GUIDE.md).
 
@@ -99,7 +99,7 @@ The linter highlights cells with different colors based on error severity:
 
 **Examples:**
 - Field type is `x` (should be `t`, `n`, `m`, or `s`)
-- Dropdown field has no options
+- Single choice field has no options
 - Universal column contains "Yes" instead of "TRUE"
 - Two categories both named "River"
 - Detail Option Translations has 3 options but source has 4
@@ -107,7 +107,7 @@ The linter highlights cells with different colors based on error severity:
 
 **How to fix:**
 - Correct field types to valid codes (`t`, `n`, `m`, `s`, or blank)
-- Add options for dropdown/multiple choice fields
+- Add options for single/multiple choice fields
 - Change Universal to `TRUE`, `FALSE`, or leave blank
 - Rename duplicates to unique values or delete duplicate rows
 - Fix option count mismatches in translations (ensure same number of comma-separated values)
@@ -193,7 +193,7 @@ The linter highlights cells with different colors based on error severity:
      - `t`/`text` = text (free-form)
      - `n`/`number` = number
      - `m`/`multiple` = multiple-select (checkboxes)
-     - `s`/`select` or blank = select-one (dropdown)
+     - `s`/`select` or blank = select-one (single choice checkbox)
 
 4. **Options column (D):**
    - ✅ Auto-capitalizes and formats comma lists
