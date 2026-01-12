@@ -94,7 +94,9 @@ function validateSvgFormat(svgContent: string): ValidationResult {
     // Check for namespace (recommended but not strictly required)
     const namespace = root.getNamespace();
     if (!namespace || !namespace.getURI()) {
-      console.warn("SVG missing namespace declaration - may cause rendering issues");
+      console.warn(
+        "SVG missing namespace declaration - may cause rendering issues",
+      );
       // Don't fail, just warn
     }
 
@@ -178,8 +180,9 @@ function validateDriveAccess(fileId: string): ValidationResult {
  * - Inline SVG markup (<svg>...</svg>)
  * - Google Drive URLs (https://drive.google.com/file/d/...)
  * - Data URIs (data:image/svg+xml,...)
+ * - Plain text search terms (e.g., "river", "building", "tree")
  *
- * @param iconUrl - The URL or data URI to validate
+ * @param iconUrl - The URL, data URI, or search term to validate
  * @returns Validation result with URL details
  */
 function validateIconUrl(iconUrl: string): ValidationResult {
@@ -217,11 +220,14 @@ function validateIconUrl(iconUrl: string): ValidationResult {
     return validateSvgFormat(trimmed);
   }
 
-  // Unsupported URL format
+  // Plain text search term - any non-empty string is valid
+  // These will be passed to the icon API as search terms
   return {
-    valid: false,
-    error: "Unsupported icon format (must be Drive URL, SVG data URI, or inline SVG)",
-    context: { url: trimmed.substring(0, 100) },
+    valid: true,
+    context: {
+      type: "search-term",
+      searchTerm: trimmed,
+    },
   };
 }
 
@@ -276,7 +282,8 @@ function validateSvgContent(svgContent: string): ValidationResult {
     if (!hasNamespace) {
       return {
         valid: false,
-        error: "SVG missing namespace declaration (xmlns=\"http://www.w3.org/2000/svg\")",
+        error:
+          'SVG missing namespace declaration (xmlns="http://www.w3.org/2000/svg")',
         context: { recommendation: "Add xmlns attribute to <svg> tag" },
       };
     }
@@ -304,7 +311,7 @@ function validateSvgContent(svgContent: string): ValidationResult {
         hasNamespace: true,
         hasViewBox: Boolean(viewBox),
         childCount: children.length,
-        childTypes: children.map(c => c.getName()),
+        childTypes: children.map((c) => c.getName()),
       },
     };
   } catch (error) {
