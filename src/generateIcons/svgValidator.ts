@@ -175,6 +175,7 @@ function validateDriveAccess(fileId: string): ValidationResult {
  * Validates an icon URL format and accessibility
  *
  * Supports:
+ * - Inline SVG markup (<svg>...</svg>)
  * - Google Drive URLs (https://drive.google.com/file/d/...)
  * - Data URIs (data:image/svg+xml,...)
  *
@@ -189,31 +190,38 @@ function validateIconUrl(iconUrl: string): ValidationResult {
     };
   }
 
+  const trimmed = iconUrl.trim();
+
   // Data URI validation
-  if (iconUrl.startsWith("data:image/svg+xml")) {
+  if (trimmed.startsWith("data:image/svg+xml")) {
     // Extract and validate the SVG content
-    return validateSvgFormat(iconUrl);
+    return validateSvgFormat(trimmed);
   }
 
   // Drive URL validation
-  if (iconUrl.startsWith("https://drive.google.com/file/d/")) {
+  if (trimmed.startsWith("https://drive.google.com/file/d/")) {
     try {
-      const fileId = iconUrl.split("/d/")[1].split("/")[0];
+      const fileId = trimmed.split("/d/")[1].split("/")[0];
       return validateDriveAccess(fileId);
     } catch (error) {
       return {
         valid: false,
         error: "Invalid Drive URL format",
-        context: { url: iconUrl, originalError: error.message },
+        context: { url: trimmed, originalError: error.message },
       };
     }
+  }
+
+  // Inline SVG markup validation
+  if (trimmed.includes("<svg") && trimmed.includes("</svg>")) {
+    return validateSvgFormat(trimmed);
   }
 
   // Unsupported URL format
   return {
     valid: false,
-    error: "Unsupported icon URL format (must be Drive URL or SVG data URI)",
-    context: { url: iconUrl.substring(0, 100) },
+    error: "Unsupported icon format (must be Drive URL, SVG data URI, or inline SVG)",
+    context: { url: trimmed.substring(0, 100) },
   };
 }
 

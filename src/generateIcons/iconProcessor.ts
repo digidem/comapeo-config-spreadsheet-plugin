@@ -237,6 +237,14 @@ function processIconImage(
   targetFolder?: GoogleAppsScript.Drive.Folder,
 ): string {
   try {
+    if (isInlineSvg(iconImage)) {
+      return iconImage.trim();
+    }
+
+    if (isSvgDataUri(iconImage)) {
+      return iconImage.trim();
+    }
+
     if (isGoogleDriveIcon(iconImage)) {
       // Only process Drive URLs (not data URIs)
       if (iconImage.startsWith("https://drive.google.com/file/d/")) {
@@ -285,6 +293,21 @@ function isGoogleDriveIcon(iconImage: any): boolean {
   return (
     typeof iconImage === "string" &&
     iconImage.startsWith("https://drive.google.com")
+  );
+}
+
+function isInlineSvg(iconImage: any): boolean {
+  return (
+    typeof iconImage === "string" &&
+    iconImage.includes("<svg") &&
+    iconImage.includes("</svg>")
+  );
+}
+
+function isSvgDataUri(iconImage: any): boolean {
+  return (
+    typeof iconImage === "string" &&
+    iconImage.trim().startsWith("data:image/svg+xml")
   );
 }
 
@@ -411,6 +434,13 @@ function getIconContent(
   mimeType: string;
   error?: string;
 } {
+  if (icon.svg.trim().startsWith("<svg")) {
+    return {
+      iconContent: icon.svg.trim(),
+      mimeType: MimeType.SVG,
+    };
+  }
+
   if (icon.svg.startsWith("data:image/svg+xml,")) {
     try {
       const content = decodeURIComponent(
