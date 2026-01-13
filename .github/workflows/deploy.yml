@@ -22,15 +22,42 @@ jobs:
           echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}"}' > .clasp.json
 
+      - name: Validate CLASPRC_JSON secret is present
+        id: validate-clasprc-secret
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then
+            echo "::error::Missing or empty CLASPRC_JSON secret. Add the raw contents of ~/.clasprc.json to repo secrets."
+            echo "HINT: If you are using environment secrets, set 'environment:' on the job so secrets are available."
+            exit 1
+          fi
+          echo "CLASPRC_JSON secret present (length: ${#CLASPRC_JSON})"
+
       - name: Validate .clasprc.json content
         id: validate-clasprc
         run: |
-          if jq -e . ~/.clasprc.json >/dev/null 2>&1; then
-            echo "Valid JSON in .clasprc.json"
-          else
-            echo "Invalid JSON in .clasprc.json"
+          if [ ! -s ~/.clasprc.json ]; then
+            echo "::error::~/.clasprc.json is missing or empty after writing CLASPRC_JSON secret."
             exit 1
           fi
+          if jq -e 'type == "object"' ~/.clasprc.json >/dev/null 2>&1; then
+            echo "Valid JSON object in .clasprc.json"
+            exit 0
+          fi
+          if jq -e 'type == "string"' ~/.clasprc.json >/dev/null 2>&1; then
+            echo "::error::CLASPRC_JSON looks like JSON encoded as a string."
+            echo "HINT: Store raw JSON without wrapping quotes."
+            exit 1
+          fi
+          if base64 -d ~/.clasprc.json >/dev/null 2>&1 && base64 -d ~/.clasprc.json | jq -e 'type == "object"' >/dev/null 2>&1; then
+            echo "::error::CLASPRC_JSON appears to be base64-encoded JSON."
+            echo "HINT: Decode it in the workflow before writing."
+            exit 1
+          fi
+          echo "::error::Invalid JSON in CLASPRC_JSON secret."
+          echo "HINT: Ensure CLASPRC_JSON is a valid JSON object like the contents of ~/.clasprc.json."
+          exit 1
 
       - name: Check .clasp.json and .clasprc.json content
         id: check-clasp-files
