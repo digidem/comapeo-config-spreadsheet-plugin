@@ -2,6 +2,7 @@
 /// <reference path="../spreadsheetData.ts" />
 /// <reference path="../validation.ts" />
 /// <reference path="../languageLookup.ts" />
+/// <reference path="../translationHeaderResolver.ts" />
 
 /**
  * Integration Tests for Dual-Name Language Recognition
@@ -245,7 +246,52 @@ function testLanguageRecognitionIntegration(): void {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // GROUP 7: Lookup System Consistency
+  // GROUP 7: Translation Header Resolver
+  // Ensures header parsing supports names, native names, ISO, and Name-ISO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  runTest("Translation header resolver supports mixed formats", () => {
+    const allLanguages = getAllLanguages();
+    const resolveHeader = createTranslationHeaderResolver(allLanguages);
+
+    const spanish = resolveHeader("Spanish");
+    if (spanish !== "es") {
+      throw new Error(`Expected "es" for Spanish, got "${spanish}"`);
+    }
+
+    const spanishNative = resolveHeader("Español");
+    if (spanishNative !== "es") {
+      throw new Error(`Expected "es" for Español, got "${spanishNative}"`);
+    }
+
+    const zhCn = resolveHeader("zh-CN");
+    if (!zhCn || zhCn.toLowerCase() !== "zh-cn") {
+      throw new Error(`Expected "zh-CN" for zh-CN, got "${zhCn}"`);
+    }
+
+    const zhCnNamed = resolveHeader("Chinese Simplified - zh-CN");
+    if (!zhCnNamed || zhCnNamed.toLowerCase() !== "zh-cn") {
+      throw new Error(`Expected "zh-CN" for Chinese Simplified - zh-CN, got "${zhCnNamed}"`);
+    }
+
+    const custom = resolveHeader("Quechua - quz");
+    if (custom !== "quz") {
+      throw new Error(`Expected "quz" for Quechua - quz, got "${custom}"`);
+    }
+
+    const esLatam = resolveHeader("es-419");
+    if (!esLatam || esLatam.toLowerCase() !== "es-419") {
+      throw new Error(`Expected "es-419" for es-419, got "${esLatam}"`);
+    }
+
+    const esLatamNamed = resolveHeader("Spanish - es-419");
+    if (!esLatamNamed || esLatamNamed.toLowerCase() !== "es-419") {
+      throw new Error(`Expected "es-419" for Spanish - es-419, got "${esLatamNamed}"`);
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GROUP 8: Lookup System Consistency
   // Verifies internal consistency of the lookup system
   // ═══════════════════════════════════════════════════════════════════════
 

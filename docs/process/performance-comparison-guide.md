@@ -9,7 +9,7 @@
 
 ## Overview
 
-This guide explains how to use the performance comparison framework to monitor and detect performance regressions in the CoMapeo Config Spreadsheet Plugin. The framework enables developers to:
+This guide explains how to use the performance comparison framework to monitor and detect performance regressions in the CoMapeo Category Set Spreadsheet Plugin. The framework enables developers to:
 
 - Compare current performance to baseline metrics
 - Detect performance regressions automatically

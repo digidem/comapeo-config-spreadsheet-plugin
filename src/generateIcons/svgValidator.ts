@@ -94,7 +94,9 @@ function validateSvgFormat(svgContent: string): ValidationResult {
     // Check for namespace (recommended but not strictly required)
     const namespace = root.getNamespace();
     if (!namespace || !namespace.getURI()) {
-      console.warn("SVG missing namespace declaration - may cause rendering issues");
+      console.warn(
+        "SVG missing namespace declaration - may cause rendering issues",
+      );
       // Don't fail, just warn
     }
 
@@ -175,10 +177,13 @@ function validateDriveAccess(fileId: string): ValidationResult {
  * Validates an icon URL format and accessibility
  *
  * Supports:
+ * - Inline SVG markup (<svg>...</svg>)
  * - Google Drive URLs (https://drive.google.com/file/d/...)
  * - Data URIs (data:image/svg+xml,...)
+ * - External HTTPS URLs
+ * - Plain text search terms (e.g., "river", "building", "tree")
  *
- * @param iconUrl - The URL or data URI to validate
+ * @param iconUrl - The URL, data URI, or search term to validate
  * @returns Validation result with URL details
  */
 function validateIconUrl(iconUrl: string): ValidationResult {
@@ -189,31 +194,55 @@ function validateIconUrl(iconUrl: string): ValidationResult {
     };
   }
 
+  const trimmed = iconUrl.trim();
+
   // Data URI validation
-  if (iconUrl.startsWith("data:image/svg+xml")) {
+  if (trimmed.startsWith("data:image/svg+xml")) {
     // Extract and validate the SVG content
-    return validateSvgFormat(iconUrl);
+    return validateSvgFormat(trimmed);
   }
 
   // Drive URL validation
-  if (iconUrl.startsWith("https://drive.google.com/file/d/")) {
+  if (trimmed.startsWith("https://drive.google.com/file/d/")) {
     try {
-      const fileId = iconUrl.split("/d/")[1].split("/")[0];
+      const fileId = trimmed.split("/d/")[1].split("/")[0];
       return validateDriveAccess(fileId);
     } catch (error) {
       return {
         valid: false,
         error: "Invalid Drive URL format",
-        context: { url: iconUrl, originalError: error.message },
+        context: { url: trimmed, originalError: error.message },
       };
     }
   }
 
-  // Unsupported URL format
+  // External HTTPS URL - allow and handle during processing
+  if (
+    trimmed.startsWith("https://") &&
+    !trimmed.startsWith("https://drive.google.com")
+  ) {
+    return {
+      valid: true,
+      context: {
+        type: "external-url",
+        url: trimmed,
+      },
+    };
+  }
+
+  // Inline SVG markup validation
+  if (trimmed.includes("<svg") && trimmed.includes("</svg>")) {
+    return validateSvgFormat(trimmed);
+  }
+
+  // Plain text search term - any non-empty string is valid
+  // These will be passed to the icon API as search terms
   return {
-    valid: false,
-    error: "Unsupported icon URL format (must be Drive URL or SVG data URI)",
-    context: { url: iconUrl.substring(0, 100) },
+    valid: true,
+    context: {
+      type: "search-term",
+      searchTerm: trimmed,
+    },
   };
 }
 
@@ -268,7 +297,8 @@ function validateSvgContent(svgContent: string): ValidationResult {
     if (!hasNamespace) {
       return {
         valid: false,
-        error: "SVG missing namespace declaration (xmlns=\"http://www.w3.org/2000/svg\")",
+        error:
+          'SVG missing namespace declaration (xmlns="http://www.w3.org/2000/svg")',
         context: { recommendation: "Add xmlns attribute to <svg> tag" },
       };
     }
@@ -296,7 +326,7 @@ function validateSvgContent(svgContent: string): ValidationResult {
         hasNamespace: true,
         hasViewBox: Boolean(viewBox),
         childCount: children.length,
-        childTypes: children.map(c => c.getName()),
+        childTypes: children.map((c) => c.getName()),
       },
     };
   } catch (error) {
@@ -391,6 +421,11 @@ function quickValidateIcon(iconValue: any): boolean {
 
     // Drive URLs are valid
     if (trimmed.startsWith("https://drive.google.com/file/d/")) {
+      return true;
+    }
+
+    // External HTTPS URLs are valid
+    if (trimmed.startsWith("https://")) {
       return true;
     }
 

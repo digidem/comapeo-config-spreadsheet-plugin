@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the test suite for the CoMapeo Config Spreadsheet Plugin. The tests verify functionality across icon generation, translation extraction, import/export workflows, and end-to-end integration.
+This directory contains the test suite for the CoMapeo Category Set Spreadsheet Plugin. The tests verify functionality across icon generation, translation extraction, import/export workflows, and end-to-end integration.
 
 ## Quick Start
 

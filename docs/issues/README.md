@@ -1,6 +1,6 @@
 # Issues Directory
 
-This directory contains known issues, bugs, and improvement opportunities for the CoMapeo Config Spreadsheet Plugin project.
+This directory contains known issues, bugs, and improvement opportunities for the CoMapeo Category Set Spreadsheet Plugin project.
 
 ## Issue Priority Levels
 

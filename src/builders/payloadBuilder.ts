@@ -816,91 +816,39 @@ function isSvgUrl(url: string): boolean {
 }
 
 /**
- * Extracts language codes from translation sheet headers
- * Handles common language names, ISO codes, and custom formats
- *
- * Supports three formats:
- * 1. Common language names: "Spanish", "French", "German", etc. → ISO code
- * 2. "Name - ISO" format: "Spanish - es" → extracts ISO code
- * 3. Raw ISO 639-1/639-2 codes: "es", "fr", "pt" → uses as-is
+ * Extracts language columns from translation sheet headers.
+ * Handles common language names, ISO/BCP-47 codes, and custom "Name - ISO" formats.
  */
-function extractLanguagesFromHeaders(headers: any[]): string[] {
-  // Prefer centralized alias map when available (declared globally in languageAliases.ts)
-  const languageNameToCode: Record<string, string> = typeof LANGUAGE_NAME_ALIASES !== 'undefined'
-    ? LANGUAGE_NAME_ALIASES
-    : {
-        // Minimal fallback list (should rarely be used)
-        English: 'en',
-        Spanish: 'es',
-        French: 'fr',
-        German: 'de',
-        Italian: 'it',
-        Portuguese: 'pt',
-        Russian: 'ru',
-        Chinese: 'zh',
-        Japanese: 'ja',
-        Korean: 'ko',
-        Arabic: 'ar',
-        Hindi: 'hi',
-        Bengali: 'bn',
-        Dutch: 'nl',
-        Swedish: 'sv',
-        Norwegian: 'no',
-        Danish: 'da',
-        Finnish: 'fi',
-        Polish: 'pl',
-        Turkish: 'tr',
-        Greek: 'el',
-        Hebrew: 'he',
-        Thai: 'th',
-        Vietnamese: 'vi',
-        Indonesian: 'id',
-        Malay: 'ms',
-        Swahili: 'sw',
-        Tagalog: 'tl'
-      };
+function extractLanguagesFromHeaders(
+  headers: any[],
+): { lang: string; index: number }[] {
+  const allLanguages: LanguageMap = getAllLanguages();
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+  const columns: { lang: string; index: number }[] = [];
+  const seenLanguages = new Set<string>();
 
-  const langs: string[] = [];
+  const headerB = String(headers[1] || "").trim().toLowerCase();
+  const headerC = String(headers[2] || "").trim().toLowerCase();
+  const hasMetaColumns = headerB.includes("iso") && headerC.includes("source");
+  const languageStartIndex = hasMetaColumns ? 3 : TRANSLATION_COL.FIRST_LANGUAGE;
 
-  // Start from column B (index 1) - column A is source text
-  for (let i = TRANSLATION_COL.FIRST_LANGUAGE; i < headers.length; i++) {
-    const header = String(headers[i] || '').trim();
+  for (let i = languageStartIndex; i < headers.length; i++) {
+    const header = String(headers[i] || "").trim();
     if (!header) continue;
 
-    // Check for custom language format: "Name - ISO"
-    // This allows users to specify exact ISO codes when needed
-    const customMatch = header.match(/.*\s*-\s*(\w+)$/);
-    if (customMatch) {
-      langs.push(customMatch[1].toLowerCase());
+    const langCode = resolveHeaderCode(header);
+    if (!langCode) continue;
+
+    const normalizedCode = langCode.toLowerCase();
+    if (seenLanguages.has(normalizedCode)) {
       continue;
     }
+    seenLanguages.add(normalizedCode);
 
-    // Check for common language name (case-insensitive)
-    // Try exact match first
-    let langCode = languageNameToCode[header];
-    if (langCode) {
-      langs.push(langCode);
-      continue;
-    }
-
-    // Try case-insensitive match for English language names
-    const headerLower = header.toLowerCase();
-    for (const [name, code] of Object.entries(languageNameToCode)) {
-      if (name.toLowerCase() === headerLower) {
-        langs.push(code);
-        langCode = code;
-        break;
-      }
-    }
-    if (langCode) continue;
-
-    // Recognize raw ISO 639-1 codes (2 letters) or ISO 639-2 codes (3 letters)
-    if (/^[a-z]{2,3}$/.test(header.toLowerCase())) {
-      langs.push(header.toLowerCase());
-    }
+    columns.push({ lang: langCode, index: i });
   }
 
-  return langs;
+  return columns;
 }
 
 type LocaleTranslationFields = Record<string, string>;
@@ -970,49 +918,38 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     entry[`options.${optionIndex}`] = value;
   };
 
-  // Determine available languages from any translation sheet
-  // Try Category Translations first, then fall back to Detail translation sheets
-  let langs: string[] = [];
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const catTransSheet = spreadsheet.getSheetByName('Category Translations');
+  const labelTransSheet = spreadsheet.getSheetByName('Detail Label Translations');
+  const helperTransSheet = spreadsheet.getSheetByName('Detail Helper Text Translations');
+  const optionTransSheet = spreadsheet.getSheetByName('Detail Option Translations');
 
-  const catTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Category Translations');
-  if (catTransSheet) {
-    const headerRow = catTransSheet.getRange(1, 1, 1, catTransSheet.getLastColumn()).getValues()[0];
-    langs = extractLanguagesFromHeaders(headerRow);
-  }
+  const allLangs = new Set<string>();
 
-  // If no languages found in Category Translations, try Detail Label Translations
-  if (langs.length === 0) {
-    const labelTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Label Translations');
-    if (labelTransSheet) {
-      const headerRow = labelTransSheet.getRange(1, 1, 1, labelTransSheet.getLastColumn()).getValues()[0];
-      langs = extractLanguagesFromHeaders(headerRow);
-    }
-  }
+  const getLangColumnsFromSheet = (
+    sheet: GoogleAppsScript.Spreadsheet.Sheet | null,
+  ): { lang: string; index: number }[] => {
+    if (!sheet) return [];
+    const lastColumn = sheet.getLastColumn();
+    if (lastColumn === 0) return [];
+    const headerRow = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+    const columns = extractLanguagesFromHeaders(headerRow);
+    columns.forEach((entry) => allLangs.add(entry.lang));
+    return columns;
+  };
 
-  // If still no languages found, try Detail Helper Text Translations
-  if (langs.length === 0) {
-    const helperTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Helper Text Translations');
-    if (helperTransSheet) {
-      const headerRow = helperTransSheet.getRange(1, 1, 1, helperTransSheet.getLastColumn()).getValues()[0];
-      langs = extractLanguagesFromHeaders(headerRow);
-    }
-  }
-
-  // If still no languages found, try Detail Option Translations
-  if (langs.length === 0) {
-    const optionTransSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Detail Option Translations');
-    if (optionTransSheet) {
-      const headerRow = optionTransSheet.getRange(1, 1, 1, optionTransSheet.getLastColumn()).getValues()[0];
-      langs = extractLanguagesFromHeaders(headerRow);
-    }
-  }
+  const catLangColumns = getLangColumnsFromSheet(catTransSheet);
+  const labelLangColumns = getLangColumnsFromSheet(labelTransSheet);
+  const helperLangColumns = getLangColumnsFromSheet(helperTransSheet);
+  const optionLangColumns = getLangColumnsFromSheet(optionTransSheet);
 
   // If no translation sheets found with languages, return empty translations
-  if (langs.length === 0) {
+  if (allLangs.size === 0) {
     console.log('No translation sheets found with language columns');
     return translations;
   }
 
+  const langs = Array.from(allLangs);
   console.log(`Found ${langs.length} languages for translations:`, langs);
 
   // Initialize translations structure
@@ -1026,11 +963,10 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
       const catId = catNameToId.get(sourceName);
       if (!catId) continue;  // Skip rows that don't match a category
 
-      for (let j = 0; j < langs.length; j++) {
-        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-        const value = String(row[colIndex] || '').trim();
+      for (const entry of catLangColumns) {
+        const value = String(row[entry.index] || '').trim();
         if (value) {
-          setCategoryNameTranslation(langs[j], catId, value);
+          setCategoryNameTranslation(entry.lang, catId, value);
         }
       }
     }
@@ -1044,11 +980,10 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
     const fieldId = fieldNameToId.get(sourceName);
     if (!fieldId) continue;
 
-    for (let j = 0; j < langs.length; j++) {
-      const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-      const value = String(row[colIndex] || '').trim();
+    for (const entry of labelLangColumns) {
+      const value = String(row[entry.index] || '').trim();
       if (value) {
-        setFieldLabelTranslation(langs[j], fieldId, value);
+        setFieldLabelTranslation(entry.lang, fieldId, value);
       }
     }
   }
@@ -1074,11 +1009,10 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
 
     for (const {field} of matchingFields) {
       const fieldId = field.id;
-      for (let j = 0; j < langs.length; j++) {
-        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-        const value = String(row[colIndex] || '').trim();
+      for (const entry of helperLangColumns) {
+        const value = String(row[entry.index] || '').trim();
         if (value) {
-          setFieldHelperTextTranslation(langs[j], fieldId, value);
+          setFieldHelperTextTranslation(entry.lang, fieldId, value);
         }
       }
     }
@@ -1115,15 +1049,14 @@ function buildTranslationsPayload(data: SheetData, categories: Category[], field
       if (!field.options || field.options.length === 0) continue;
 
       const fieldId = field.id;
-      for (let j = 0; j < langs.length; j++) {
-        const colIndex = TRANSLATION_COL.FIRST_LANGUAGE + j;
-        const optStr = String(row[colIndex] || '').trim();
+      for (const entry of optionLangColumns) {
+        const optStr = String(row[entry.index] || '').trim();
         if (!optStr) continue;
 
         const translatedOpts = splitTranslatedOptions(optStr);
 
         for (let k = 0; k < translatedOpts.length && k < field.options.length; k++) {
-          setFieldOptionTranslation(langs[j], fieldId, k, translatedOpts[k]);
+          setFieldOptionTranslation(entry.lang, fieldId, k, translatedOpts[k]);
         }
       }
     }

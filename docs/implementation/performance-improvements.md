@@ -6,6 +6,8 @@ owner: Performance Working Group
 
 # Performance Improvement Checklist
 
+> **Note:** Portions of this checklist reference the legacy ZIP/Drive packaging flow. The current v2 build uses a JSON payload to `/v2` and receives a packaged `.comapeocat` from the API. Keep legacy notes for historical context.
+
 > 🚨 **Safety First:** The top priority for every optimization is maintaining existing behaviour. Do not ship a change until you have tested the affected workflow end-to-end and confirmed it introduces **no regressions or new bugs**.
 
 After completing any task below:

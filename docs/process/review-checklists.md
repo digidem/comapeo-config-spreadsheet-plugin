@@ -64,8 +64,7 @@ Bidirectional translation with Google Translate API.
 Reverse flow: imports `.comapeocat` files back into spreadsheet.
 
 **Files**:
-- `src/importCategory/extractTarFile.ts` - ⚠️ No path traversal protection
-- `src/importCategory/fileExtractor.ts` - ⚠️ No size validation
+- `src/importCategory/fileExtractor.ts` - ⚠️ No path traversal protection; ⚠️ No size validation
 - `src/importCategory/parseFiles.ts` - ✅ Excellent edge case coverage
 - `src/importCategory/parseIconSprite.ts` - ✅ Optimized O(n+m)
 - `src/importCategory/applyConfiguration.ts` - ✅ Defensive programming

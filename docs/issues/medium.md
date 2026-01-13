@@ -130,7 +130,7 @@ Test malformed files, edge cases, error conditions.
 Create unit tests for pure functions (utils, processors).
 
 ### MED-022: Add Depth Limit for TAR Extraction
-**File**: `src/importCategory/extractTarFile.ts` | **Effort**: 1h
+**File**: `src/importCategory/fileExtractor.ts` | **Effort**: 1h
 
 Prevent excessive nesting (max 10 levels).
 

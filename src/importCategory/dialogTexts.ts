@@ -6,16 +6,16 @@
 // Dialog texts for different languages
 const importCategoryDialogTexts = {
   en: {
-    title: "Import Category Configuration",
+    title: "Import Category File",
     message: [
-      "Upload a .comapeocat or .mapeosettings file to import a category configuration.",
+      "Upload a .comapeocat or .mapeosettings file to import categories into this spreadsheet.",
       "This will replace all current categories, details, and translations.",
-      "Make sure you have a backup of your current configuration before proceeding.",
+      "Make sure you have a backup of your current data before proceeding.",
     ],
     buttonText: "Select File",
     progressStages: {
       extracting: "Extracting files",
-      parsing: "Processing configuration",
+      parsing: "Processing category data",
       icons: "Extracting icons",
       applying: "Updating spreadsheet",
       finalizing: "Finalizing",
@@ -37,16 +37,16 @@ const importCategoryDialogTexts = {
     },
   },
   es: {
-    title: "Importar Configuración de Categoría",
+    title: "Importar archivo de categoría",
     message: [
-      "Sube un archivo .comapeocat o .mapeosettings para importar una configuración de categoría.",
+      "Sube un archivo .comapeocat o .mapeosettings para importar categorías a esta planilla.",
       "Esto reemplazará todas las categorías, detalles y traducciones actuales.",
-      "Asegúrate de tener una copia de seguridad de tu configuración actual antes de continuar.",
+      "Asegúrate de tener una copia de seguridad de tus datos actuales antes de continuar.",
     ],
     buttonText: "Seleccionar Archivo",
     progressStages: {
       extracting: "Extrayendo archivos",
-      parsing: "Procesando configuración",
+      parsing: "Procesando datos de categorías",
       icons: "Extrayendo iconos",
       applying: "Actualizando hoja de cálculo",
       finalizing: "Finalizando",
@@ -68,16 +68,16 @@ const importCategoryDialogTexts = {
     },
   },
   pt: {
-    title: "Importar Configuração de Categoria",
+    title: "Importar arquivo de categoria",
     message: [
-      "Carregue um arquivo .comapeocat ou .mapeosettings para importar uma configuração de categoria.",
+      "Carregue um arquivo .comapeocat ou .mapeosettings para importar categorias nesta planilha.",
       "Isso substituirá todas as categorias, detalhes e traduções atuais.",
-      "Certifique-se de ter um backup da sua configuração atual antes de prosseguir.",
+      "Certifique-se de ter um backup dos seus dados atuais antes de prosseguir.",
     ],
     buttonText: "Selecionar Arquivo",
     progressStages: {
       extracting: "Extraindo arquivos",
-      parsing: "Processando configuração",
+      parsing: "Processando dados de categoria",
       icons: "Extraindo ícones",
       applying: "Atualizando planilha",
       finalizing: "Finalizando",

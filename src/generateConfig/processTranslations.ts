@@ -119,35 +119,36 @@ function buildColumnMapForSheet(sheetName: string): {
 
   // Extract language codes from header columns with explicit column index mapping
   const allLanguages = getAllLanguages();
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+  const seenLanguages = new Set<string>();
+  const headerB = String(headerRow[1] || "").trim().toLowerCase();
+  const headerC = String(headerRow[2] || "").trim().toLowerCase();
+  const hasMetaColumns = headerB.includes("iso") && headerC.includes("source");
+  const languageStartIndex = hasMetaColumns ? 3 : 1;
 
-  for (let i = 0; i < headerRow.length; i++) {
+  for (let i = languageStartIndex; i < headerRow.length; i++) {
     const header = headerRow[i]?.toString().trim();
     if (!header) {
       getProcessTranslationsLogger().warn(`⚠️  Empty header at column ${i + 1} in "${sheetName}" - skipping`);
       continue;
     }
 
-    // Check if it's a standard language name
-    const langCode = Object.entries(allLanguages).find(
-      ([code, name]) => name === header
-    )?.[0];
-
-    if (langCode) {
-      targetLanguages.push(langCode);
-      columnToLanguageMap[i] = langCode;
-      getProcessTranslationsLogger().info(`[${sheetName}] Column ${i} (${header}) → ${langCode}`);
-    } else {
-      // Check for custom language format: "Language Name - ISO"
-      const match = header.match(/.*\s*-\s*(\w+)/);
-      if (match) {
-        const customLangCode = match[1].trim();
-        targetLanguages.push(customLangCode);
-        columnToLanguageMap[i] = customLangCode;
-        getProcessTranslationsLogger().info(`[${sheetName}] Column ${i} (${header}) → ${customLangCode} (custom format)`);
-      } else {
-        getProcessTranslationsLogger().warn(`⚠️  Could not parse language from header "${header}" at column ${i + 1} in "${sheetName}"`);
-      }
+    const langCode = resolveHeaderCode(header);
+    if (!langCode) {
+      getProcessTranslationsLogger().warn(`⚠️  Could not parse language from header "${header}" at column ${i + 1} in "${sheetName}"`);
+      continue;
     }
+
+    const normalizedCode = langCode.toLowerCase();
+    if (seenLanguages.has(normalizedCode)) {
+      getProcessTranslationsLogger().warn(`⚠️  Duplicate language header "${header}" (${langCode}) in "${sheetName}" - skipping duplicate`);
+      continue;
+    }
+
+    seenLanguages.add(normalizedCode);
+    targetLanguages.push(langCode);
+    columnToLanguageMap[i] = langCode;
+    getProcessTranslationsLogger().info(`[${sheetName}] Column ${i} (${header}) → ${langCode}`);
   }
 
   const log = getProcessTranslationsLogger();

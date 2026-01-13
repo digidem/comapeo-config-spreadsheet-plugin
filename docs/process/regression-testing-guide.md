@@ -74,7 +74,7 @@ console.log(`Test spreadsheet created: ${result.url}`);
 ✅ **Structure preserved:**
 - Sheet names and order
 - Column headers
-- Field types (text, number, dropdown, multi-select)
+- Field types (text, number, single choice checkbox, multi-select)
 - Validation rules
 - Sheet formatting
 

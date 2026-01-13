@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document captures the baseline performance metrics for the CoMapeo Config Spreadsheet Plugin. These metrics serve as the reference point for measuring performance improvements or regressions in future development work.
+This document captures the baseline performance metrics for the CoMapeo Category Set Spreadsheet Plugin. These metrics serve as the reference point for measuring performance improvements or regressions in future development work.
 
 **Critical**: All future code changes should be compared against these baseline metrics to ensure no performance degradation.
 
@@ -30,7 +30,7 @@ The regression test suite consists of 13 test suites that cover all major functi
 7. **Details and Icons** - Category details and icon processing
 8. **Translation Extraction** - Translation sheet parsing
 9. **Import Category** - .comapeocat file import functionality
-10. **Zip to API** - Configuration packaging and API integration
+10. **JSON build to API** - Configuration packaging and API integration
 11. **End-to-End** - Full workflow testing
 12. **Skip Translation** - Translation workflow with skip option
 13. **Debug Logger** - Logging system functionality
@@ -69,7 +69,7 @@ Performance is measured across three dataset sizes:
   - Large-scale data processing
   - Memory-efficient operations
   - Batch API calls
-  - ZIP archive generation
+  - JSON payload creation
 
 ---
 
@@ -282,7 +282,7 @@ The plugin includes several optimization features:
 | Details and Icons | TBD ms | TBD |
 | Translation Extraction | TBD ms | TBD |
 | Import Category | TBD ms | TBD |
-| Zip to API | TBD ms | TBD |
+| JSON build to API | TBD ms | TBD |
 | End-to-End | TBD ms | TBD |
 | Skip Translation | TBD ms | TBD |
 | Debug Logger | TBD ms | TBD |

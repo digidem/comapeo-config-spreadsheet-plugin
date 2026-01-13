@@ -1,0 +1,10 @@
+site_name: CoMapeo Config Spreadsheet Plugin
+site_dir: site
+docs_dir: docs-site
+
+theme:
+  name: material
+
+nav:
+  - User Guide: index.md
+  - Linting Guide: linting-guide.md

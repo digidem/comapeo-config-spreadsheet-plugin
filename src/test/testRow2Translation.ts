@@ -200,28 +200,32 @@ function buildColumnMapForSheet(sheetName: string): {
   const columnToLanguageMap: Record<number, string> = {};
 
   const allLanguages: LanguageMap = getAllLanguages();
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+  const seenLanguages = new Set<string>();
+  const headerB = String(headerRow[1] || "").trim().toLowerCase();
+  const headerC = String(headerRow[2] || "").trim().toLowerCase();
+  const hasMetaColumns = headerB.includes("iso") && headerC.includes("source");
+  const languageStartIndex = hasMetaColumns ? 3 : 1;
 
-  for (let i = 0; i < headerRow.length; i++) {
+  for (let i = languageStartIndex; i < headerRow.length; i++) {
     const header = headerRow[i]?.toString().trim();
     if (!header) {
       continue;
     }
 
-    const langCode = Object.entries(allLanguages).find(
-      ([code, name]) => name === header
-    )?.[0];
-
-    if (langCode) {
-      targetLanguages.push(langCode);
-      columnToLanguageMap[i] = langCode;
-    } else {
-      const match = header.match(/.*\s*-\s*(\w+)/);
-      if (match) {
-        const customLangCode = match[1].trim();
-        targetLanguages.push(customLangCode);
-        columnToLanguageMap[i] = customLangCode;
-      }
+    const langCode = resolveHeaderCode(header);
+    if (!langCode) {
+      continue;
     }
+
+    const normalizedCode = langCode.toLowerCase();
+    if (seenLanguages.has(normalizedCode)) {
+      continue;
+    }
+
+    seenLanguages.add(normalizedCode);
+    targetLanguages.push(langCode);
+    columnToLanguageMap[i] = langCode;
   }
 
   return { targetLanguages, columnToLanguageMap };
