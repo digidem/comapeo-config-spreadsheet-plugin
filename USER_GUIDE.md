@@ -110,6 +110,7 @@ Your spreadsheet contains several tabs, each serving a specific purpose:
   - Usually you don't need to edit this
 
 **Example row:**
+
 | Name | Icon | Fields | Applies | Category ID |
 |------|------|--------|---------|-------------|
 | River | river | Name, Width, Depth | observation | river-001 |
@@ -170,6 +171,7 @@ The best results come from pasting inline SVG from the Icon App directly:
   - ⚠️ **Not implemented in CoMapeo app** — This field currently has no effect
 
 **Example rows:**
+
 | Name | Helper Text | Type | Options | | Universal |
 |------|-------------|------|---------|---|-----------|
 | Width | What is the width in meters? | n | | | FALSE |
@@ -262,6 +264,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
    - Leave columns B-E empty for now (we'll add icons and other data later)
 
 **Example:**
+
 | Name |
 |------|
 | River |
@@ -280,6 +283,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
    - Define the type and options for each field
 
 **Example:**
+
 | Name | Helper Text | Type | Options | | Universal |
 |------|-------------|------|---------|---|-----------|
 | Name | What is the name? | t | | | FALSE |
@@ -297,6 +301,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
 2. In the **Fields** column (C), list which fields each category uses:
 
 **Example:**
+
 | Name | Icon | Fields |
 |------|------|---------|
 | River | | Name, Width, Condition |
@@ -322,6 +327,7 @@ Follow these steps to create a CoMapeo configuration from start to finish:
    - If no category has `track`, generation fails with error
 
 **Example:**
+
 | Name | Icon | Fields | Applies |
 |------|------|--------|---------|
 | River | | Name, Width, Condition | observation |
