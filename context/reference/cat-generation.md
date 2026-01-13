@@ -2,7 +2,7 @@
 
 **Status**: Current (v2 JSON build flow)
 
-This document describes the current category generation pipeline. For user-facing steps, see `docs/how-to/generate-config.md`.
+This document describes the current category generation pipeline. For user-facing steps, see `docs/how-to/export-and-share.md`.
 
 ## Overview
 
@@ -91,7 +91,7 @@ Content-Type: application/json
 
 - **Generate CoMapeo Category**: `generateCoMapeoCategory()` (menu)
 - **Debug: Export Raw Files**: `generateCoMapeoCategoryDebug()` (menu)
-  - Runs the standard generator in v2; raw export is deprecated (see `docs/how-to/generate-config.md`)
+  - Runs the standard generator in v2; raw export is deprecated (see `docs/how-to/export-and-share.md`)
 - **Manage Languages & Translate**: `translateCoMapeoCategory()` (separate translation workflow)
 
 ## Pipeline (v2)
