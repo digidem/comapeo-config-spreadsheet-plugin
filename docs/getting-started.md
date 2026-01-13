@@ -8,7 +8,7 @@ The CoMapeo Config Spreadsheet Plugin lets you define categories, fields, icons,
 
 - A Google account with access to Google Sheets
 - The template spreadsheet:
-  https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
+  [https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk)
 
 ## Sheet map (quick reference)
 
