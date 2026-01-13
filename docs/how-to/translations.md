@@ -1,6 +1,4 @@
-# Manage languages and translations
-
-Use the language manager to add translation columns and auto-translate content.
+# Translations
 
 ## Add languages
 
@@ -9,7 +7,7 @@ Use the language manager to add translation columns and auto-translate content.
 3. In Section 2, add manual-only language codes (e.g., `gn`, `quz`, `pt-BR`).
 4. Click **Translate**.
 
-The plugin creates translation sheets and fills empty cells for auto-translation.
+Creates translation sheets and fills empty cells for auto-translation.
 
 ## Update translations
 
@@ -24,7 +22,7 @@ The plugin creates translation sheets and fills empty cells for auto-translation
 - Helper text
 - Field options
 
-If a language is not recognized, check spelling or try the native name. The plugin supports a large built-in list of languages.
+If a language is not recognized, check spelling or try the native name.
 
 ## Language header formats
 

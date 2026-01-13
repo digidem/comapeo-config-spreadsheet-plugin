@@ -22,7 +22,7 @@ Accepted formats:
 - Data URI
 - HTTPS URL
 
-See [Add icons](../how-to/add-icons.md).
+See [Categories sheet tasks](../how-to/categories-sheet-tasks.md#add-icons).
 
 PNG files are converted to SVG during export. PNG sprites are not fully supported.
 

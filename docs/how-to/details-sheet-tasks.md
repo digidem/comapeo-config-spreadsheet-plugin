@@ -1,8 +1,6 @@
-# Add fields
+# Details sheet tasks
 
-Fields define the data you collect for each category.
-
-## Steps
+## Add fields
 
 1. Open the **Details** sheet.
 2. Starting at row 2, add a field name in column A.
@@ -17,4 +15,4 @@ Fields define the data you collect for each category.
 
 Options are required for select and multiple types, and ignored for text/number types.
 
-See [Details sheet](../reference/details-sheet.md) for the full column rules.
+See [Details sheet](../reference/details-sheet.md) for full column rules.

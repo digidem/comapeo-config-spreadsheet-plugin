@@ -5,11 +5,11 @@ Create, edit, and share CoMapeo category sets directly in Google Sheets.
 ## Quick start
 
 1. Copy the template spreadsheet: https://docs.google.com/spreadsheets/d/1bvtbSijac5SPz-pBbeLBhKby6eDefwweLEBmjAOZnlk/edit?usp=drivesdk
-2. Follow the tutorial: [Create your first config](tutorials/create-first-config.md)
-3. Validate your data: [Run linting](how-to/run-linting.md)
-4. Generate and share: [Generate a config](how-to/generate-config.md)
+2. Follow the guide: [Getting started](getting-started.md)
+3. Validate your data: [Run linting](how-to/export-and-share.md#run-linting)
+4. Generate and share: [Generate a config](how-to/export-and-share.md#generate-a-config)
 
-## Learn the structure
+## Reference
 
 - [Categories sheet](reference/categories-sheet.md)
 - [Details sheet](reference/details-sheet.md)
@@ -22,19 +22,19 @@ Create, edit, and share CoMapeo category sets directly in Google Sheets.
 - [Getting started](getting-started.md)
 - [Tips and checklists](tips-and-checklists.md)
 
-## Common tasks
+## How-to guides
 
-- [Add icons](how-to/add-icons.md)
-- [Set category colors](how-to/set-category-colors.md)
-- [Manage languages](how-to/manage-languages.md)
-- [Import and edit a config](tutorials/import-and-edit.md)
-- [Reset the spreadsheet](how-to/reset-spreadsheet.md)
-- [Share and load a config](how-to/share-and-load.md)
+- [Categories sheet tasks](how-to/categories-sheet-tasks.md)
+- [Details sheet tasks](how-to/details-sheet-tasks.md)
+- [Translations](how-to/translations.md)
+- [Export and share](how-to/export-and-share.md)
+- [Import and maintenance](how-to/import-and-maintenance.md)
 
 ## Troubleshooting
 
 - [Troubleshooting](troubleshooting/index.md)
 - [Linting rules](reference/linting-rules.md)
+- [Run linting](how-to/export-and-share.md#run-linting)
 
 ## Resources
 
