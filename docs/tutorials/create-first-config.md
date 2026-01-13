@@ -18,6 +18,7 @@ If the language is not recognized, see [Translation sheets](../reference/transla
 2. Keep other columns empty for now.
 
 Example:
+
 | Name |
 | --- |
 | River |
@@ -33,11 +34,12 @@ See [Add categories](../how-to/add-categories.md) for more detail.
 2. Set the field type and options.
 
 Example:
-| Name | Helper Text | Type | Options | | Universal |
+
+| Name | Helper Text | Type | Options | Field ID | Universal |
 | --- | --- | --- | --- | --- | --- |
-| Name | What is the name? | t | | | FALSE |
-| Width | What is the width in meters? | n | | | FALSE |
-| Condition | What is the current condition? | | Excellent, Good, Fair, Poor | | FALSE |
+| Name | What is the name? | t | - | - | FALSE |
+| Width | What is the width in meters? | n | - | - | FALSE |
+| Condition | What is the current condition? | s | Excellent, Good, Fair, Poor | - | FALSE |
 
 See [Add fields](../how-to/add-fields.md) for more detail.
 
@@ -47,6 +49,7 @@ See [Add fields](../how-to/add-fields.md) for more detail.
 2. In the **Fields** column (C), list the fields each category uses.
 
 Example:
+
 | Name | Fields |
 | --- | --- |
 | River | Name, Width, Condition |
