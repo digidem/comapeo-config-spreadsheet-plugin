@@ -8,6 +8,85 @@ This document describes the current category generation pipeline. For user-facin
 
 The v2 generator builds a JSON payload from spreadsheet data and sends it to the API (`/v2`). The API returns a packaged `.comapeocat` ZIP, which is saved to Google Drive.
 
+## API Usage (v2 Build Endpoint)
+
+```
+POST http://your-server:3000/v2
+Content-Type: application/json
+```
+
+### Request Body (Example)
+
+```json
+{
+  "metadata": {
+    "name": "Forest Monitoring",
+    "version": "1.0.0",
+    "description": "Configuration for forest surveys",
+    "builderName": "comapeo-config-spreadsheet-plugin",
+    "builderVersion": "2.0.0"
+  },
+  "locales": ["en"],
+  "categories": [
+    {
+      "id": "trees",
+      "name": "Trees",
+      "color": "#4CAF50",
+      "defaultFieldIds": ["species", "diameter"]
+    }
+  ],
+  "fields": [
+    {
+      "id": "species",
+      "name": "Species",
+      "type": "select",
+      "options": [
+        { "value": "oak", "label": "Oak" },
+        { "value": "pine", "label": "Pine" }
+      ]
+    },
+    {
+      "id": "diameter",
+      "name": "Diameter (cm)",
+      "type": "number"
+    }
+  ],
+  "icons": [
+    {
+      "id": "trees",
+      "svgUrl": "https://example.com/tree-icon.svg"
+    }
+  ],
+  "translations": {
+    "es": {
+      "categories": {
+        "trees": { "name": "Arboles" }
+      },
+      "fields": {
+        "species": {
+          "name": "Especie",
+          "options": { "oak": "Roble", "pine": "Pino" }
+        }
+      }
+    }
+  }
+}
+```
+
+### Response
+
+- **Success (200)**: Binary `.comapeocat` file
+  - `Content-Type: application/octet-stream`
+  - `Content-Disposition: attachment; filename="name.comapeocat"`
+- **Error**: JSON response
+  ```json
+  {
+    "error": "VALIDATION_ERROR",
+    "message": "Invalid configuration",
+    "details": { "errors": ["Missing required field: name"] }
+  }
+  ```
+
 ## Entry Points
 
 - **Generate CoMapeo Category**: `generateCoMapeoCategory()` (menu)
@@ -30,6 +109,10 @@ The v2 generator builds a JSON payload from spreadsheet data and sends it to the
 5. **Save & Notify**
    - Save the `.comapeocat` to Drive (also saves a zipped copy for sharing).
    - Show success dialog with a Drive link.
+
+## Category Ordering
+
+Categories are processed in the exact order they appear in the spreadsheet. The plugin calls `setCategorySelection([...])` with an array of category IDs in spreadsheet order to preserve this ordering.
 
 ## Payload Shape (Summary)
 

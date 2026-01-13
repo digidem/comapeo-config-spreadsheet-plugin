@@ -1,6 +1,23 @@
-# comapeo-config-spreadsheet-plugin v2.0.0
+# CoMapeo Category Set Spreadsheet Plugin
 
 A Google Sheets plugin for generating and importing `.comapeocat` category files for CoMapeo projects.
+
+Current version: **2.0.0**
+
+Quick links: [User Guide](USER_GUIDE.md) | [Documentation Index](docs/README.md) | [Linting Guide](docs/LINTING_GUIDE.md) | [API Reference](docs/reference/cat-generation.md)
+
+## Table of Contents
+
+- [What's New in v2.0.0](#whats-new-in-v200)
+- [Features](#features)
+- [Getting Started (Users)](#getting-started-users)
+- [Installation (Developers)](#installation-developers)
+- [Development](#development)
+- [Testing](#testing)
+- [Documentation Map](#documentation-map)
+- [Contributing & Support](#contributing--support)
+- [License](#license)
+- [References](#references)
 
 ## What's New in v2.0.0
 
@@ -11,106 +28,24 @@ A Google Sheets plugin for generating and importing `.comapeocat` category files
 
 ## Features
 
-- **Build**: Generate `.comapeocat` files from spreadsheet data
-- **Import**: Load existing `.comapeocat` or `.mapeosettings` files for editing
-- **Auto-translation**: Automatically translate categories and fields using Google Translate
-- **Icon generation**: Generate icons using https://icons.earthdefenderstoolkit.com or provide your own SVG/PNG icons
-- **Validation**: Comprehensive linting and validation of spreadsheet data
-- **Dual-name language support**: Set primary language using English OR native names (e.g., "Portuguese" or "Português")
+- **Build**: Generate `.comapeocat` files from spreadsheet data.
+- **Import**: Load existing `.comapeocat` or `.mapeosettings` files for editing.
+- **Auto-translation**: Automatically translate categories and fields using Google Translate.
+- **Icon generation**: Generate icons using https://icons.earthdefenderstoolkit.com or provide your own SVG/PNG icons.
+- **Validation**: Comprehensive linting and validation of spreadsheet data.
+- **Dual-name language support**: Set primary language using English OR native names (e.g., "Portuguese" or "Português").
 
-## API Usage
+## Getting Started (Users)
 
-### Build Endpoint
+The [User Guide](USER_GUIDE.md) is the source of truth for spreadsheets, menu behavior, and end-to-end workflows. In short:
 
-The plugin uses the v2 JSON build endpoint:
+1. Fill out the spreadsheet tabs (Categories, Details, Translations).
+2. Use the menu option **Generate CoMapeo Category** to build a `.comapeocat`.
+3. Use **Import Category File** to bring an existing config back into the spreadsheet.
 
-```
-POST http://your-server:3000/v2
-Content-Type: application/json
-```
+Menu options, spreadsheet structure, and sharing steps are documented in [USER_GUIDE.md](USER_GUIDE.md).
 
-#### Request Body
-
-```json
-{
-  "metadata": {
-    "name": "Forest Monitoring",
-    "version": "1.0.0",
-    "description": "Configuration for forest surveys",
-    "builderName": "comapeo-config-spreadsheet-plugin",
-    "builderVersion": "2.0.0"
-  },
-  "locales": ["en"],
-  "categories": [
-    {
-      "id": "trees",
-      "name": "Trees",
-      "color": "#4CAF50",
-      "defaultFieldIds": ["species", "diameter"]
-    }
-  ],
-  "fields": [
-    {
-      "id": "species",
-      "name": "Species",
-      "type": "select",
-      "options": [
-        { "value": "oak", "label": "Oak" },
-        { "value": "pine", "label": "Pine" }
-      ]
-    },
-    {
-      "id": "diameter",
-      "name": "Diameter (cm)",
-      "type": "number"
-    }
-  ],
-  "icons": [
-    {
-      "id": "trees",
-      "svgUrl": "https://example.com/tree-icon.svg"
-    }
-  ],
-  "translations": {
-    "es": {
-      "categories": {
-        "trees": { "name": "Arboles" }
-      },
-      "fields": {
-        "species": {
-          "name": "Especie",
-          "options": { "oak": "Roble", "pine": "Pino" }
-        }
-      }
-    }
-  }
-}
-```
-
-#### Response
-
-- **Success (200)**: Binary `.comapeocat` file
-  - `Content-Type: application/octet-stream`
-  - `Content-Disposition: attachment; filename="name.comapeocat"`
-
-- **Error**: JSON response
-  ```json
-  {
-    "error": "VALIDATION_ERROR",
-    "message": "Invalid configuration",
-    "details": { "errors": ["Missing required field: name"] }
-  }
-  ```
-
-## Category Ordering
-
-Categories are processed in the exact order they appear in the spreadsheet. The plugin calls `setCategorySelection([...])` with an array of category IDs in spreadsheet order to preserve this ordering.
-
-## Spreadsheet Structure
-
-The User Guide is the canonical source for sheet tabs, columns, and rules. See `USER_GUIDE.md` (Understanding Your Spreadsheet).
-
-## Installation
+## Installation (Developers)
 
 1. Install clasp globally:
 ```bash
@@ -143,11 +78,14 @@ npm run dev
 # Manual push
 npm run push
 
-# Lint code
+# Lint code (requires Bun)
 npm run lint
 
 # Push to all configured projects
 npm run push:all
+
+# Regenerate fixture data for manual checks
+npm run fixture
 ```
 
 ## Testing
@@ -158,34 +96,27 @@ Run tests from the Apps Script editor console:
 runAllTests();
 ```
 
-Tests cover:
-- Build payload creation
-- Category ordering preservation
-- Field type mapping
-- Import parsing
-- API error handling
+Regression testing workflows are documented in [docs/process/regression-testing-guide.md](docs/process/regression-testing-guide.md).
 
-## Menu Options
+## Documentation Map
 
-1. **Manage Languages & Translate** - Auto-translate content to multiple languages or add manual-only languages
-2. **Generate Category Icons** - Generate icons from https://icons.earthdefenderstoolkit.com
-3. **Generate CoMapeo Category** - Build `.comapeocat` file
-4. **Import Category File** - Import existing `.comapeocat` or `.mapeosettings` file
-5. **Lint Sheets** - Validate spreadsheet data with color-coded error highlighting
-6. **Reset Spreadsheet** - Clear translations and metadata
-7. **Help** - Show documentation
+- **User Guide (source of truth)**: [USER_GUIDE.md](USER_GUIDE.md)
+- **Documentation index**: [docs/README.md](docs/README.md)
+- **Linting rules**: [docs/LINTING_GUIDE.md](docs/LINTING_GUIDE.md)
+- **Architecture & pipelines**: [docs/reference/architecture.md](docs/reference/architecture.md), [docs/reference/cat-generation.md](docs/reference/cat-generation.md), [docs/reference/import-cat.md](docs/reference/import-cat.md)
+- **Formats & validation**: [docs/reference/comapeocat-format.md](docs/reference/comapeocat-format.md), [docs/reference/html-validation.md](docs/reference/html-validation.md), [docs/reference/png-sprite-limitations.md](docs/reference/png-sprite-limitations.md)
+- **Process & workflows**: [docs/process/](docs/process/), [AGENTS.md](AGENTS.md)
 
-## Sharing Configurations
+## Contributing & Support
 
-After generating a `.comapeocat` file, the plugin saves it to a Drive folder and provides a link for sharing. See `USER_GUIDE.md` for the current end-to-end sharing steps.
+- Check the [documentation index](docs/README.md) and [Linting Guide](docs/LINTING_GUIDE.md) first.
+- Run linting and tests before opening a pull request.
+- Use the repository issue tracker for bugs and feature requests.
 
 ## License
 
 See LICENSE file for details.
 
+## References
+
 For more information on using clasp, refer to the [@google/clasp documentation](https://github.com/google/clasp).
-
-## Project Documentation
-
-- **User Guide is the source of truth** for user-facing behavior and spreadsheet structure: see [`USER_GUIDE.md`](USER_GUIDE.md).
-- All architectural references, process guides, and sprint notes live under [`docs/`](docs/README.md). Start with the documentation index to find the right reference quickly.
