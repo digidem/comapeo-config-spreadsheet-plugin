@@ -5,6 +5,16 @@ docs_dir: docs-site
 theme:
   name: material
 
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
 nav:
   - User Guide: index.md
   - Linting Guide: linting-guide.md
