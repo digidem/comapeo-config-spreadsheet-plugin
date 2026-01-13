@@ -32,15 +32,6 @@ jobs:
       - name: Install MkDocs Material
         run: pip install mkdocs-material
 
-      - name: Prepare docs
-        run: |
-          rm -rf docs-site site
-          mkdir -p docs-site
-          cp USER_GUIDE.md docs-site/index.md
-          cp docs/LINTING_GUIDE.md docs-site/linting-guide.md
-          sed -i "s#docs/LINTING_GUIDE.md#linting-guide.md#g" docs-site/index.md
-          sed -i "s#../USER_GUIDE.md#index.md#g" docs-site/linting-guide.md
-
       - name: Build site
         run: mkdocs build --strict
 
