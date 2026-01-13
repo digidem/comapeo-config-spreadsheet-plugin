@@ -301,8 +301,8 @@ function processIconImage(
       }
       // Non-standard Drive URL format - return as-is
       return iconImage;
-    } else if (isExternalHttpsIcon(iconImage)) {
-      console.log(`Processing external HTTPS icon for ${name}: ${iconImage}`);
+    } else if (isExternalHttpIcon(iconImage)) {
+      console.log(`Processing external HTTP(S) icon for ${name}: ${iconImage}`);
       return iconImage.trim();
     } else if (isCellImage(iconImage)) {
       return processCellImage(
@@ -361,15 +361,16 @@ function isGoogleDriveIcon(iconImage: any): boolean {
   );
 }
 
-function isExternalHttpsIcon(iconImage: any): boolean {
+function isExternalHttpIcon(iconImage: any): boolean {
   if (typeof iconImage !== "string") {
     return false;
   }
 
   const trimmed = iconImage.trim();
   return (
-    trimmed.startsWith("https://") &&
-    !trimmed.startsWith("https://drive.google.com")
+    (trimmed.startsWith("https://") || trimmed.startsWith("http://")) &&
+    !trimmed.startsWith("https://drive.google.com") &&
+    !trimmed.startsWith("http://drive.google.com")
   );
 }
 
@@ -634,10 +635,7 @@ function getIconContent(
       }
       return { iconContent: null, mimeType: "", error: errorMsg };
     }
-  } else if (
-    icon.svg.startsWith("https://") &&
-    !icon.svg.startsWith("https://drive.google.com/")
-  ) {
+  } else if (isExternalHttpIcon(icon.svg)) {
     try {
       const response = UrlFetchApp.fetch(icon.svg, {
         followRedirects: true,
