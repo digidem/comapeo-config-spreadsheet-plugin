@@ -25,7 +25,7 @@ status: archived
 
 **Phase 3 Update 2** (2025-10-14) - Naming standardisation + logging rollout:
 - ✅ Introduced canonical naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) and applied across export/import/format detection.
-- ✅ Added `docs/process/naming-conventions.md` to codify rules for field, preset, and option identifiers.
+- ✅ Added `context/process/naming-conventions.md` to codify rules for field, preset, and option identifiers.
 - ✅ Migrated translation + preset processors to scoped logging and refreshed JSDoc coverage of new helpers.
 - 🔄 Next: baseline performance capture and regression harness remain outstanding (see Immediate Actions #4-6).
 
@@ -92,7 +92,7 @@ status: archived
    - **Cannot implement** - upstream API server does not support HTTPS
    - **Will break app** if attempted before server is ready
    - **Next step**: Contact upstream provider to request HTTPS support
-   - See `docs/issues/critical.md#critical-1-http-api-endpoint-security` for details
+   - See `context/issues/critical.md#critical-1-http-api-endpoint-security` for details
 
 2. **Dead Code** (Technical Debt) - errorHandling.ts ✅ **COMPLETED**
    - 508 lines deleted
@@ -148,7 +148,7 @@ status: archived
 
 - **Completed Phases**: Phase 1 (Critical Security & Reliability) and the first four waves of Phase 2 (HIGH-priority improvements) wrapped by 2025-10-14; see the Latest Updates section for detailed deliverables.
 - **Upcoming Work (2025-10-20 → 2025-11-07)**: Week of 2025-10-20 — extend typed language map & scoped logging into remaining translation/util modules (ties to HIGH-024 pre-work). Week of 2025-10-27 — build spreadsheet clone for regression runs and capture baseline performance metrics prior to additional refactors. Week of 2025-11-03 — standardize naming conventions and complete outstanding documentation polish (HIGH-024 plus Phase 4 tasks).
-- **Blocked / Cannot Implement**: HTTPS endpoint upgrade is **BLOCKED** by upstream API infrastructure. Server at `137.184.153.36:3000` does not support SSL/TLS. **Zero effort required from our side** - waiting for upstream provider to enable HTTPS. See `docs/issues/critical.md#critical-1-http-api-endpoint-security` for complete analysis and next steps.
+- **Blocked / Cannot Implement**: HTTPS endpoint upgrade is **BLOCKED** by upstream API infrastructure. Server at `137.184.153.36:3000` does not support SSL/TLS. **Zero effort required from our side** - waiting for upstream provider to enable HTTPS. See `context/issues/critical.md#critical-1-http-api-endpoint-security` for complete analysis and next steps.
 
 ### 🛡️ Safety & Testing
 
@@ -182,10 +182,10 @@ status: archived
 
 | Risk | Impact | Mitigation / Next Step | Owner | Status (2025-10-14) |
 |------|--------|------------------------|-------|---------------------|
-| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `docs/issues/critical.md` |
+| Security (HTTP transport) | Medium: upstream API only supports HTTP, cannot encrypt in transit | Maintain defensive sanitisation, monitor vendor roadmap, document limitation in deployment notes; do **not** force HTTPS to avoid breaking integration | Luandro | Monitoring; limitation documented in `context/issues/critical.md` |
 | Reliability (regression coverage) | Medium: lack of isolated regression suite risks reintroducing fixed defects | Complete Tasks 4-6 in Immediate Actions, automate smoke run before each release | Luandro + QA Support | In Progress |
 | Performance (baseline unknown) | Medium: improvements may regress without baseline metrics | Capture export/import timing metrics and log in metrics doc before next optimisation | Luandro | Not Started |
-| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `docs/process/naming-conventions.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
+| Maintainability (naming + helper adoption) | Low/Medium: inconsistent naming complicates future PRs | Naming helpers + logging rollout completed; update docs referenced in `context/process/naming-conventions.md` for future PRs | Luandro | ✅ Completed 2025-10-14 |
 
 ---
 
@@ -249,7 +249,7 @@ status: archived
 
 1. **Work the Immediate Actions**: Begin with Task 4 (test environment clone) and keep the status table up to date.
 2. **Review open critical docs**: Refresh on [critical.md](../issues/critical.md) and [regression-strategy.md](../process/regression-strategy.md) before each change.
-3. **Follow naming standard**: Use `docs/process/naming-conventions.md` when touching identifiers and log helper usage for new code.
+3. **Follow naming standard**: Use `context/process/naming-conventions.md` when touching identifiers and log helper usage for new code.
 
 ### For Project Managers
 
@@ -301,18 +301,18 @@ After addressing all issues:
 
 | # | Task | Owner | Target Date | Status | Notes |
 |---|------|-------|-------------|--------|-------|
-| 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `docs/process/regression-strategy.md`. |
+| 4 | Duplicate production spreadsheet for controlled testing | Luandro | 2025-10-17 | 🔄 In Progress | Build sanitised copy and link to regression checklist in `context/process/regression-strategy.md`. |
 | 5 | Create regression test suite covering current workflows | QA Support | 2025-10-24 | ⬜ Not Started | Blocked on Task 4; capture pass/fail matrix for export, import, translation flows. |
-| 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `docs/metrics/baseline.md`. |
+| 6 | Measure baseline performance of export pipeline | Luandro + QA Support | 2025-10-24 | ⬜ Not Started | Run three timed exports, log Drive/API timings, and store results in `context/metrics/baseline.md`. |
 | 7 | Propagate typed language map & scoped logging helpers | Luandro | 2025-10-14 | ✅ Completed | Applied naming/logging helpers across translation, preset, and import flows; smoke tests pending regression harness. |
 
 ### Pre-Merge Checklist (Outstanding)
 
-- Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `docs/process/regression-strategy.md` to unblock automated checks (`Immediate Action #4`).
+- Sanitize and duplicate the production spreadsheet into the regression workbook, then link it from `context/process/regression-strategy.md` to unblock automated checks (`Immediate Action #4`).
 - Stand up the regression test suite (export, import, translation, icon flows), capture pass/fail matrices, and fold them into the regression strategy once the clone exists (`Immediate Action #5`).
-- Record the export pipeline baseline by timing three end-to-end runs (Drive writes, ZIP build, API upload) and publish metrics in `docs/metrics/baseline.md` (`Immediate Action #6`).
-- Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `docs/implementation/performance-improvements.md` (Deduplicate Icon Writes entry).
-- Exercise both Drive-backed and in-memory packaging flows, confirm API uploads succeed, capture comparative timings, and note any gating configuration in `docs/implementation/performance-improvements.md` (Direct In-Memory ZIP entry).
+- Record the export pipeline baseline by timing three end-to-end runs (Drive writes, ZIP build, API upload) and publish metrics in `context/metrics/baseline.md` (`Immediate Action #6`).
+- Log cache-hit ratios and Step‑4 timing deltas for the icon hash caching path, verifying spreadsheet icon URLs remain valid, and document the results in `context/implementation/performance-improvements.md` (Deduplicate Icon Writes entry).
+- Exercise both Drive-backed and in-memory packaging flows, confirm API uploads succeed, capture comparative timings, and note any gating configuration in `context/implementation/performance-improvements.md` (Direct In-Memory ZIP entry).
 - Complete the final PR review, resolve any lingering feedback, and merge once the above checkpoints are satisfied.
 
 ### Implementation (Next 8-12 Weeks)
@@ -332,7 +332,7 @@ After addressing all issues:
 ## Documentation Structure
 
 ```
-docs/
+context/
 ├── assets/
 ├── historical/
 │   ├── html-fix-summary.md

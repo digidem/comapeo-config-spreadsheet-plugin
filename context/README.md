@@ -2,12 +2,12 @@
 
 Welcome to the documentation for the CoMapeo Category Set Spreadsheet Plugin.
 
-**Source of truth:** `USER_GUIDE.md` is authoritative for user-facing behavior, menu labels, and spreadsheet structure. Other docs should defer to it.
+**Source of truth:** User-facing documentation now lives in `docs/`. This folder is for internal and AI-facing documentation.
 
 ## 📚 User Documentation
 
-*   **[User Guide](../USER_GUIDE.md)**: The primary manual for end-users. Covers setup, creating configurations, managing translations, and exporting.
-*   **[Linting Guide](LINTING_GUIDE.md)**: Detailed reference for validation rules, color codes, and troubleshooting common errors.
+*   **[User Docs Home](../docs/index.md)**: Entry point for end-user documentation.
+*   **[Linting Guide](../docs/linting-guide.md)**: User-facing linting overview.
 
 ## 🛠️ Developer Reference
 

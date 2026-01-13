@@ -138,7 +138,7 @@ function getAllLanguages(): Record<string, string> {
 - Keep in git history for easy restoration
 - Double-check no reflection or dynamic loading
 
-**Rollback**: Restore from docs/archived/ in < 1 minute
+**Rollback**: Restore from context/archived/ in < 1 minute
 
 ---
 

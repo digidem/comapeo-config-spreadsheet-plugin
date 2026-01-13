@@ -3,7 +3,7 @@
 This document provides a comprehensive technical reference for the CoMapeo Category Set Spreadsheet Plugin architecture, including system design, data flow, and module organization.
 
 **Audience**: Developers, AI assistants, and technical contributors
-**For Users**: See [USER_GUIDE.md](../USER_GUIDE.md) for end-user documentation
+**For Users**: See [docs/index.md](../../docs/index.md) for end-user documentation
 
 ## Overview
 
@@ -93,7 +93,7 @@ Legacy configuration types still exist for import/migration paths, but the build
 - **Process**: Validate + read sheets → Build JSON payload → POST to API `/v2`
 - **Output**: `.comapeocat` ZIP returned by API and saved to Google Drive
 
-**Debug mode note:** The "Debug: Export Raw Files" menu entry runs the standard generator in v2; raw export is deprecated (see `USER_GUIDE.md`).
+**Debug mode note:** The "Debug: Export Raw Files" menu entry runs the standard generator in v2; raw export is deprecated (see `docs/how-to/generate-config.md`).
 
 ## Workflow
 

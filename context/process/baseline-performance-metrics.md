@@ -430,10 +430,10 @@ After Task 6 is complete:
 
 ## References
 
-- **Regression Strategy**: `docs/process/regression-strategy.md`
-- **Testing Guide**: `docs/process/regression-testing-guide.md`
-- **Next Steps**: `docs/process/next-steps.md`
-- **Performance Guidelines**: `docs/process/regression-strategy.md#performance-benchmarks`
+- **Regression Strategy**: `context/process/regression-strategy.md`
+- **Testing Guide**: `context/process/regression-testing-guide.md`
+- **Next Steps**: `context/process/next-steps.md`
+- **Performance Guidelines**: `context/process/regression-strategy.md#performance-benchmarks`
 
 ---
 

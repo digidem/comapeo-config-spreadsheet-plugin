@@ -18,7 +18,7 @@
 - 🚫 **1 BLOCKED**: HTTPS (upstream server doesn't support SSL/TLS)
   - **Action**: Contact upstream API provider
   - **Impact**: App will BREAK if HTTPS is attempted before server is ready
-  - **Reference**: `docs/issues/critical.md#critical-1-http-api-endpoint-security`
+  - **Reference**: `context/issues/critical.md#critical-1-http-api-endpoint-security`
 
 ### HIGH Priority Issues
 - ✅ **22/25 COMPLETED** (~37h work)
@@ -51,9 +51,9 @@
 - ✅ **COMPLETED**: Performance metrics capture utility, baseline documentation, and comparison framework implemented
 
 **References:**
-- **Regression Testing Guide**: `docs/process/regression-testing-guide.md`
-- Safety guide: `docs/process/regression-strategy.md`
-- Progress tracking: `docs/historical/progress.md` (lines 296-320)
+- **Regression Testing Guide**: `context/process/regression-testing-guide.md`
+- Safety guide: `context/process/regression-strategy.md`
+- Progress tracking: `context/historical/progress.md` (lines 296-320)
 
 ---
 
@@ -64,18 +64,18 @@
 #### HIGH-024: Complete Naming Convention Standardization (4-6h)
 - ✅ Create naming helpers
 - ✅ Apply across export/import flows
-- ✅ Document in `docs/process/naming-conventions.md`
+- ✅ Document in `context/process/naming-conventions.md`
 - 🔄 **Remaining**: Create linting rules, refactor inconsistent names
-- **Reference**: `docs/issues/high.md#high-024-standardize-naming-conventions`
+- **Reference**: `context/issues/high.md#high-024-standardize-naming-conventions`
 
 #### HIGH-017: Centralized Logging (3-4h)
 - ✅ Implementation completed
 - 🔄 **Remaining**: Verify/testing, ensure all modules use it
-- **Reference**: `docs/issues/high.md#high-017-implement-centralized-logging`
+- **Reference**: `context/issues/high.md#high-017-implement-centralized-logging`
 
 #### HIGH-025: TypeScript Type Annotations (1h)
 - 🔄 **Remaining**: Add type annotations to utils.ts, remove `any` types
-- **Reference**: `docs/issues/high.md#high-025-add-typescript-type-annotations`
+- **Reference**: `context/issues/high.md#high-025-add-typescript-type-annotations`
 
 ---
 
@@ -104,7 +104,7 @@
 ### Sprint 3: MEDIUM Priority Start (Week of Nov 18)
 **Goal**: Begin tackling MEDIUM priority backlog
 
-- [ ] Review MEDIUM priority issues list (`docs/issues/medium.md`)
+- [ ] Review MEDIUM priority issues list (`context/issues/medium.md`)
 - [ ] Pick top 5 most impactful items
 - [ ] Start implementation
 - [ ] **Total Effort**: 60-90h (ongoing)
@@ -115,7 +115,7 @@
 
 ### Option A: Focus on Regression Safety (RECOMMENDED)
 ```
-1. Read docs/process/regression-strategy.md
+1. Read context/process/regression-strategy.md
 2. Follow "Immediate Actions" table
 3. Create test spreadsheet (Task 4: CoMapeo Tools → Create Test Spreadsheet)
 4. Run regression test suite (Task 5: runAllTests())
@@ -126,7 +126,7 @@
 
 ### Option B: Tackle Remaining HIGH Priority Items
 ```
-1. Read docs/issues/high.md
+1. Read context/issues/high.md
 2. Pick HIGH-024, HIGH-017, or HIGH-025
 3. Follow the implementation steps in the issue file
 4. Create branch, implement, test, PR
@@ -134,8 +134,8 @@
 
 ### Option C: Review Before Deciding
 ```
-1. Read docs/historical/progress.md for full context
-2. Review docs/issues/ to understand remaining work
+1. Read context/historical/progress.md for full context
+2. Review context/issues/ to understand remaining work
 3. Decide based on priorities and resources
 ```
 
@@ -144,33 +144,33 @@
 ## 📁 Key Files & References
 
 ### Issue Tracking
-- **CRITICAL**: `docs/issues/critical.md`
-- **HIGH**: `docs/issues/high.md`
-- **MEDIUM**: `docs/issues/medium.md`
-- **LOW**: `docs/issues/low.md`
-- **Issues Index**: `docs/issues/README.md`
+- **CRITICAL**: `context/issues/critical.md`
+- **HIGH**: `context/issues/high.md`
+- **MEDIUM**: `context/issues/medium.md`
+- **LOW**: `context/issues/low.md`
+- **Issues Index**: `context/issues/README.md`
 
 ### Process & Safety
-- **Regression Strategy**: `docs/process/regression-strategy.md`
-- **Naming Conventions**: `docs/process/naming-conventions.md`
-- **Review Checklists**: `docs/process/review-checklists.md`
+- **Regression Strategy**: `context/process/regression-strategy.md`
+- **Naming Conventions**: `context/process/naming-conventions.md`
+- **Review Checklists**: `context/process/review-checklists.md`
 
 ### Architecture & Reference
-- **Architecture**: `docs/reference/architecture.md`
-- **Category Generation**: `docs/reference/cat-generation.md`
-- **Import Category**: `docs/reference/import-cat.md`
-- **User Guide**: `docs/reference/user-guide.md`
+- **Architecture**: `context/reference/architecture.md`
+- **Category Generation**: `context/reference/cat-generation.md`
+- **Import Category**: `context/reference/import-cat.md`
+- **User Docs**: `docs/index.md`
 
 ### Implementation Plans
-- **Sprint 1 (Critical)**: `docs/implementation/sprint-01-critical.md`
-- **Sprint 2 (Quality)**: `docs/implementation/sprint-02-quality.md`
-- **Sprint 3 (Security)**: `docs/implementation/sprint-03-security.md`
-- **Sprint 4 (Polish)**: `docs/implementation/sprint-04-polish.md`
+- **Sprint 1 (Critical)**: `context/implementation/sprint-01-critical.md`
+- **Sprint 2 (Quality)**: `context/implementation/sprint-02-quality.md`
+- **Sprint 3 (Security)**: `context/implementation/sprint-03-security.md`
+- **Sprint 4 (Polish)**: `context/implementation/sprint-04-polish.md`
 
 ### Historical Context
-- **Progress Tracking**: `docs/historical/progress.md`
-- **Performance Improvements**: `docs/implementation/performance-improvements.md`
-- **Production Hardening**: `docs/historical/production-hardening-2025-10-28.md`
+- **Progress Tracking**: `context/historical/progress.md`
+- **Performance Improvements**: `context/implementation/performance-improvements.md`
+- **Production Hardening**: `context/historical/production-hardening-2025-10-28.md`
 
 ---
 
@@ -203,7 +203,7 @@
 - Upstream server doesn't support it
 - Will BREAK the app completely
 - **Action**: Contact upstream API provider
-- **Reference**: `docs/issues/critical.md#critical-1-http-api-endpoint-security`
+- **Reference**: `context/issues/critical.md#critical-1-http-api-endpoint-security`
 
 ---
 
@@ -216,7 +216,7 @@
 - [ ] Know the rollback plan
 
 ### When Implementing HIGH Priority Items
-- [ ] Review the specific issue in `docs/issues/high.md`
+- [ ] Review the specific issue in `context/issues/high.md`
 - [ ] Follow implementation steps exactly
 - [ ] Test thoroughly (don't skip)
 - [ ] Update documentation if needed
@@ -263,9 +263,9 @@
   - Menu: CoMapeo Tools → Create Test Spreadsheet for Regression
   - Run tests: CoMapeo Tools → Test Runner (or runAllTests() in Apps Script editor)
   - Capture metrics: CoMapeo Tools → Capture Baseline Performance Metrics
-  - Guide: `docs/process/regression-testing-guide.md`
-  - Performance docs: `docs/process/baseline-performance-metrics.md`
-  - Comparison guide: `docs/process/performance-comparison-guide.md`
+  - Guide: `context/process/regression-testing-guide.md`
+  - Performance docs: `context/process/baseline-performance-metrics.md`
+  - Comparison guide: `context/process/performance-comparison-guide.md`
 - **Clear documentation exists** - use it! 📚
 
 ---
@@ -273,6 +273,6 @@
 **Ready to start?** Pick a path and begin! 🚀
 
 For questions or clarification, see:
-- `docs/issues/README.md` for issue management
-- `docs/README.md` for documentation navigation
-- `docs/process/regression-strategy.md` for safety protocols
+- `context/issues/README.md` for issue management
+- `context/README.md` for documentation navigation
+- `context/process/regression-strategy.md` for safety protocols

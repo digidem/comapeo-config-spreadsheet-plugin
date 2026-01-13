@@ -550,10 +550,10 @@ Before optimizing, verify:
 
 ## References
 
-- **Baseline Metrics**: `docs/process/baseline-performance-metrics.md`
-- **Regression Strategy**: `docs/process/regression-strategy.md`
-- **Testing Guide**: `docs/process/regression-testing-guide.md`
-- **Next Steps**: `docs/process/next-steps.md`
+- **Baseline Metrics**: `context/process/baseline-performance-metrics.md`
+- **Regression Strategy**: `context/process/regression-strategy.md`
+- **Testing Guide**: `context/process/regression-testing-guide.md`
+- **Next Steps**: `context/process/next-steps.md`
 
 ---
 

@@ -318,9 +318,9 @@ console.log(`Export took ${duration}ms`);
 ## Support
 
 ### Documentation
-- Regression Strategy: `docs/process/regression-strategy.md`
+- Regression Strategy: `context/process/regression-strategy.md`
 - Next Steps: `NEXT_STEPS.md` (Task 4 section)
-- This guide: `docs/process/regression-testing-guide.md`
+- This guide: `context/process/regression-testing-guide.md`
 
 ### Logging
 All operations are logged with scope "RegressionTesting". Check Apps Script console for detailed logs.

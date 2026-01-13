@@ -454,7 +454,7 @@ Also listed as CRITICAL issue due to severity.
 
 **See**: [Module Review - Cross-Cutting Concerns](../reviews/cross-cutting.md#124-code-organization)
 
-**Status (2025-10-14)**: Naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) centralised in `src/utils.ts`, applied across export/import flows, and documented in `docs/process/naming-conventions.md`.
+**Status (2025-10-14)**: Naming helpers (`createFieldTagKey`, `createPresetSlug`, `createOptionValue`) centralised in `src/utils.ts`, applied across export/import flows, and documented in `context/process/naming-conventions.md`.
 
 ---
 

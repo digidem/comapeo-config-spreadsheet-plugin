@@ -606,7 +606,7 @@ testTranslationExtraction()    // Translation extraction test
 ### Overview
 
 `.mapeosettings` files are **POSIX TAR archives** (often gzip compressed) containing configuration data, icons, and translations for Mapeo/CoMapeo applications.
-`.comapeocat` files are **ZIP archives**; see `docs/reference/comapeocat-format.md` for the ZIP layout.
+`.comapeocat` files are **ZIP archives**; see `context/reference/comapeocat-format.md` for the ZIP layout.
 
 **Test File**: `src/test/mapeo-default-min.mapeosettings`
 - **Archive Format**: POSIX tar (gzip compressed)

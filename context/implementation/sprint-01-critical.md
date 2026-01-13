@@ -124,13 +124,13 @@ status: archived
   grep -r "startImportTransaction" src/
   grep -r "ImportError" src/
   ```
-- [ ] **CODE**: Archive file to `docs/archived/`
+- [ ] **CODE**: Archive file to `context/archived/`
   ```bash
-  mkdir -p docs/archived
-  git mv src/errorHandling.ts docs/archived/errorHandling.ts.backup
+  mkdir -p context/archived
+  git mv src/errorHandling.ts context/archived/errorHandling.ts.backup
   ```
 - [ ] **CODE**: Delete `src/errorHandling.ts`
-- [ ] **DOC**: Update `docs/reference/architecture.md`
+- [ ] **DOC**: Update `context/reference/architecture.md`
   - Add note about removal
   - Document rationale
 - [ ] **TEST**: Build verification

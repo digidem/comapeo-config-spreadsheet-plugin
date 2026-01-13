@@ -3,7 +3,7 @@ last-reviewed: 2025-10-31
 status: archived
 ---
 
-> **Archive Notice**: Optimization deployed April 2024; retained for pattern reference. For current guidance, see `docs/reference/architecture.md` (performance section).
+> **Archive Notice**: Optimization deployed April 2024; retained for pattern reference. For current guidance, see `context/reference/architecture.md` (performance section).
 
 # Icon Import Performance Fix - Summary
 

@@ -3,7 +3,7 @@ last-reviewed: 2025-10-31
 status: archived
 ---
 
-> **Archive Notice**: This fix shipped March 2024 and remains in production. Keep for historical context only; new dialog work should reference `docs/reference/html-validation.md`.
+> **Archive Notice**: This fix shipped March 2024 and remains in production. Keep for historical context only; new dialog work should reference `context/reference/html-validation.md`.
 
 # HTML "Malformed Content" Error - Complete Fix Summary
 
