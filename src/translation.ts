@@ -222,24 +222,28 @@ function translateSheetBidirectional(
 
   const translationCache = new Map<string, string>();
   const allLanguages: LanguageMap = getAllLanguages();
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+  const headerCodeToIndex = new Map<string, number>();
   const targetColumnIndexes = new Map<TranslationLanguage, number>();
 
-  for (const targetLang of targetLanguages) {
-    // Find the target column for this language
-    let targetColumn = -1;
-
-    // First check all available languages
-    if (allLanguages[targetLang]) {
-      const targetLanguageName = allLanguages[targetLang];
-      targetColumn = headers.findIndex(header => header === targetLanguageName);
-    } else {
-      // Check for custom languages (format: "Language Name - ISO")
-      targetColumn = headers.findIndex(header =>
-        header && typeof header === "string" && header.includes(` - ${targetLang}`)
+  headers.forEach((header, index) => {
+    const code = resolveHeaderCode(String(header || ""));
+    if (!code) return;
+    const normalizedCode = code.toLowerCase();
+    if (headerCodeToIndex.has(normalizedCode)) {
+      getTranslationServiceLogger().warn(
+        `Duplicate translation header for ${code} in ${sheetName}; using first match`,
       );
+      return;
     }
+    headerCodeToIndex.set(normalizedCode, index);
+  });
 
-    if (targetColumn === -1) {
+  for (const targetLang of targetLanguages) {
+    const normalizedTarget = targetLang.toLowerCase();
+    const targetColumn = headerCodeToIndex.get(normalizedTarget);
+
+    if (typeof targetColumn !== "number") {
       translationErrors.push(`Target column not found for language: ${targetLang}`);
       continue;
     }
@@ -455,12 +459,30 @@ function createTranslationSheet(sheetName: string, targetLanguages: TranslationL
 function ensureLanguageColumnsExist(sheet: GoogleAppsScript.Spreadsheet.Sheet, targetLanguages: TranslationLanguage[]): void {
   const allLanguages = getAllLanguages();
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+  const existingCodes = new Set<string>();
+  const codeToName = new Map<string, string>();
+
+  for (const [code, name] of Object.entries(allLanguages)) {
+    codeToName.set(code.toLowerCase(), name);
+  }
+
+  headers.forEach((header) => {
+    const code = resolveHeaderCode(String(header || ""));
+    if (code) {
+      existingCodes.add(code.toLowerCase());
+    }
+  });
 
   // Check which target languages are missing from the sheet
   const missingLanguages: string[] = [];
   for (const langCode of targetLanguages) {
-    const languageName = allLanguages[langCode];
-    if (languageName && !headers.includes(languageName)) {
+    const normalizedCode = langCode.toLowerCase();
+    if (existingCodes.has(normalizedCode)) {
+      continue;
+    }
+    const languageName = codeToName.get(normalizedCode);
+    if (languageName) {
       missingLanguages.push(languageName);
     }
   }
@@ -708,7 +730,7 @@ function normalizeCustomLanguages(newLanguages: CustomLanguageInput[] | null | u
 
   const log = getTranslationServiceLogger();
   const seenIso = new Set<string>();
-  const isoPattern = /^[a-z]{2,8}(?:-[a-z]{2,8})?$/;
+  const isoPattern = /^[a-z]{2,8}(?:-[a-z0-9]{2,8})?$/;
   const normalized: CustomLanguageInput[] = [];
 
   for (const lang of newLanguages) {

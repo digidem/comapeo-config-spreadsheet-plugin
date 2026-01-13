@@ -381,31 +381,7 @@ function validateTranslationHeaders(): void {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const translationSheets = sheets(true);
   const allLanguages = getAllLanguages();
-  const validLanguageNames = new Set(
-    Object.values(allLanguages).map((name) => name.toLowerCase()),
-  );
-  const aliasMap =
-    typeof getLanguageAliases === "function"
-      ? getLanguageAliases()
-      : typeof LANGUAGE_NAME_ALIASES !== "undefined"
-        ? LANGUAGE_NAME_ALIASES
-        : {};
-  const aliasNames = new Set(
-    Object.keys(aliasMap).map((name) => name.toLowerCase()),
-  );
-
-  const isValidLanguageName = (header: string): boolean => {
-    const normalized = header.toLowerCase();
-    return validLanguageNames.has(normalized) || aliasNames.has(normalized);
-  };
-
-  // Validate against actual supported language codes, which includes
-  // BCP-47 regional codes like zh-CN and zh-TW, not just 2-3 letter ISO codes
-  const validLanguageCodes = new Set(
-    Object.keys(allLanguages).map((c) => c.toLowerCase()),
-  );
-  const isValidIsoCode = (header: string): boolean =>
-    validLanguageCodes.has(header.toLowerCase());
+  const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
 
   for (const sheetName of translationSheets) {
     const sheet = spreadsheet.getSheetByName(sheetName);
@@ -436,16 +412,9 @@ function validateTranslationHeaders(): void {
         const header = String(headers[i] || "").trim();
         if (!header) continue;
 
-        const validName = isValidLanguageName(header);
-        const validCode = isValidIsoCode(header);
+        const parsedCode = resolveHeaderCode(header);
 
-        // Check "Name - ISO" format (e.g., "Portuguese - pt-BR")
-        // Allow hyphens in ISO codes to support BCP-47 regional codes
-        const nameIsoMatch = header.match(/^.+\s*-\s*([\w-]+)$/);
-        const validNameIsoFormat =
-          nameIsoMatch && isValidIsoCode(nameIsoMatch[1]);
-
-        if (!validName && !validCode && !validNameIsoFormat) {
+        if (!parsedCode) {
           console.log(
             `Invalid translation header "${header}" in ${sheetName} column ${i + 1} - should be a language name, ISO code, or "Name - ISO" format`,
           );
@@ -2015,26 +1984,26 @@ function fixTranslationMismatches(
           .getValues()[0];
         const targetLanguages: TranslationLanguage[] = [];
         const allLanguages = getAllLanguages();
+        const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
+        const seenLanguages = new Set<string>();
+        const headerB = String(headers[1] || "").trim().toLowerCase();
+        const headerC = String(headers[2] || "").trim().toLowerCase();
+        const hasMetaColumns =
+          headerB.includes("iso") && headerC.includes("source");
+        const languageStartIndex = hasMetaColumns ? 3 : 1;
 
         // Extract language codes from headers (skip first column which is primary language)
-        for (let i = 1; i < headers.length; i++) {
+        for (let i = languageStartIndex; i < headers.length; i++) {
           const header = String(headers[i] || "").trim();
           if (!header) continue;
 
-          // Check if it's a standard language name
-          const langCode = Object.entries(allLanguages).find(
-            ([code, name]) => name === header,
-          )?.[0];
+          const langCode = resolveHeaderCode(header);
+          if (!langCode) continue;
 
-          if (langCode) {
-            targetLanguages.push(langCode as TranslationLanguage);
-          } else {
-            // Check for custom language format: "Language Name - ISO"
-            const match = header.match(/.*\s*-\s*(\w+)/);
-            if (match) {
-              targetLanguages.push(match[1].trim() as TranslationLanguage);
-            }
-          }
+          const normalizedCode = langCode.toLowerCase();
+          if (seenLanguages.has(normalizedCode)) continue;
+          seenLanguages.add(normalizedCode);
+          targetLanguages.push(langCode as TranslationLanguage);
         }
 
         if (targetLanguages.length > 0) {

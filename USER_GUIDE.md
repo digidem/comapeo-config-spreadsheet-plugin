@@ -183,7 +183,7 @@ The best results come from pasting inline SVG from the Icon App directly:
 
 These tabs store translations for each language you support. They are automatically created when you add new languages.
 
-**📸 Screenshot placeholder:** *Translation sheet showing Name, ISO, Source Language columns plus target language columns (es, pt, etc.)*
+**📸 Screenshot placeholder:** *Translation sheet showing source column plus target language columns (es, pt, etc.)*
 
 #### 3. Category Translations
 Translations of category names
@@ -199,15 +199,13 @@ Translations of multiple choice options
 
 **Translation Sheet Structure:**
 - **Column A**: Auto-synced from source sheet (Categories or Details) via formula
-- **Column B**: ISO language code (informational)
-- **Column C**: Source language text (informational)
-- **Columns D+**: Target language translations
+- **Columns B+**: Target language translations
   - Header can use:
     - **Language name** (`Spanish`, `Español`, `Portuguese`, `Português`) → mapped via built-in aliases
     - **Raw ISO/BCP-47 code** (`es`, `pt`, `quz`, `pt-BR`, `zh-Hans`)
-    - **"Name - ISO" format** (`Spanish - es`, `Español - es`, `Português - pt`, `Quechua - quz`)
+    - **"Name - ISO" format** (`Spanish - es`, `Español - es`, `Português - pt`, `Quechua - quz`, `Portuguese - pt-BR`)
   - Supported codes: ISO 639-1 (2-letter), ISO 639-2/3 (3-letter), BCP-47 tags with region/script (e.g., `pt-BR`, `zh-Hans`)
-  - **Important:** For BCP-47 tags with hyphens, use the raw header (`pt-BR`) — the "Name - ISO" parser only captures alphanumeric codes and will drop the region
+  - **Legacy layout:** Some older sheets include **Column B = ISO** and **Column C = Source**. These columns are informational and ignored; translations start at Column D.
 
 **Important:** Column A uses formulas like `=Categories!A2:A100` to stay in sync. Don't delete these formulas!
 
@@ -423,13 +421,12 @@ Example format:
 2. In the dialog:
    - **Section 1**: Check languages you want to auto-translate
    - **Section 2**: Enter language codes for manual-only languages
-     - Use ISO 639-1/639-3 or BCP-47 format (e.g., `gn` for Guarani, `quz` for Quechua)
+    - Use ISO 639-1/639-3 or BCP-47 format (e.g., `gn` for Guarani, `quz` for Quechua)
      - Find indigenous language codes:
        - [SIL ISO 639-3 Code Table](https://iso639-3.sil.org/)
        - [Ethnologue](https://www.ethnologue.com/)
        - [Glottolog](https://glottolog.org/)
-     - For regional variants, use raw BCP-47 tags in the header (e.g., `quz-PE`)
-     - Note: if using "Name - ISO" headers, avoid hyphenated tags (use raw header instead)
+    - For regional variants, use raw BCP-47 tags in the header (e.g., `quz-PE`) or the "Name - ISO" format (e.g., `Quechua - quz-PE`)
 3. Click "Translate"
 4. The plugin will:
    - Create translation sheets
