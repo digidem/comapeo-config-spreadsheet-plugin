@@ -1,6 +1,6 @@
 site_name: CoMapeo Config Spreadsheet Plugin
 site_dir: site
-docs_dir: docs-site
+docs_dir: docs
 
 theme:
   name: material
@@ -16,5 +16,30 @@ markdown_extensions:
   - pymdownx.tilde
 
 nav:
-  - User Guide: index.md
-  - Linting Guide: linting-guide.md
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Tutorials:
+      - Create your first config: tutorials/create-first-config.md
+      - Import and edit a config: tutorials/import-and-edit.md
+  - How-to guides:
+      - Add categories: how-to/add-categories.md
+      - Add fields: how-to/add-fields.md
+      - Link fields to categories: how-to/link-fields-to-categories.md
+      - Add icons: how-to/add-icons.md
+      - Set category colors: how-to/set-category-colors.md
+      - Manage languages: how-to/manage-languages.md
+      - Run linting: how-to/run-linting.md
+      - Generate a config: how-to/generate-config.md
+      - Share and load a config: how-to/share-and-load.md
+      - Reset the spreadsheet: how-to/reset-spreadsheet.md
+  - Reference:
+      - Categories sheet: reference/categories-sheet.md
+      - Details sheet: reference/details-sheet.md
+      - Translation sheets: reference/translation-sheets.md
+      - Metadata sheet: reference/metadata-sheet.md
+      - Menu reference: reference/menu-reference.md
+      - Linting rules: reference/linting-rules.md
+  - Troubleshooting: troubleshooting/index.md
+  - Linting guide: linting-guide.md
+  - Tips and checklists: tips-and-checklists.md
+  - Resources and support: resources-and-support.md

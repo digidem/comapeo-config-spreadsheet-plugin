@@ -4,7 +4,7 @@ A Google Sheets plugin for generating and importing `.comapeocat` category files
 
 Current version: **2.0.0**
 
-Quick links: [User Guide](USER_GUIDE.md) | [Documentation Index](docs/README.md) | [Linting Guide](docs/LINTING_GUIDE.md) | [API Reference](docs/reference/cat-generation.md)
+Quick links: [User Docs](docs/index.md) | [Internal Docs](context/README.md) | [Linting Guide](docs/linting-guide.md) | [API Reference](context/reference/cat-generation.md)
 
 ## Table of Contents
 
@@ -37,13 +37,13 @@ Quick links: [User Guide](USER_GUIDE.md) | [Documentation Index](docs/README.md)
 
 ## Getting Started (Users)
 
-The [User Guide](USER_GUIDE.md) is the source of truth for spreadsheets, menu behavior, and end-to-end workflows. In short:
+The [user docs](docs/index.md) are the source of truth for spreadsheets, menu behavior, and end-to-end workflows. In short:
 
 1. Fill out the spreadsheet tabs (Categories, Details, Translations).
 2. Use the menu option **Generate CoMapeo Category** to build a `.comapeocat`.
 3. Use **Import Category File** to bring an existing config back into the spreadsheet.
 
-Menu options, spreadsheet structure, and sharing steps are documented in [USER_GUIDE.md](USER_GUIDE.md).
+Menu options, spreadsheet structure, and sharing steps are documented in [docs/index.md](docs/index.md).
 
 ## Installation (Developers)
 
@@ -96,20 +96,20 @@ Run tests from the Apps Script editor console:
 runAllTests();
 ```
 
-Regression testing workflows are documented in [docs/process/regression-testing-guide.md](docs/process/regression-testing-guide.md).
+Regression testing workflows are documented in [context/process/regression-testing-guide.md](context/process/regression-testing-guide.md).
 
 ## Documentation Map
 
-- **User Guide (source of truth)**: [USER_GUIDE.md](USER_GUIDE.md)
-- **Documentation index**: [docs/README.md](docs/README.md)
-- **Linting rules**: [docs/LINTING_GUIDE.md](docs/LINTING_GUIDE.md)
-- **Architecture & pipelines**: [docs/reference/architecture.md](docs/reference/architecture.md), [docs/reference/cat-generation.md](docs/reference/cat-generation.md), [docs/reference/import-cat.md](docs/reference/import-cat.md)
-- **Formats & validation**: [docs/reference/comapeocat-format.md](docs/reference/comapeocat-format.md), [docs/reference/html-validation.md](docs/reference/html-validation.md), [docs/reference/png-sprite-limitations.md](docs/reference/png-sprite-limitations.md)
-- **Process & workflows**: [docs/process/](docs/process/), [AGENTS.md](AGENTS.md)
+- **User docs (source of truth)**: [docs/index.md](docs/index.md)
+- **Internal documentation index**: [context/README.md](context/README.md)
+- **Linting rules**: [docs/reference/linting-rules.md](docs/reference/linting-rules.md)
+- **Architecture & pipelines**: [context/reference/architecture.md](context/reference/architecture.md), [context/reference/cat-generation.md](context/reference/cat-generation.md), [context/reference/import-cat.md](context/reference/import-cat.md)
+- **Formats & validation**: [context/reference/comapeocat-format.md](context/reference/comapeocat-format.md), [context/reference/html-validation.md](context/reference/html-validation.md), [context/reference/png-sprite-limitations.md](context/reference/png-sprite-limitations.md)
+- **Process & workflows**: [context/process/](context/process/), [AGENTS.md](AGENTS.md)
 
 ## Contributing & Support
 
-- Check the [documentation index](docs/README.md) and [Linting Guide](docs/LINTING_GUIDE.md) first.
+- Check the [documentation index](context/README.md) and [Linting Guide](docs/linting-guide.md) first.
 - Run linting and tests before opening a pull request.
 - Use the repository issue tracker for bugs and feature requests.
 

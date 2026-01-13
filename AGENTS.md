@@ -20,7 +20,7 @@
 
 4.  **Icons:**
     *   **Format:** We use **individual PNGs** or **SVGs** for icons (stored in Drive).
-    *   **Sprites:** We do **NOT** use sprites for the Apps Script implementation due to parsing limitations (see `docs/reference/png-sprite-limitations.md`).
+    *   **Sprites:** We do **NOT** use sprites for the Apps Script implementation due to parsing limitations (see `context/reference/png-sprite-limitations.md`).
 
 ## 🏗️ Architecture & Data Flow
 
@@ -66,7 +66,7 @@
     3.  **HTML Validation:** Dialogs are validated via `src/generateIcons/svgValidator.ts` and `src/formatDetection.ts` helpers to prevent malformed HTML errors.
 
 ## 📂 Documentation Index
-*   **`docs/reference/architecture.md`**: Full system topology.
-*   **`docs/reference/cat-generation.md`**: Export pipeline deep dive.
-*   **`docs/reference/import-cat.md`**: Import process deep dive.
-*   **`docs/LINTING_GUIDE.md`**: Validation rules reference.
+*   **`context/reference/architecture.md`**: Full system topology.
+*   **`context/reference/cat-generation.md`**: Export pipeline deep dive.
+*   **`context/reference/import-cat.md`**: Import process deep dive.
+*   **`docs/reference/linting-rules.md`**: Validation rules reference.
