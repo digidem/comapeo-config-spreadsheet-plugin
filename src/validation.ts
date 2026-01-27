@@ -17,12 +17,16 @@
  * - All caches are cleared via clearLanguagesCache() in spreadsheetData.ts
  */
 
-
 /**
  * Valid CoMapeo field types
  */
-const VALID_FIELD_TYPES = ["text", "number", "selectOne", "selectMultiple"] as const;
-type FieldType = typeof VALID_FIELD_TYPES[number];
+const VALID_FIELD_TYPES = [
+  "text",
+  "number",
+  "selectOne",
+  "selectMultiple",
+] as const;
+type FieldType = (typeof VALID_FIELD_TYPES)[number];
 
 /**
  * Valid geometry types for CoMapeo presets
@@ -61,9 +65,9 @@ function levenshteinDistance(str1: string, str2: string): number {
     for (let j = 1; j <= len2; j++) {
       const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
       matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,      // deletion
-        matrix[i][j - 1] + 1,      // insertion
-        matrix[i - 1][j - 1] + cost // substitution
+        matrix[i - 1][j] + 1, // deletion
+        matrix[i][j - 1] + 1, // insertion
+        matrix[i - 1][j - 1] + cost, // substitution
       );
     }
   }
@@ -99,15 +103,15 @@ function findClosestMatches(
 
   // Calculate distances and filter by maxDistance
   const distances = candidates
-    .map(candidate => ({
+    .map((candidate) => ({
       value: candidate,
       distance: levenshteinDistance(targetLower, candidate.toLowerCase()),
     }))
-    .filter(item => item.distance <= maxDistance)
+    .filter((item) => item.distance <= maxDistance)
     .sort((a, b) => a.distance - b.distance);
 
   // Return top matches
-  return distances.slice(0, maxResults).map(item => item.value);
+  return distances.slice(0, maxResults).map((item) => item.value);
 }
 
 /**
@@ -235,22 +239,33 @@ function validateLanguageName(
 
     // Calculate proportional max distance based on input length
     // Allows up to 30% edit distance, minimum 2, maximum 5
-    const maxDistance = Math.min(5, Math.max(2, Math.floor(normalizedName.length * 0.3)));
+    const maxDistance = Math.min(
+      5,
+      Math.max(2, Math.floor(normalizedName.length * 0.3)),
+    );
 
     // Find close matches using fuzzy matching with proportional distance
-    const suggestions = findClosestMatches(normalizedName, allLanguageNames, 3, maxDistance);
+    const suggestions = findClosestMatches(
+      normalizedName,
+      allLanguageNames,
+      3,
+      maxDistance,
+    );
 
     let errorMessage = `Unsupported language: "${languageName}".`;
 
     if (suggestions.length > 0) {
-      errorMessage += ` Did you mean: ${suggestions.map(s => `"${s}"`).join(", ")}?`;
+      errorMessage += ` Did you mean: ${suggestions.map((s) => `"${s}"`).join(", ")}?`;
     } else {
       // Fallback to examples if no close matches
       const allCodes = lookup.getAllCodes();
-      const exampleLanguages = allCodes.slice(0, 3).map(c => {
-        const names = lookup.getNamesByCode(c);
-        return names ? `"${names.english}"` : `"${c}"`;
-      }).join(", ");
+      const exampleLanguages = allCodes
+        .slice(0, 3)
+        .map((c) => {
+          const names = lookup.getNamesByCode(c);
+          return names ? `"${names.english}"` : `"${c}"`;
+        })
+        .join(", ");
       errorMessage += ` Examples: ${exampleLanguages}`;
     }
 
@@ -270,9 +285,7 @@ function validateLanguageName(
  * Validates the primary language value (Metadata!primaryLanguage preferred,
  * Categories!A1 fallback). Supports English and native names.
  */
-function validatePrimaryLanguage(
-  primaryLanguage: string,
-): ValidationResult {
+function validatePrimaryLanguage(primaryLanguage: string): ValidationResult {
   const result = validateLanguageName(primaryLanguage);
 
   if (!result.valid) {
@@ -317,15 +330,75 @@ function validateFieldType(typeString: string): ValidationResult {
 }
 
 /**
+ * Checks for duplicate option values after slugification and returns warnings
+ *
+ * This catches two cases of duplicates:
+ * 1. Same label repeated: "Red, Red" → both become value "red"
+ * 2. Different labels with same slug: "Test 1, Test  1" → both become "test-1"
+ *
+ * Note: Returns valid=true with warnings since duplicates are auto-removed during linting/generation
+ *
+ * @param optionsString - The comma-separated options string
+ * @param fieldKey - Optional field key for deterministic fallback values
+ * @returns Validation result with warnings about any duplicates found
+ */
+function validateUniqueOptionValues(
+  optionsString: string,
+  fieldKey?: string,
+): ValidationResult {
+  const options = optionsString
+    .split(",")
+    .map((opt) => opt.trim())
+    .filter((opt) => opt !== "");
+
+  if (options.length === 0) {
+    return { valid: true };
+  }
+
+  // Create values using same logic as getFieldOptions/parseOptions
+  const values: string[] = [];
+  const duplicates: Array<{ label: string; value: string; position: number }> =
+    [];
+
+  options.forEach((label, index) => {
+    const value = typeof createOptionValue === "function"
+      ? createOptionValue(label, fieldKey, index)
+      : slugify(label) || `${fieldKey || "option"}-${index + 1}`;
+    if (values.includes(value)) {
+      duplicates.push({ label, value, position: index + 1 });
+    }
+    values.push(value);
+  });
+
+  if (duplicates.length > 0) {
+    const details = duplicates
+      .map(
+        (d) =>
+          `"${d.label}" (position ${d.position}) produces duplicate value "${d.value}"`,
+      )
+      .join("; ");
+    // Return valid with warning - duplicates are auto-removed during linting/generation
+    return {
+      valid: true,
+      warnings: [`Duplicate option values will be auto-removed: ${details}`],
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Validates field options for select fields
  *
  * @param fieldType - The field type
  * @param optionsString - The options string from the spreadsheet
+ * @param fieldKey - Optional field key for deterministic fallback values
  * @returns Validation result
  */
 function validateFieldOptions(
   fieldType: string,
   optionsString: string,
+  fieldKey?: string,
 ): ValidationResult {
   const type = getFieldType(fieldType);
 
@@ -354,7 +427,13 @@ function validateFieldOptions(
     };
   }
 
-  return { valid: true };
+  // Check for duplicate option values (after slugification) - returns warnings not errors
+  const uniqueResult = validateUniqueOptionValues(optionsString, fieldKey);
+
+  return {
+    valid: true,
+    warnings: uniqueResult.warnings,
+  };
 }
 
 /**
@@ -388,7 +467,11 @@ function validateFieldDefinition(
   }
 
   // Validate options for select fields (column D)
-  const optionsValidation = validateFieldOptions(fieldData[2], fieldData[3]);
+  const fieldIndex = Math.max(rowIndex - 2, 0);
+  const fieldKey = typeof createFieldTagKey === "function"
+    ? createFieldTagKey(String(fieldData[0] || ""), fieldIndex)
+    : slugify(String(fieldData[0] || "")) || "field";
+  const optionsValidation = validateFieldOptions(fieldData[2], fieldData[3], fieldKey);
   if (!optionsValidation.valid) {
     return {
       valid: false,
@@ -485,7 +568,10 @@ function validateSheetData(data: SheetData): ValidationResult {
   } else {
     // Skip header row, validate data rows
     data.Categories.slice(1).forEach((category, index: number) => {
-      const result = validateCategoryDefinition(category as CategoryRow, index + 2); // +2 for header and 0-index
+      const result = validateCategoryDefinition(
+        category as CategoryRow,
+        index + 2,
+      ); // +2 for header and 0-index
       if (!result.valid && result.error) {
         errors.push(result.error);
       }

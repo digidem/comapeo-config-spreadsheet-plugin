@@ -7,23 +7,61 @@ on:
   release:
     types: [published]
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Validate CLASP_ALL_JSON secret is present
+        env:
+          CLASP_ALL_JSON: ${{ secrets.CLASP_ALL_JSON }}
+        run: |
+          if [ -z "$CLASP_ALL_JSON" ]; then
+            echo "::error::Missing or empty CLASP_ALL_JSON secret. Add the raw contents of .clasp.all.json to repo secrets."
+            echo "HINT: If you are using environment secrets, set 'environment:' on the job so secrets are available."
+            exit 1
+          fi
+          echo "$CLASP_ALL_JSON" > /tmp/.clasp.all.json
+
+      - name: Validate CLASP_ALL_JSON structure
+        run: |
+          if ! jq -e 'type == "array"' /tmp/.clasp.all.json >/dev/null 2>&1; then
+            echo "::error::CLASP_ALL_JSON must be a JSON array."
+            exit 1
+          fi
+          if ! jq -e 'all(.[]; (has("name") and (.name | type == "string") and (.name | length > 0) and has("scriptId") and (.scriptId | type == "string") and (.scriptId | length > 0)))' /tmp/.clasp.all.json >/dev/null 2>&1; then
+            echo "::error::Each entry in CLASP_ALL_JSON must have non-empty string fields: name, scriptId."
+            exit 1
+          fi
+
+      - name: Set matrix output
+        id: set-matrix
+        run: |
+          MATRIX=$(jq -c '. as $arr | {scripts: [range(0; $arr|length) | {index: ., name: $arr[.].name}]}' /tmp/.clasp.all.json)
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   deploy:
     runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.setup.outputs.matrix).scripts }}
+      max-parallel: 4
+      fail-fast: false
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Install clasp
-        id: install-clasp
         run: sudo npm install @google/clasp@2.4.2 -g
 
-      - name: Write CLASPRC_JSON secret to .clasprc.json file
-        id: write-clasprc
-        run: |
-          echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
-          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}"}' > .clasp.json
-
       - name: Validate CLASPRC_JSON secret is present
-        id: validate-clasprc-secret
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
         run: |
@@ -32,10 +70,9 @@ jobs:
             echo "HINT: If you are using environment secrets, set 'environment:' on the job so secrets are available."
             exit 1
           fi
-          echo "CLASPRC_JSON secret present (length: ${#CLASPRC_JSON})"
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
 
       - name: Validate .clasprc.json content
-        id: validate-clasprc
         run: |
           if [ ! -s ~/.clasprc.json ]; then
             echo "::error::~/.clasprc.json is missing or empty after writing CLASPRC_JSON secret."
@@ -59,59 +96,35 @@ jobs:
           echo "HINT: Ensure CLASPRC_JSON is a valid JSON object like the contents of ~/.clasprc.json."
           exit 1
 
-      - name: Check .clasp.json and .clasprc.json content
-        id: check-clasp-files
+      - name: Validate clasp auth status
         run: |
-          echo "Content of .clasp.json:"
-          cat .clasp.json
-          echo "Content of ~/.clasprc.json (masked):"
-          sed 's/.*/"[MASKED]"/' ~/.clasprc.json
-
-      - name: Check clasp login status
-        id: clasp_login
-        run: |
-          if clasp login --status; then
-            echo "Clasp login successful"
-          else
-            echo "Clasp login failed. Attempting to refresh token..."
-            clasp login --no-localhost
+          if ! clasp login --status >/dev/null 2>&1; then
+            echo "::error::clasp authentication failed or is missing."
+            echo "HINT: Ensure CLASPRC_JSON contains a valid token and refresh_token."
+            exit 1
           fi
 
-      - name: Save current .clasp.json contents to CLASPRC_JSON_FILE environment variable
-        id: save-clasprc
-        run: |
-          echo ::add-mask::$(cat ~/.clasp.json | jq -c)
-          echo "CLASPRC_JSON_FILE=$(cat ~/.clasp.json | jq -c)" >> $GITHUB_ENV
-
-      - name: Save CLASPRC_JSON_FILE environment variable to CLASPRC_JSON repo secret
-        id: set-clasprc-secret
-        uses: hmanzur/actions-set-secret@v2.0.0
-        with:
-          name: "CLASPRC_JSON"
-          value: ${{ env.CLASPRC_JSON_FILE }}
-          repository: ${{ github.repository }}
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-
-      - name: Checkout repo
-        id: checkout-repo
-        if: ${{github.event_name != 'schedule' }}
-        uses: actions/checkout@v4
-
-      - name: Set scriptId in .clasp.json file
-        id: set-script-id
-        if: ${{ github.event_name != 'schedule' && env.SCRIPT_ID }}
-        run: jq '.scriptId = "${{ env.SCRIPT_ID }}"' .clasp.json > /tmp/.clasp.json && mv /tmp/.clasp.json .clasp.json
+      - name: Prepare and push script (no ID logging)
         env:
-          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
-
-      - name: Push script to scripts.google.com
-        id: clasp-push
-        if: ${{ github.event_name	!= 'schedule'}}
-        run: clasp push -f
+          CLASP_ALL_JSON: ${{ secrets.CLASP_ALL_JSON }}
+        run: |
+          SCRIPT_JSON=$(echo "$CLASP_ALL_JSON" | jq -c ".[${{ matrix.index }}]")
+          SCRIPT_ID=$(echo "$SCRIPT_JSON" | jq -r ".scriptId")
+          if [ -z "$SCRIPT_ID" ] || [ "$SCRIPT_ID" = "null" ]; then
+            echo "::error::Missing scriptId at index ${{ matrix.index }}"
+            exit 1
+          fi
+          echo "::add-mask::$SCRIPT_ID"
+          echo "Deploying to ${{ matrix.name }}"
+          cat > .clasp.json <<EOF
+{
+  "scriptId": "$SCRIPT_ID",
+  "rootDir": "./"
+}
+EOF
+          clasp push -f
 
       - name: Deploy Script
-        id: clasp-deploy
-        if: ${{env.DEPLOYMENT_ID && (github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))}}
-        run: clasp deploy -i "$DEPLOYMENT_ID" -d "$GITHUB_REF"
-        env:
-          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        if: |
+          (github.ref == 'refs/heads/main' || github.event_name == 'release')
+        run: clasp deploy -d "${GITHUB_REF_NAME}"

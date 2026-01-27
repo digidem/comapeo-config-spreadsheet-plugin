@@ -1031,6 +1031,52 @@ function lintDetailsSheet(): void {
             return;
           }
 
+          // Check for and remove duplicate option values (after slugification)
+          // This catches: same labels ("Red, Red") and different labels with same slug ("Test 1, Test  1")
+          const seenValues = new Map<string, string>(); // value -> original label
+          const uniqueOptions: string[] = [];
+          const removedDuplicates: string[] = [];
+          const fieldNameValue = sheet.getRange(row, 1).getValue();
+          const fieldIndex = Math.max(row - 2, 0);
+          const fieldKey = typeof createFieldTagKey === "function"
+            ? createFieldTagKey(String(fieldNameValue || ""), fieldIndex)
+            : slugify(String(fieldNameValue || "")) || "field";
+
+          for (let i = 0; i < options.length; i++) {
+            const label = options[i];
+            const optValue = typeof createOptionValue === "function"
+              ? createOptionValue(label, fieldKey, i)
+              : slugify(label) || `${fieldKey || "option"}-${i + 1}`;
+            if (seenValues.has(optValue)) {
+              // Duplicate found - skip it and record for warning
+              removedDuplicates.push(label);
+            } else {
+              seenValues.set(optValue, label);
+              uniqueOptions.push(label);
+            }
+          }
+
+          if (removedDuplicates.length > 0) {
+            // Update cell with deduplicated options
+            const deduplicatedValue = uniqueOptions.join(", ");
+            sheet.getRange(row, col).setValue(deduplicatedValue);
+
+            // Add warning note about removed duplicates
+            const cell = sheet.getRange(row, col);
+            cell.setNote(
+              LINT_NOTE_PREFIX +
+                `Removed ${removedDuplicates.length} duplicate option(s): "${removedDuplicates.join('", "')}". ` +
+                "Each option must produce a unique slug value.",
+            );
+            // Use yellow background for warning (not error)
+            setInvalidCellBackground(sheet, row, col, "#FFF3CD");
+
+            console.log(
+              `Row ${row}: Removed ${removedDuplicates.length} duplicate option(s): ${removedDuplicates.join(", ")}`,
+            );
+            return;
+          }
+
           // Capitalize and format the options
           const capitalizedList = validateAndCapitalizeCommaList(value);
           if (capitalizedList !== value) {
@@ -1986,8 +2032,12 @@ function fixTranslationMismatches(
         const allLanguages = getAllLanguages();
         const resolveHeaderCode = createTranslationHeaderResolver(allLanguages);
         const seenLanguages = new Set<string>();
-        const headerB = String(headers[1] || "").trim().toLowerCase();
-        const headerC = String(headers[2] || "").trim().toLowerCase();
+        const headerB = String(headers[1] || "")
+          .trim()
+          .toLowerCase();
+        const headerC = String(headers[2] || "")
+          .trim()
+          .toLowerCase();
         const hasMetaColumns =
           headerB.includes("iso") && headerC.includes("source");
         const languageStartIndex = hasMetaColumns ? 3 : 1;
