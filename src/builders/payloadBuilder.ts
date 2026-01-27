@@ -346,7 +346,7 @@ function buildFields(data: SheetData): Field[] {
         }
       }
 
-      const autoId = idStr || slugify(name);
+      const autoId = idStr || slugify(name) || `field-${index + 1}`;
       if (!idStr && detailsSheet && idCol !== undefined) {
         pendingIdWrites.push({ row: index + 2, value: autoId }); // sheet rows are 1-based, +1 for header, +1 to reach first data row
       }
